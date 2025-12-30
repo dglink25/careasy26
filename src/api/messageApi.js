@@ -1,4 +1,3 @@
-// careasy-frontend/src/api/messageApi.js - VERSION AVEC DEBUG
 import api from './axios';
 
 export const messageApi = {
@@ -19,12 +18,47 @@ export const messageApi = {
 
   /**
    * Envoyer un message dans une conversation
+   * ✅ CORRIGÉ: Ajout du champ 'type' obligatoire
    */
-  sendMessage: async (conversationId, content, location = null) => {
+  sendMessage: async (conversationId, content, location = null, file = null, type = 'text') => {
     console.log('🔵 API sendMessage - conversationId:', conversationId);
     console.log('🔵 Content:', content);
+    console.log('🔵 Type:', type);
     
+    // Utiliser FormData si on a un fichier
+    if (file || type !== 'text') {
+      const formData = new FormData();
+      formData.append('type', type);
+      
+      if (content) {
+        formData.append('content', content);
+      }
+      
+      if (file) {
+        formData.append('file', file);
+      }
+      
+      if (location) {
+        formData.append('latitude', location.latitude);
+        formData.append('longitude', location.longitude);
+      }
+      
+      const response = await api.post(
+        `/conversation/${conversationId}/send`, 
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      console.log('🔵 Message envoyé:', response.data);
+      return response.data;
+    }
+    
+    // Pour les messages texte simples
     const payload = {
+      type: 'text', // ✅ Obligatoire maintenant
       content,
       ...(location && {
         latitude: location.latitude,
