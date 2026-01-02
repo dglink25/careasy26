@@ -12,6 +12,7 @@ import theme from '../../config/theme';
 export default function ChatModal({ 
   receiverId, 
   receiverName, 
+  receiverPhone = null, // 👈 NOUVEAU
   onClose, 
   conversationId = null,
   existingConversation = false
@@ -47,6 +48,7 @@ export default function ChatModal({
   const recordingIntervalRef = useRef(null);
   const fileInputRef = useRef(null);
   const onlineCheckIntervalRef = useRef(null);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   useEffect(() => {
     initConversation();
@@ -128,6 +130,10 @@ export default function ChatModal({
           setIsReceiverOnline(conv.other_user_online);
           setLastSeen(conv.other_user_last_seen);
         }
+        // 👉 NOUVEAU : Si anonyme ET prestataire offline → Afficher modal contact
+      if (!user && !conv.other_user_online && receiverPhone) {
+        setShowContactModal(true);
+      }
       }
     } catch (err) {
       console.error('Erreur initialisation conversation:', err);
@@ -626,6 +632,7 @@ export default function ChatModal({
             {mediaPreview.type === 'image' && (
               <img src={mediaPreview.src} alt="Preview" style={styles.fullImage} />
             )}
+
           </div>
         </div>
       )}

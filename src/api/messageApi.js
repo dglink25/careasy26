@@ -1,3 +1,4 @@
+// src/api/messageApi.js - VERSION BASE64
 import api from './axios';
 
 export const messageApi = {
@@ -8,68 +9,70 @@ export const messageApi = {
     console.log('🔵 API startConversation - receiverId:', receiverId);
     
     const payload = receiverId ? { receiver_id: receiverId } : {};
-    console.log('🔵 Payload:', payload);
-    
     const response = await api.post('/conversation/start', payload);
-    console.log('🔵 Réponse:', response.data);
     
     return response.data;
   },
 
   /**
-   * Envoyer un message dans une conversation
-   * ✅ CORRIGÉ: Ajout du champ 'type' obligatoire
+   * ✅ Envoyer un message avec fichier en base64
    */
   sendMessage: async (conversationId, content, location = null, file = null, type = 'text') => {
     console.log('🔵 API sendMessage - conversationId:', conversationId);
-    console.log('🔵 Content:', content);
-    console.log('🔵 Type:', type);
+    console.log('🔵 Type:', type, '- File:', file ? 'OUI' : 'NON');
     
-    // Utiliser FormData si on a un fichier
-    if (file || type !== 'text') {
-      const formData = new FormData();
-      formData.append('type', type);
-      
-      if (content) {
-        formData.append('content', content);
-      }
-      
-      if (file) {
-        formData.append('file', file);
-      }
-      
+    try {
+      let payload = {
+        type: type,
+        content: content || null,
+      };
+
+      // Si localisation fournie
       if (location) {
-        formData.append('latitude', location.latitude);
-        formData.append('longitude', location.longitude);
+        payload.latitude = location.latitude;
+        payload.longitude = location.longitude;
       }
-      
+
+      // ✅ Si fichier fourni, le convertir en base64
+      if (file) {
+        console.log('📤 Conversion du fichier en base64...');
+        
+        // Convertir le fichier en base64
+        const fileData = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        payload.file_data = fileData; // Data URL complète (data:image/jpeg;base64,...)
+        payload.file_name = file.name;
+        
+        console.log('✅ Fichier converti:', {
+          name: file.name,
+          size: (fileData.length / 1024).toFixed(2) + ' KB',
+          type: file.type
+        });
+      }
+
+      // Envoyer en JSON (pas de FormData)
       const response = await api.post(
-        `/conversation/${conversationId}/send`, 
-        formData,
+        `/conversation/${conversationId}/send`,
+        payload,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'Content-Type': 'application/json',
           },
         }
       );
-      console.log('🔵 Message envoyé:', response.data);
+
+      console.log('✅ Message envoyé avec succès');
       return response.data;
+      
+    } catch (error) {
+      console.error('❌ Erreur envoi message:', error.response?.data || error.message);
+      throw error;
     }
-    
-    // Pour les messages texte simples
-    const payload = {
-      type: 'text', // ✅ Obligatoire maintenant
-      content,
-      ...(location && {
-        latitude: location.latitude,
-        longitude: location.longitude
-      })
-    };
-    
-    const response = await api.post(`/conversation/${conversationId}/send`, payload);
-    console.log('🔵 Message envoyé:', response.data);
-    
-    return response.data;
   },
 
   /**
@@ -79,19 +82,19 @@ export const messageApi = {
     console.log('🔵 API getMessages - conversationId:', conversationId);
     
     const response = await api.get(`/conversation/${conversationId}`);
-    console.log('🔵 Messages reçus:', response.data.messages?.length || 0);
+    console.log('📥 Messages reçus:', response.data.messages?.length || 0);
     
     return response.data;
   },
 
   /**
-   * Récupérer toutes les conversations de l'utilisateur connecté
+   * Récupérer toutes les conversations
    */
   getMyConversations: async () => {
     console.log('🔵 API getMyConversations');
     
     const response = await api.get('/conversations');
-    console.log('🔵 Conversations reçues:', response.data.length);
+    console.log('📥 Conversations reçues:', response.data.length);
     
     return response.data;
   },
@@ -103,7 +106,7 @@ export const messageApi = {
     console.log('🔵 API markAsRead - conversationId:', conversationId);
     
     const response = await api.post(`/conversation/${conversationId}/mark-read`);
-    console.log('🔵 Messages marqués comme lus');
+    console.log('✅ Messages marqués comme lus');
     
     return response.data;
   }

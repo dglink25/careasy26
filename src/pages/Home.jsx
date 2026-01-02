@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import ChatButton from '../components/Chat/ChatButton';
 import { publicApi } from '../api/publicApi';
 import theme from '../config/theme';
 import { 
@@ -287,6 +288,14 @@ export default function Home() {
                   {service.price ? `${service.price.toLocaleString()} FCFA` : 'Prix sur demande'}
                 </div>
               </div>
+              {/* 👉 NOUVEAU BOUTON */}
+                <ChatButton
+                  receiverId={service.entreprise?.prestataire_id}
+                  receiverName={service.entreprise?.name || 'Prestataire'}
+                  receiverPhone={service.entreprise?.phone}
+                  buttonText="💬 Contacter"
+                  variant="secondary"
+                />
             </div>
           ))}
         </div>
@@ -671,9 +680,13 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
   },
+  
   serviceContent: {
-    padding: '1.5rem',
-  },
+  padding: '1.5rem',
+  display: 'flex',        // 👈 AJOUTE
+  flexDirection: 'column', // 👈 AJOUTE
+  gap: '0.75rem',         // 👈 AJOUTE
+},
   serviceName: {
     fontSize: '1.25rem',
     fontWeight: 'bold',

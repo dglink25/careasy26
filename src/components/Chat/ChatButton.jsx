@@ -7,6 +7,7 @@ import theme from '../../config/theme';
 export default function ChatButton({ 
   receiverId, 
   receiverName = "l'entreprise",
+  receiverPhone = null, // 👈 NOUVEAU
   buttonText = "Discuter",
   variant = "primary" // primary, secondary, float
 }) {
@@ -60,6 +61,7 @@ export default function ChatButton({
         <ChatModal
           receiverId={receiverId}
           receiverName={receiverName}
+          receiverPhone={receiverPhone} // 👈 NOUVEAU
           onClose={() => setIsOpen(false)}
         />
       )}
