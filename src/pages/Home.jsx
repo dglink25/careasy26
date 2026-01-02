@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ChatButton from '../components/Chat/ChatButton';
+import ChatModal from '../components/Chat/ChatModal'; // 
 import { publicApi } from '../api/publicApi';
 import theme from '../config/theme';
 import { 
@@ -20,6 +21,9 @@ export default function Home() {
   const [showChatbot, setShowChatbot] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
   const sectionsRef = useRef([]);
+  // Ajoute ces states avec les autres (vers la ligne 25)
+const [showContactModal, setShowContactModal] = useState(false);
+const [selectedService, setSelectedService] = useState(null);
 
   // Hero slides avec vraies images
   const heroSlides = [
@@ -288,14 +292,17 @@ export default function Home() {
                   {service.price ? `${service.price.toLocaleString()} FCFA` : 'Prix sur demande'}
                 </div>
               </div>
-              {/* 👉 NOUVEAU BOUTON */}
-                <ChatButton
-                  receiverId={service.entreprise?.prestataire_id}
-                  receiverName={service.entreprise?.name || 'Prestataire'}
-                  receiverPhone={service.entreprise?.phone}
-                  buttonText="💬 Contacter"
-                  variant="secondary"
-                />
+              {/* 👉 NOUVEAU CODE */}
+<button
+  onClick={() => {
+    setSelectedService(service);
+    setShowContactModal(true);
+  }}
+  style={styles.contactButton}
+   className="contact-button"  // 👈 AJOUTE CETTE LIGNE
+>
+  💬 Contacter
+</button>
             </div>
           ))}
         </div>
@@ -400,6 +407,19 @@ export default function Home() {
         >
           <FaComments style={{fontSize: '1.75rem'}} />
         </button>
+
+        {/* 👉 MODALE DE CONTACT PROFESSIONNELLE */}
+{showContactModal && selectedService && (
+  <ChatModal
+    receiverId={selectedService.entreprise?.prestataire_id}
+    receiverName={selectedService.entreprise?.name || 'Prestataire'}
+    receiverPhone={selectedService.entreprise?.phone}
+    onClose={() => {
+      setShowContactModal(false);
+      setSelectedService(null);
+    }}
+  />
+)}
       </div>
 
       {/* CSS Animations */}
@@ -408,6 +428,16 @@ export default function Home() {
           opacity: 0;
           transform: translateY(50px);
           transition: all 0.8s ease-out;
+        }
+        .contact-button {
+          transition: all 0.3s ease;
+        }
+
+        .contact-button:hover {
+          background-color: #ef4444 !important;
+          color: white !important;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
         
         .animate-section.animate-in {
@@ -454,6 +484,7 @@ export default function Home() {
         .chatbot-pulse {
           animation: pulse 2s ease-in-out infinite;
         }
+        
       `}</style>
     </div>
   );
@@ -987,6 +1018,24 @@ const styles = {
     padding: '2rem 1rem',
     color: theme.colors.text.secondary,
   },
+
+  contactButton: {
+  width: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '0.5rem',
+  backgroundColor: 'transparent',
+  color: theme.colors.primary,
+  border: `2px solid ${theme.colors.primary}`,
+  padding: '0.875rem 1.5rem',
+  borderRadius: theme.borderRadius.lg,
+  fontSize: '0.95rem',
+  fontWeight: '600',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  marginTop: '0.75rem',
+},
 
   chatbotWelcomeIcon: {
     fontSize: '3rem',

@@ -1,4 +1,4 @@
-// careasy-frontend/src/api/axios.js - VERSION COMPLÈTE AVEC AUTH
+// careasy-frontend/src/api/axios.js - VERSION CORRIGÉE POUR MESSAGERIE ANONYME
 import axios from 'axios';
 
 const api = axios.create({
@@ -10,20 +10,39 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// ✅ Liste des endpoints qui NE nécessitent PAS d'authentification
+const PUBLIC_ENDPOINTS = [
+  '/conversation/start',    // 👈 Démarrer conversation anonyme
+  '/conversation/',         // 👈 Envoyer/recevoir messages anonymes
+  '/entreprises',
+  '/services',
+  '/search',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+];
+
+// Fonction pour vérifier si l'endpoint est public
+const isPublicEndpoint = (url) => {
+  if (!url) return false;
+  return PUBLIC_ENDPOINTS.some(endpoint => url.includes(endpoint));
+};
+
 // ✅ INTERCEPTEUR POUR AJOUTER LE TOKEN
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     
+    // ✅ Ajouter le token seulement s'il existe
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log('🔑 Token ajouté:', token.substring(0, 20) + '...');
     } else {
-      console.warn('⚠️ Aucun token trouvé dans localStorage');
+      console.warn('⚠️ Aucun token - Requête anonyme autorisée pour:', config.url);
     }
     
     console.log('📡 Requête:', config.method.toUpperCase(), config.url);
-    console.log('📡 Headers:', config.headers);
     
     return config;
   },
@@ -42,12 +61,19 @@ api.interceptors.response.use(
   (error) => {
     console.error('❌ Erreur API:', error.response?.status, error.response?.data);
     
-    // Si 401 Unauthorized, déconnecter l'utilisateur
+    // ✅ Si 401 Unauthorized
     if (error.response?.status === 401) {
-      console.warn('⚠️ Non authentifié - Redirection vers login');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const requestUrl = error.config?.url || '';
+      
+      // ✅ NE PAS rediriger vers login pour les endpoints publics
+      if (!isPublicEndpoint(requestUrl)) {
+        console.warn('⚠️ Non authentifié - Redirection vers login');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      } else {
+        console.info('ℹ️ Requête anonyme autorisée:', requestUrl);
+      }
     }
     
     return Promise.reject(error);
