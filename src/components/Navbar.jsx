@@ -1,7 +1,8 @@
-// careasy-frontend/src/components/Navbar.jsx - VERSION ULTRA PROFESSIONNELLE
+// careasy-frontend/src/components/Navbar.jsx - VERSION AVEC SERVICES DYNAMIQUES
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { publicApi } from '../api/publicApi';
 import Logo from './Logo';
 import theme from '../config/theme';
 import { 
@@ -13,16 +14,8 @@ import {
   FaSignOutAlt,
   FaBars,
   FaTimes,
-  FaWrench,
-  FaPaintBrush,
-  FaCog,
-  FaSnowflake,
-  FaGraduationCap,
-  FaShieldAlt,
   FaChevronDown
 } from 'react-icons/fa';
-
-// 👉 AJOUT
 import { FiMessageSquare } from 'react-icons/fi';
 
 export default function Navbar() {
@@ -32,16 +25,28 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [showServicesDropdown, setShowServicesDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // ✅ États pour les domaines dynamiques
+  const [domaines, setDomaines] = useState([]);
+  const [loadingDomaines, setLoadingDomaines] = useState(true);
 
-  // Services disponibles
-  const servicesCategories = [
-    { icon: <FaWrench />, name: 'Mécanique', path: '/services?type=mecanique' },
-    { icon: <FaPaintBrush />, name: 'Peinture & Carrosserie', path: '/services?type=peinture' },
-    { icon: <FaCog />, name: 'Pneumatique', path: '/services?type=pneumatique' },
-    { icon: <FaSnowflake />, name: 'Climatisation', path: '/services?type=climatisation' },
-    { icon: <FaGraduationCap />, name: 'Auto-école', path: '/services?type=autoecole' },
-    { icon: <FaShieldAlt />, name: 'Assurance', path: '/services?type=assurance' },
-  ];
+  // ✅ Charger les domaines depuis l'API
+  useEffect(() => {
+    fetchDomaines();
+  }, []);
+
+  const fetchDomaines = async () => {
+    try {
+      setLoadingDomaines(true);
+      const data = await publicApi.getDomaines();
+      setDomaines(data);
+    } catch (error) {
+      console.error('Erreur chargement domaines:', error);
+      setDomaines([]);
+    } finally {
+      setLoadingDomaines(false);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,6 +65,16 @@ export default function Navbar() {
   const isActive = (path) => location.pathname === path;
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  // ✅ Fonction pour gérer le clic sur un domaine
+  const handleDomaineClick = (domaineId) => {
+    navigate(`/services?type=${domaineId}`);
+    setShowServicesDropdown(false);
+    closeMobileMenu();
+  };
+
+  // ✅ Icône par défaut pour les domaines
+  const getDomaineIcon = () => <FaTools />;
 
   return (
     <>
@@ -100,8 +115,6 @@ export default function Navbar() {
                       <FaBuilding style={styles.icon} />
                       Entreprises
                     </Link>
-
-                    {/* 👉 NOUVEAU LIEN MESSAGES */}
                     <Link 
                       to="/messages" 
                       style={{
@@ -112,10 +125,7 @@ export default function Navbar() {
                     >
                       <FiMessageSquare style={styles.icon} />
                       Messages
-                      {/* Badge optionnel pour non lus */}
-                      {/* <span style={styles.messageBadge}>3</span> */}
                     </Link>
-
                     <Link 
                       to="/entreprises" 
                       style={{
@@ -164,8 +174,6 @@ export default function Navbar() {
                       <FaTools style={styles.icon} />
                       Mes Services
                     </Link>
-
-                     {/* 👉 NOUVEAU LIEN MESSAGES */}
                     <Link 
                       to="/messages" 
                       style={{
@@ -176,10 +184,7 @@ export default function Navbar() {
                     >
                       <FiMessageSquare style={styles.icon} />
                       Messages
-                      {/* Badge optionnel pour non lus */}
-                      {/* <span style={styles.messageBadge}>3</span> */}
                     </Link>
-                    
                     <Link 
                       to="/entreprises" 
                       style={{
@@ -236,7 +241,7 @@ export default function Navbar() {
                   Entreprises
                 </Link>
                 
-                {/* Mega Dropdown Services */}
+                {/* ✅ Mega Dropdown Services DYNAMIQUE */}
                 <div 
                   style={styles.dropdown}
                   onMouseEnter={() => setShowServicesDropdown(true)}
@@ -259,29 +264,55 @@ export default function Navbar() {
                     <div style={styles.megaDropdown} className="mega-dropdown">
                       <div style={styles.megaDropdownHeader}>
                         <h3 style={styles.megaDropdownTitle}>Nos Services</h3>
-                        <p style={styles.megaDropdownSubtitle}>Choisissez le service qu'il vous faut</p>
+                        <p style={styles.megaDropdownSubtitle}>
+                          {loadingDomaines 
+                            ? 'Chargement...' 
+                            : `${domaines.length} domaines disponibles`
+                          }
+                        </p>
                       </div>
-                      <div style={styles.servicesGrid}>
-                        {servicesCategories.map((service, index) => (
-                          <Link 
-                            key={index}
-                            to={service.path}
-                            style={styles.serviceItem}
-                            className="service-item"
-                          >
-                            <div style={styles.serviceIcon}>{service.icon}</div>
-                            <span style={styles.serviceName}>{service.name}</span>
-                          </Link>
-                        ))}
-                      </div>
-                      <div style={styles.megaDropdownFooter}>
-                        <Link to="/services" style={styles.viewAllLink}>
-                          Voir tous les services →
-                        </Link>
-                      </div>
+                      
+                      {loadingDomaines ? (
+                        <div style={styles.loadingContainer}>
+                          <div style={styles.spinner}></div>
+                          <p style={styles.loadingText}>Chargement des services...</p>
+                        </div>
+                      ) : domaines.length > 0 ? (
+                        <>
+                          <div style={styles.servicesGrid}>
+                            {domaines.map((domaine) => (
+                              <button
+                                key={domaine.id}
+                                onClick={() => handleDomaineClick(domaine.id)}
+                                style={styles.serviceItem}
+                                className="service-item"
+                              >
+                                <div style={styles.serviceIcon}>
+                                  {getDomaineIcon()}
+                                </div>
+                                <span style={styles.serviceName}>{domaine.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                          <div style={styles.megaDropdownFooter}>
+                            <Link 
+                              to="/services" 
+                              style={styles.viewAllLink}
+                              onClick={() => setShowServicesDropdown(false)}
+                            >
+                              Voir tous les services →
+                            </Link>
+                          </div>
+                        </>
+                      ) : (
+                        <div style={styles.emptyState}>
+                          <p style={styles.emptyText}>Aucun service disponible</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
+                
                 <Link to="/login" style={styles.buttonSecondary}>
                   Connexion
                 </Link>
@@ -341,6 +372,9 @@ export default function Navbar() {
                       <Link to="/admin/entreprises" style={styles.mobileLink} onClick={closeMobileMenu}>
                         <FaBuilding /> Entreprises
                       </Link>
+                      <Link to="/messages" style={styles.mobileLink} onClick={closeMobileMenu}>
+                        <FiMessageSquare /> Messages
+                      </Link>
                       <Link to="/entreprises" style={styles.mobileLink} onClick={closeMobileMenu}>
                         <FaSearch /> Site Public
                       </Link>
@@ -356,10 +390,9 @@ export default function Navbar() {
                       <Link to="/mes-services" style={styles.mobileLink} onClick={closeMobileMenu}>
                         <FaTools /> Mes Services
                       </Link>
-                        {/* 👉 NOUVEAU LIEN MESSAGES - MOBILE */}
-                <Link to="/messages" style={styles.mobileLink} onClick={closeMobileMenu}>
-                  <FiMessageSquare /> Messages
-                </Link>
+                      <Link to="/messages" style={styles.mobileLink} onClick={closeMobileMenu}>
+                        <FiMessageSquare /> Messages
+                      </Link>
                       <Link to="/entreprises" style={styles.mobileLink} onClick={closeMobileMenu}>
                         <FaSearch /> Explorer
                       </Link>
@@ -379,21 +412,34 @@ export default function Navbar() {
                     <FaBuilding /> Entreprises
                   </Link>
                   
+                  {/* ✅ Section Services Mobile DYNAMIQUE */}
                   <div style={styles.mobileServicesSection}>
                     <div style={styles.mobileSectionTitle}>
                       <FaTools /> Services
                     </div>
-                    {servicesCategories.map((service, index) => (
-                      <Link 
-                        key={index}
-                        to={service.path}
-                        style={styles.mobileServiceLink}
-                        onClick={closeMobileMenu}
-                      >
-                        {service.icon}
-                        {service.name}
-                      </Link>
-                    ))}
+                    {loadingDomaines ? (
+                      <div style={styles.mobileLoadingText}>Chargement...</div>
+                    ) : domaines.length > 0 ? (
+                      domaines.map((domaine) => (
+                        <button
+                          key={domaine.id}
+                          onClick={() => handleDomaineClick(domaine.id)}
+                          style={styles.mobileServiceLink}
+                        >
+                          {getDomaineIcon()}
+                          {domaine.name}
+                        </button>
+                      ))
+                    ) : (
+                      <div style={styles.mobileEmptyText}>Aucun service</div>
+                    )}
+                    <Link 
+                      to="/services" 
+                      style={styles.mobileViewAllLink}
+                      onClick={closeMobileMenu}
+                    >
+                      Voir tous les services →
+                    </Link>
                   </div>
 
                   <div style={styles.mobileAuthButtons}>
@@ -448,6 +494,10 @@ export default function Navbar() {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
 
         .service-item {
@@ -530,9 +580,10 @@ const styles = {
     borderRadius: theme.borderRadius.xl,
     boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
     border: `2px solid ${theme.colors.primaryLight}`,
-    minWidth: '500px',
-    maxWidth: '600px',
-    overflow: 'hidden',
+    minWidth: '600px',
+    maxWidth: '700px',
+    maxHeight: '70vh',
+    overflow: 'auto',
   },
   megaDropdownHeader: {
     padding: '1.5rem',
@@ -549,9 +600,29 @@ const styles = {
     color: theme.colors.text.secondary,
     fontSize: '0.9rem',
   },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '3rem',
+    gap: '1rem',
+  },
+  spinner: {
+    width: '30px',
+    height: '30px',
+    border: `3px solid ${theme.colors.primaryLight}`,
+    borderTop: `3px solid ${theme.colors.primary}`,
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  loadingText: {
+    color: theme.colors.text.secondary,
+    fontSize: '0.875rem',
+  },
   servicesGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
+    gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '0.5rem',
     padding: '1rem',
   },
@@ -565,6 +636,8 @@ const styles = {
     textDecoration: 'none',
     color: theme.colors.text.primary,
     border: `2px solid ${theme.colors.primaryLight}`,
+    cursor: 'pointer',
+    transition: 'all 0.3s',
   },
   serviceIcon: {
     fontSize: '1.5rem',
@@ -573,6 +646,7 @@ const styles = {
   serviceName: {
     fontWeight: '600',
     fontSize: '0.95rem',
+    textAlign: 'left',
   },
   megaDropdownFooter: {
     padding: '1rem 1.5rem',
@@ -584,6 +658,14 @@ const styles = {
     color: theme.colors.primary,
     textDecoration: 'none',
     fontWeight: '600',
+    fontSize: '0.95rem',
+  },
+  emptyState: {
+    padding: '3rem',
+    textAlign: 'center',
+  },
+  emptyText: {
+    color: theme.colors.text.secondary,
     fontSize: '0.95rem',
   },
   userInfo: {
@@ -778,6 +860,18 @@ const styles = {
     marginBottom: '0.75rem',
     fontSize: '1.1rem',
   },
+  mobileLoadingText: {
+    color: theme.colors.text.secondary,
+    fontSize: '0.875rem',
+    padding: '1rem',
+    textAlign: 'center',
+  },
+  mobileEmptyText: {
+    color: theme.colors.text.secondary,
+    fontSize: '0.875rem',
+    padding: '1rem',
+    textAlign: 'center',
+  },
   mobileServiceLink: {
     display: 'flex',
     alignItems: 'center',
@@ -790,59 +884,6 @@ const styles = {
     transition: 'all 0.3s',
     marginBottom: '0.5rem',
     fontSize: '0.95rem',
-  },
-  mobileAuthButtons: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.75rem',
-    marginTop: '1rem',
-  },
-  mobileButtonPrimary: {
-    backgroundColor: theme.colors.primary,
-    color: theme.colors.text.white,
-    padding: '1rem',
-    borderRadius: theme.borderRadius.lg,
-    textDecoration: 'none',
-    fontWeight: '600',
-    textAlign: 'center',
-    boxShadow: theme.shadows.md,
-  },
-  mobileButtonSecondary: {
     backgroundColor: 'transparent',
-    color: theme.colors.primary,
-    border: `2px solid ${theme.colors.primary}`,
-    padding: '1rem',
-    borderRadius: theme.borderRadius.lg,
-    textDecoration: 'none',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  mobileLogoutButton: {
-    backgroundColor: theme.colors.error,
-    color: theme.colors.text.white,
-    border: 'none',
-    padding: '1rem',
-    borderRadius: theme.borderRadius.lg,
-    fontWeight: '600',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.75rem',
-    marginTop: '1rem',
-  },
-};
-
-// Media Query inline
-if (typeof window !== 'undefined') {
-  const mediaQuery = window.matchMedia('(max-width: 968px)');
-  const updateStyles = () => {
-    if (mediaQuery.matches) {
-      styles.desktopMenu.display = 'none';
-      styles.mobileMenuButton.display = 'block';
-      styles.mobileMenuOverlay.display = 'block';
-    }
-  };
-  mediaQuery.addListener(updateStyles);
-  updateStyles();
-} 
+   // border:
+  }}

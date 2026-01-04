@@ -1,24 +1,37 @@
-// careasy-frontend/src/pages/public/PublicServices.jsx
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { publicApi } from '../../api/publicApi';
-import theme from '../../config/theme';
 
 export default function PublicServices() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [services, setServices] = useState([]);
+  const [domaines, setDomaines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  
+  // États pour les filtres
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [selectedDomaine, setSelectedDomaine] = useState(searchParams.get('type') || 'all');
 
   useEffect(() => {
-    fetchServices();
+    fetchData();
   }, []);
 
-  const fetchServices = async () => {
+  // Mettre à jour les filtres depuis l'URL
+  useEffect(() => {
+    setSearchTerm(searchParams.get('search') || '');
+    setSelectedDomaine(searchParams.get('type') || 'all');
+  }, [searchParams]);
+
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await publicApi.getServices();
-      setServices(data);
+      const [servicesData, domainesData] = await Promise.all([
+        publicApi.getServices(),
+        publicApi.getDomaines()
+      ]);
+      setServices(servicesData);
+      setDomaines(domainesData);
       setError('');
     } catch (err) {
       setError('Erreur lors du chargement des services');
@@ -28,13 +41,45 @@ export default function PublicServices() {
     }
   };
 
-  // Filtrage
-  const filteredServices = services.filter(s =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.entreprise?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.domaine?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.descriptions?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Mise à jour des paramètres URL
+  const updateFilters = (search, domaine) => {
+    const params = {};
+    if (search) params.search = search;
+    if (domaine !== 'all') params.type = domaine;
+    setSearchParams(params);
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    updateFilters(value, selectedDomaine);
+  };
+
+  const handleDomaineChange = (domaineId) => {
+    setSelectedDomaine(domaineId);
+    updateFilters(searchTerm, domaineId);
+  };
+
+  // Filtrage des services
+  const filteredServices = services.filter(s => {
+    const matchSearch = !searchTerm || 
+      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.entreprise?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.domaine?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.descriptions?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchDomaine = selectedDomaine === 'all' || 
+      s.domaine?.id === parseInt(selectedDomaine);
+    
+    return matchSearch && matchDomaine;
+  });
+
+  // Statistiques
+  const stats = {
+    total: services.length,
+    filtered: filteredServices.length,
+    domaines: new Set(services.map(s => s.domaine?.id).filter(Boolean)).size,
+    withPrice: services.filter(s => s.price).length
+  };
 
   if (loading) {
     return (
@@ -52,21 +97,78 @@ export default function PublicServices() {
       <div style={styles.content}>
         {/* Hero */}
         <div style={styles.hero}>
-          <h1 style={styles.heroTitle}>🛠️ Tous nos services</h1>
+          <h1 style={styles.heroTitle}>🛠️ Services Automobiles</h1>
           <p style={styles.heroSubtitle}>
-            Découvrez {services.length} services automobiles certifiés
+            Découvrez {stats.total} services professionnels répartis dans {stats.domaines} domaines
           </p>
         </div>
 
-        {/* Recherche */}
-        <div style={styles.searchSection}>
-          <input
-            type="text"
-            placeholder="Rechercher un service..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
+        {/* Statistiques rapides */}
+        <div style={styles.statsGrid}>
+          <div style={styles.statCard}>
+            <div style={styles.statNumber}>{stats.total}</div>
+            <div style={styles.statLabel}>Services disponibles</div>
+          </div>
+          <div style={styles.statCard}>
+            <div style={styles.statNumber}>{stats.domaines}</div>
+            <div style={styles.statLabel}>Domaines d'expertise</div>
+          </div>
+          <div style={styles.statCard}>
+            <div style={styles.statNumber}>{stats.withPrice}</div>
+            <div style={styles.statLabel}>Avec tarifs affichés</div>
+          </div>
+        </div>
+
+        {/* Filtres */}
+        <div style={styles.filtersSection}>
+          {/* Recherche */}
+          <div style={styles.searchContainer}>
+            <input
+              type="text"
+              placeholder="Rechercher un service..."
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              style={styles.searchInput}
+            />
+            {searchTerm && (
+              <button 
+                onClick={() => handleSearchChange('')}
+                style={styles.clearButton}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Filtres par domaine */}
+          <div style={styles.domainesFilter}>
+            <button
+              onClick={() => handleDomaineChange('all')}
+              style={{
+                ...styles.domaineButton,
+                ...(selectedDomaine === 'all' ? styles.domaineButtonActive : {})
+              }}
+            >
+              Tous ({services.length})
+            </button>
+            {domaines.map(domaine => {
+              const count = services.filter(s => s.domaine?.id === domaine.id).length;
+              if (count === 0) return null;
+              
+              return (
+                <button
+                  key={domaine.id}
+                  onClick={() => handleDomaineChange(domaine.id.toString())}
+                  style={{
+                    ...styles.domaineButton,
+                    ...(selectedDomaine === domaine.id.toString() ? styles.domaineButtonActive : {})
+                  }}
+                >
+                  {domaine.name} ({count})
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Message d'erreur */}
@@ -77,115 +179,123 @@ export default function PublicServices() {
         )}
 
         {/* Résultats */}
+        <div style={styles.resultsHeader}>
+          <h2 style={styles.resultsTitle}>
+            {filteredServices.length} service{filteredServices.length > 1 ? 's' : ''} 
+            {searchTerm && ` pour "${searchTerm}"`}
+            {selectedDomaine !== 'all' && ` dans "${domaines.find(d => d.id === parseInt(selectedDomaine))?.name}"`}
+          </h2>
+          {(searchTerm || selectedDomaine !== 'all') && (
+            <button 
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedDomaine('all');
+                setSearchParams({});
+              }}
+              style={styles.resetButton}
+            >
+              Réinitialiser les filtres
+            </button>
+          )}
+        </div>
+
         {filteredServices.length === 0 ? (
           <div style={styles.emptyState}>
             <div style={styles.emptyIcon}>🔍</div>
             <h3 style={styles.emptyTitle}>Aucun service trouvé</h3>
             <p style={styles.emptyText}>
-              {searchTerm
-                ? `Aucun résultat pour "${searchTerm}"`
-                : "Aucun service disponible"
+              {searchTerm || selectedDomaine !== 'all'
+                ? "Aucun résultat ne correspond à vos critères. Essayez d'autres filtres."
+                : "Aucun service disponible pour le moment."
               }
             </p>
           </div>
         ) : (
-          <>
-            <div style={styles.resultsHeader}>
-              <h2 style={styles.resultsTitle}>
-                {filteredServices.length} service{filteredServices.length > 1 ? 's' : ''} disponible{filteredServices.length > 1 ? 's' : ''}
-              </h2>
-            </div>
+          <div style={styles.grid}>
+            {filteredServices.map((service) => (
+              <Link
+                key={service.id}
+                to={`/services/${service.id}`}
+                style={styles.card}
+                className="service-card"
+              >
+                {/* Image */}
+                {service.medias && service.medias.length > 0 ? (
+                  <div style={styles.cardImage}>
+                    <img 
+                      src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${service.medias[0]?.replace(/^\/?storage\//, '')}`}
+                      alt={service.name}
+                      style={styles.image}
+                    />
+                    {service.medias.length > 1 && (
+                      <div style={styles.imageBadge}>
+                        +{service.medias.length - 1} photo{service.medias.length > 2 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={styles.imagePlaceholder}>
+                    <div style={styles.placeholderIcon}>🛠️</div>
+                  </div>
+                )}
 
-            <div style={styles.grid}>
-              {filteredServices.map((service) => (
-                <div 
-                  key={service.id}
-                  style={styles.card}
-                  className="service-card"
-                >
-                  {/* Image */}
-                  {service.medias && service.medias.length > 0 ? (
-                    <div style={styles.cardImage}>
-                      <img 
-                        src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${service.medias[0]?.replace(/^\/?storage\//, '')}`}
-                        alt={service.name}
-                        style={styles.image}
-                      />
-                      {service.medias.length > 1 && (
-                        <div style={styles.imageBadge}>
-                          +{service.medias.length - 1} photo{service.medias.length > 2 ? 's' : ''}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div style={styles.imagePlaceholder}>
-                      <div style={styles.placeholderIcon}>🛠️</div>
+                {/* Contenu */}
+                <div style={styles.cardBody}>
+                  <h3 style={styles.cardTitle}>{service.name}</h3>
+                  
+                  {service.domaine && (
+                    <div style={styles.domaineTag}>
+                      🏷️ {service.domaine.name}
                     </div>
                   )}
 
-                  {/* Contenu */}
-                  <div style={styles.cardBody}>
-                    <h3 style={styles.cardTitle}>{service.name}</h3>
-                    
-                    {service.domaine && (
-                      <div style={styles.domaineTag}>
-                        🏷️ {service.domaine.name}
-                      </div>
-                    )}
+                  {service.descriptions && (
+                    <p style={styles.description}>
+                      {service.descriptions.substring(0, 120)}
+                      {service.descriptions.length > 120 ? '...' : ''}
+                    </p>
+                  )}
 
-                    {service.descriptions && (
-                      <p style={styles.description}>
-                        {service.descriptions.substring(0, 120)}
-                        {service.descriptions.length > 120 ? '...' : ''}
-                      </p>
-                    )}
-
-                    <div style={styles.details}>
-                      <div style={styles.price}>
-                        {service.price 
-                          ? `${service.price.toLocaleString()} FCFA`
-                          : 'Prix sur demande'
-                        }
-                      </div>
-                      {service.is_open_24h ? (
-                        <div style={styles.hours}>🕐 24h/24</div>
-                      ) : service.start_time && service.end_time ? (
-                        <div style={styles.hours}>
-                          🕐 {service.start_time} - {service.end_time}
-                        </div>
-                      ) : null}
+                  <div style={styles.details}>
+                    <div style={styles.price}>
+                      {service.price 
+                        ? `${service.price.toLocaleString()} FCFA`
+                        : 'Prix sur demande'
+                      }
                     </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div style={styles.cardFooter}>
-                    {service.entreprise && (
-                      <Link 
-                        to={`/entreprises/${service.entreprise.id}`}
-                        style={styles.entrepriseLink}
-                      >
-                        <div style={styles.entrepriseInfo}>
-                          {service.entreprise.logo ? (
-                            <img 
-                              src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${service.entreprise.logo?.replace(/^\/?storage\//, '')}`}
-                              alt={service.entreprise.name}
-                              style={styles.entrepriseLogo}
-                            />
-                          ) : (
-                            <div style={styles.logoPlaceholder}>🏢</div>
-                          )}
-                          <span style={styles.entrepriseName}>
-                            {service.entreprise.name}
-                          </span>
-                        </div>
-                        <span style={styles.viewLink}>Voir →</span>
-                      </Link>
-                    )}
+                    {service.is_open_24h ? (
+                      <div style={styles.hours}>🕐 24h/24</div>
+                    ) : service.start_time && service.end_time ? (
+                      <div style={styles.hours}>
+                        🕐 {service.start_time} - {service.end_time}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-              ))}
-            </div>
-          </>
+
+                {/* Footer */}
+                <div style={styles.cardFooter}>
+                  {service.entreprise && (
+                    <div style={styles.entrepriseInfo}>
+                      {service.entreprise.logo ? (
+                        <img 
+                          src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${service.entreprise.logo?.replace(/^\/?storage\//, '')}`}
+                          alt={service.entreprise.name}
+                          style={styles.entrepriseLogo}
+                        />
+                      ) : (
+                        <div style={styles.logoPlaceholder}>🏢</div>
+                      )}
+                      <span style={styles.entrepriseName}>
+                        {service.entreprise.name}
+                      </span>
+                    </div>
+                  )}
+                  <span style={styles.viewLink}>Voir →</span>
+                </div>
+              </Link>
+            ))}
+          </div>
         )}
       </div>
 
@@ -194,8 +304,15 @@ export default function PublicServices() {
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
         .service-card {
           transition: all 0.3s ease;
+          animation: fadeIn 0.5s ease-out;
+          text-decoration: none;
+          color: inherit;
         }
         .service-card:hover {
           transform: translateY(-8px);
@@ -209,12 +326,12 @@ export default function PublicServices() {
 const styles = {
   container: {
     minHeight: '100vh',
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#f8fafc',
     paddingTop: '2rem',
     paddingBottom: '4rem',
   },
   content: {
-    maxWidth: '1200px',
+    maxWidth: '1400px',
     margin: '0 auto',
     padding: '0 1rem',
   },
@@ -229,13 +346,13 @@ const styles = {
   spinner: {
     width: '50px',
     height: '50px',
-    border: `4px solid ${theme.colors.primaryLight}`,
-    borderTop: `4px solid ${theme.colors.primary}`,
+    border: '4px solid #dbeafe',
+    borderTop: '4px solid #3b82f6',
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
   loadingText: {
-    color: theme.colors.text.secondary,
+    color: '#64748b',
     fontSize: '1.125rem',
   },
   hero: {
@@ -246,39 +363,123 @@ const styles = {
   heroTitle: {
     fontSize: 'clamp(2rem, 5vw, 3rem)',
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
+    color: '#1e293b',
     marginBottom: '1rem',
   },
   heroSubtitle: {
     fontSize: '1.25rem',
-    color: theme.colors.text.secondary,
+    color: '#64748b',
   },
-  searchSection: {
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '1rem',
     marginBottom: '2rem',
+  },
+  statCard: {
+    backgroundColor: '#fff',
+    padding: '1.5rem',
+    borderRadius: '1rem',
+    textAlign: 'center',
+    border: '1px solid #e2e8f0',
+  },
+  statNumber: {
+    fontSize: '2rem',
+    fontWeight: 'bold',
+    color: '#3b82f6',
+    marginBottom: '0.5rem',
+  },
+  statLabel: {
+    fontSize: '0.875rem',
+    color: '#64748b',
+  },
+  filtersSection: {
+    marginBottom: '2rem',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+  },
+  searchContainer: {
+    position: 'relative',
   },
   searchInput: {
     width: '100%',
-    padding: '1rem 1.5rem',
-    border: `2px solid ${theme.colors.primaryLight}`,
-    borderRadius: theme.borderRadius.lg,
+    padding: '1rem 3rem 1rem 1.5rem',
+    border: '2px solid #e2e8f0',
+    borderRadius: '0.75rem',
     fontSize: '1rem',
     outline: 'none',
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: '#fff',
+  },
+  clearButton: {
+    position: 'absolute',
+    right: '1rem',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    backgroundColor: 'transparent',
+    border: 'none',
+    fontSize: '1.25rem',
+    color: '#94a3b8',
+    cursor: 'pointer',
+  },
+  domainesFilter: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '0.75rem',
+  },
+  domaineButton: {
+    backgroundColor: '#fff',
+    border: '2px solid #e2e8f0',
+    padding: '0.75rem 1.5rem',
+    borderRadius: '0.75rem',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#475569',
+    cursor: 'pointer',
+    transition: 'all 0.3s',
+  },
+  domaineButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+    color: '#fff',
   },
   error: {
     backgroundColor: '#FEE2E2',
-    color: theme.colors.error,
+    color: '#dc2626',
     padding: '1rem',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: '0.75rem',
     marginBottom: '2rem',
-    border: `2px solid ${theme.colors.error}`,
+    border: '2px solid #dc2626',
+  },
+  resultsHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '2rem',
+    flexWrap: 'wrap',
+    gap: '1rem',
+  },
+  resultsTitle: {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  resetButton: {
+    backgroundColor: '#f1f5f9',
+    border: '1px solid #e2e8f0',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.5rem',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#475569',
+    cursor: 'pointer',
   },
   emptyState: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: '#fff',
     padding: '4rem 2rem',
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: '1.5rem',
     textAlign: 'center',
-    border: `2px dashed ${theme.colors.primaryLight}`,
+    border: '2px dashed #e2e8f0',
   },
   emptyIcon: {
     fontSize: '5rem',
@@ -287,20 +488,12 @@ const styles = {
   emptyTitle: {
     fontSize: '1.75rem',
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
+    color: '#1e293b',
     marginBottom: '0.75rem',
   },
   emptyText: {
-    color: theme.colors.text.secondary,
+    color: '#64748b',
     fontSize: '1.125rem',
-  },
-  resultsHeader: {
-    marginBottom: '2rem',
-  },
-  resultsTitle: {
-    fontSize: '1.5rem',
-    fontWeight: 'bold',
-    color: theme.colors.text.primary,
   },
   grid: {
     display: 'grid',
@@ -308,11 +501,11 @@ const styles = {
     gap: '2rem',
   },
   card: {
-    backgroundColor: theme.colors.secondary,
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: '#fff',
+    borderRadius: '1rem',
     overflow: 'hidden',
-    border: `2px solid ${theme.colors.primaryLight}`,
-    boxShadow: theme.shadows.md,
+    border: '2px solid #e2e8f0',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
     display: 'flex',
     flexDirection: 'column',
   },
@@ -332,13 +525,13 @@ const styles = {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     color: '#fff',
     padding: '0.375rem 0.75rem',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: '0.5rem',
     fontSize: '0.8rem',
     fontWeight: '600',
   },
   imagePlaceholder: {
     height: '200px',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#dbeafe',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -353,21 +546,21 @@ const styles = {
   cardTitle: {
     fontSize: '1.25rem',
     fontWeight: 'bold',
-    color: theme.colors.text.primary,
+    color: '#1e293b',
     marginBottom: '0.75rem',
   },
   domaineTag: {
     display: 'inline-block',
-    backgroundColor: theme.colors.primaryLight,
-    color: theme.colors.primary,
+    backgroundColor: '#dbeafe',
+    color: '#3b82f6',
     padding: '0.375rem 0.75rem',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: '0.5rem',
     fontSize: '0.8rem',
     fontWeight: '600',
     marginBottom: '0.75rem',
   },
   description: {
-    color: theme.colors.text.secondary,
+    color: '#64748b',
     fontSize: '0.95rem',
     lineHeight: '1.6',
     marginBottom: '1rem',
@@ -378,25 +571,22 @@ const styles = {
     gap: '0.5rem',
   },
   price: {
-    color: theme.colors.primary,
+    color: '#10b981',
     fontWeight: '700',
     fontSize: '1.125rem',
   },
   hours: {
-    color: theme.colors.text.secondary,
+    color: '#64748b',
     fontSize: '0.9rem',
     fontWeight: '600',
   },
   cardFooter: {
     padding: '1rem 1.5rem',
-    backgroundColor: theme.colors.background,
-    borderTop: `1px solid ${theme.colors.primaryLight}`,
-  },
-  entrepriseLink: {
+    backgroundColor: '#f8fafc',
+    borderTop: '1px solid #e2e8f0',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    textDecoration: 'none',
   },
   entrepriseInfo: {
     display: 'flex',
@@ -406,14 +596,14 @@ const styles = {
   entrepriseLogo: {
     width: '40px',
     height: '40px',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: '0.5rem',
     objectFit: 'cover',
   },
   logoPlaceholder: {
     width: '40px',
     height: '40px',
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primaryLight,
+    borderRadius: '0.5rem',
+    backgroundColor: '#dbeafe',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -421,10 +611,10 @@ const styles = {
   },
   entrepriseName: {
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: '#1e293b',
   },
   viewLink: {
-    color: theme.colors.primary,
+    color: '#3b82f6',
     fontWeight: '600',
   },
 };

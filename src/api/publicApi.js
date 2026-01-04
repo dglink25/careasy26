@@ -26,6 +26,12 @@ export const publicApi = {
     return response.data;
   },
 
+  // ✅ NOUVEAU: Détails d'un service (public)
+  getService: async (id) => {
+    const response = await api.get(`/services/${id}`);
+    return response.data;
+  },
+  
   // Recherche
   search: async (query) => {
     const response = await api.get('/search', {

@@ -916,7 +916,7 @@ const styles = {
     color: '#475569',
     fontSize: '0.875rem',
     borderBottom: `1px solid #e2e8f0`,
-    display: 'flex',
+   // display: 'flex',
     alignItems: 'center',
     gap: '0.5rem',
   },

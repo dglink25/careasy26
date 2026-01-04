@@ -15,6 +15,7 @@ const PUBLIC_ENDPOINTS = [
   '/conversation/start',    // 👈 Démarrer conversation anonyme
   '/conversation/',         // 👈 Envoyer/recevoir messages anonymes
   '/entreprises',
+  '/entreprises/form/data',
   '/services',
   '/search',
   '/login',

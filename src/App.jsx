@@ -33,6 +33,7 @@ import AdminEntrepriseDetails from './pages/admin/AdminEntrepriseDetails';
 import PublicEntreprises from './pages/public/PublicEntreprises';
 import PublicEntrepriseDetails from './pages/public/PublicEntrepriseDetails';
 import PublicServices from './pages/public/PublicServices';
+import PublicServiceDetails from './pages/public/PublicServiceDetails'; 
 
 function App() {
   return (
@@ -138,6 +139,7 @@ function App() {
               <Route path="/entreprises" element={<PublicEntreprises />} />
               <Route path="/entreprises/:id" element={<PublicEntrepriseDetails />} />
               <Route path="/services" element={<PublicServices />} />
+              <Route path="/service/:id" element={<PublicServiceDetails />} /> {/* ✅ NOUVEAU */}
             </Route>
             
             {/* Routes sans Navbar */}
