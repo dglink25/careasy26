@@ -1,4 +1,4 @@
-// src/api/messageApi.js - VERSION BASE64
+// src/api/messageApi.js - VERSION DEBUG
 import api from './axios';
 
 export const messageApi = {
@@ -36,6 +36,11 @@ export const messageApi = {
       // ✅ Si fichier fourni, le convertir en base64
       if (file) {
         console.log('📤 Conversion du fichier en base64...');
+        console.log('📤 Fichier original:', {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        });
         
         // Convertir le fichier en base64
         const fileData = await new Promise((resolve, reject) => {
@@ -46,14 +51,23 @@ export const messageApi = {
         });
 
         payload.file_data = fileData; // Data URL complète (data:image/jpeg;base64,...)
-        payload.file_name = file.name;
+        payload.file_name = file.name || 'audio.webm';
         
         console.log('✅ Fichier converti:', {
-          name: file.name,
+          name: payload.file_name,
           size: (fileData.length / 1024).toFixed(2) + ' KB',
-          type: file.type
+          type: file.type,
+          preview: fileData.substring(0, 50) + '...',
         });
       }
+
+      console.log('📤 Payload final:', {
+        type: payload.type,
+        content: payload.content,
+        hasFileData: !!payload.file_data,
+        fileName: payload.file_name,
+        hasLocation: !!(payload.latitude && payload.longitude),
+      });
 
       // Envoyer en JSON (pas de FormData)
       const response = await api.post(
@@ -66,11 +80,15 @@ export const messageApi = {
         }
       );
 
-      console.log('✅ Message envoyé avec succès');
+      console.log('✅ Message envoyé avec succès:', response.data);
       return response.data;
       
     } catch (error) {
-      console.error('❌ Erreur envoi message:', error.response?.data || error.message);
+      console.error('❌ Erreur envoi message:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
       throw error;
     }
   },

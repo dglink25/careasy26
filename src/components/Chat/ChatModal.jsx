@@ -157,7 +157,17 @@ export default function ChatModal({
       if (selectedFile || audioBlob) {
         // Envoyer avec fichier
         const fileToSend = audioBlob || selectedFile;
-        const fileType = audioBlob ? 'vocal' : (selectedFile.type.startsWith('image/') ? 'image' : 'video');
+        
+        // ✅ Déterminer le type de fichier
+        let fileType = 'document'; // Par défaut
+        
+        if (audioBlob) {
+          fileType = 'vocal';
+        } else if (selectedFile.type.startsWith('image/')) {
+          fileType = 'image';
+        } else if (selectedFile.type.startsWith('video/')) {
+          fileType = 'video';
+        }
         
         sentMessage = await messageApi.sendMessage(
           conversation.id,
@@ -236,7 +246,7 @@ export default function ChatModal({
     setRecordingTime(0);
   };
 
-  // 📷 SÉLECTION DE FICHIERS
+  // 📎 SÉLECTION DE FICHIERS (Images, Vidéos, Documents)
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -249,12 +259,17 @@ export default function ChatModal({
 
     setSelectedFile(file);
     
-    // Créer une prévisualisation
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFilePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
+    // Créer une prévisualisation pour images/vidéos
+    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // Pour les documents, pas de prévisualisation
+      setFilePreview(null);
+    }
   };
 
   const handleShareLocation = async () => {
@@ -333,56 +348,126 @@ export default function ChatModal({
   };
 
   const renderMessageContent = (message) => {
-    // Message texte
-    if (message.type === 'text' || !message.type) {
-      return <div style={styles.messageContent}>{message.content}</div>;
-    }
+    console.log('🎨 Rendu message:', {
+      id: message.id,
+      type: message.type,
+      has_content: !!message.content,
+      has_file_url: !!message.file_url,
+      file_url_preview: message.file_url ? message.file_url.substring(0, 50) : null,
+    });
 
-    // Message avec fichier
-    if (message.file_url) {
-      const fileData = message.file_url;
+    // ✅ Vérifier d'abord si le message a un fichier
+    if (message.file_url && message.type !== 'text') {
+      let fileUrl = message.file_url;
+      
+      // ✅ CORRECTION: Forcer le port 8000 si manquant
+      if (fileUrl.startsWith('http://localhost/')) {
+        fileUrl = fileUrl.replace('http://localhost/', 'http://localhost:8000/');
+        console.log('🔧 URL corrigée:', fileUrl);
+      }
+      
+      console.log('📎 Affichage fichier:', message.type, fileUrl);
       
       // Image
-      if (message.type === 'image' || fileData.startsWith('data:image/')) {
+      if (message.type === 'image') {
         return (
           <div style={styles.mediaContainer}>
-            {message.content && <div style={styles.messageContent}>{message.content}</div>}
+            {message.content && message.content !== '📷 Image' && (
+              <div style={styles.messageContent}>{message.content}</div>
+            )}
             <img 
-              src={fileData} 
+              src={fileUrl}
               alt="Image" 
               style={styles.imageMessage}
-              onClick={() => setMediaPreview({ type: 'image', src: fileData })}
+              onClick={() => setMediaPreview({ type: 'image', src: fileUrl })}
+              onError={(e) => {
+                console.error('❌ Erreur chargement image:', fileUrl);
+                e.target.style.display = 'none';
+              }}
             />
           </div>
         );
       }
       
       // Vidéo
-      if (message.type === 'video' || fileData.startsWith('data:video/')) {
+      if (message.type === 'video') {
         return (
           <div style={styles.mediaContainer}>
-            {message.content && <div style={styles.messageContent}>{message.content}</div>}
+            {message.content && message.content !== '🎥 Vidéo' && (
+              <div style={styles.messageContent}>{message.content}</div>
+            )}
             <video 
-              src={fileData} 
+              src={fileUrl}
               controls 
               style={styles.videoMessage}
+              onError={(e) => {
+                console.error('❌ Erreur chargement vidéo:', fileUrl);
+                e.target.style.display = 'none';
+              }}
             />
           </div>
         );
       }
       
       // Audio
-      if (message.type === 'vocal' || fileData.startsWith('data:audio/')) {
+      if (message.type === 'vocal') {
         return (
           <div style={styles.audioContainer}>
             <FiMic style={styles.audioIcon} />
-            <audio src={fileData} controls style={styles.audioPlayer} />
+            <audio 
+              src={fileUrl}
+              controls 
+              style={styles.audioPlayer}
+              preload="metadata"
+              onError={(e) => {
+                console.error('❌ Erreur chargement audio:', fileUrl);
+                e.target.parentElement.innerHTML = '❌ Impossible de charger l\'audio';
+              }}
+              onLoadedMetadata={() => {
+                console.log('✅ Audio chargé avec succès:', fileUrl);
+              }}
+            />
+            {message.content && message.content !== '🎤 Message vocal' && (
+              <div style={styles.audioCaption}>{message.content}</div>
+            )}
+          </div>
+        );
+      }
+      
+      // ✅ NOUVEAU: Document (PDF, ZIP, etc.)
+      if (message.type === 'document') {
+        const fileName = fileUrl.split('/').pop();
+        const fileExt = fileName.split('.').pop().toUpperCase();
+        
+        return (
+          <div style={styles.documentContainer}>
+            <div style={styles.documentIcon}>
+              📄
+            </div>
+            <div style={styles.documentInfo}>
+              {message.content && message.content !== '📄 Document' && (
+                <div style={styles.documentCaption}>{message.content}</div>
+              )}
+              <div style={styles.documentName}>{fileName}</div>
+              <div style={styles.documentType}>{fileExt}</div>
+            </div>
+            <a 
+              href={fileUrl}
+              download
+              target="_blank"
+              rel="noopener noreferrer"
+              style={styles.documentDownload}
+              title="Télécharger"
+            >
+              <FiDownload />
+            </a>
           </div>
         );
       }
     }
 
-    return <div style={styles.messageContent}>{message.content || '(Fichier)'}</div>;
+    // Message texte par défaut
+    return <div style={styles.messageContent}>{message.content || '(Message vide)'}</div>;
   };
 
   return (
@@ -500,7 +585,7 @@ export default function ChatModal({
         </div>
 
         {/* Prévisualisation fichier sélectionné */}
-        {(filePreview || audioBlob) && (
+        {(filePreview || audioBlob || selectedFile) && (
           <div style={styles.filePreview}>
             {filePreview && selectedFile?.type.startsWith('image/') && (
               <img src={filePreview} alt="Preview" style={styles.previewImage} />
@@ -512,6 +597,18 @@ export default function ChatModal({
               <div style={styles.audioPreview}>
                 <FiMic style={styles.audioPreviewIcon} />
                 <span>Message vocal ({formatRecordingTime(recordingTime)})</span>
+              </div>
+            )}
+            {/* ✅ NOUVEAU: Prévisualisation document */}
+            {selectedFile && !selectedFile.type.startsWith('image/') && !selectedFile.type.startsWith('video/') && !audioBlob && (
+              <div style={styles.documentPreview}>
+                <div style={styles.documentPreviewIcon}>📄</div>
+                <div style={styles.documentPreviewInfo}>
+                  <div style={styles.documentPreviewName}>{selectedFile.name}</div>
+                  <div style={styles.documentPreviewSize}>
+                    {(selectedFile.size / 1024).toFixed(2)} KB
+                  </div>
+                </div>
               </div>
             )}
             <button 
@@ -551,19 +648,19 @@ export default function ChatModal({
         ) : (
           <form onSubmit={handleSendMessage} style={styles.inputContainer}>
             <input
-              type="file"
+               type="file"
               ref={fileInputRef}
               onChange={handleFileSelect}
-              accept="image/*,video/*"
+              accept="image/*,video/*,application/pdf,application/zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain"
               style={{ display: 'none' }}
             />
-            
+
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={sending || !conversation}
               style={styles.mediaButton}
-              title="Ajouter une image ou vidéo"
+              title="Ajouter un fichier (image, vidéo, document)"
             >
               <FiImage />
             </button>
@@ -1140,5 +1237,57 @@ const styles = {
     maxHeight: '90vh',
     objectFit: 'contain',
     borderRadius: theme.borderRadius.md,
+  },
+  documentContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    padding: '1rem',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: theme.borderRadius.md,
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+  },
+  documentIcon: {
+    fontSize: '2.5rem',
+  },
+  documentInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  documentCaption: {
+    fontSize: '0.85rem',
+    marginBottom: '0.25rem',
+    opacity: 0.9,
+  },
+  documentName: {
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    marginBottom: '0.25rem',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  documentType: {
+    fontSize: '0.75rem',
+    opacity: 0.7,
+  },
+  documentDownload: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    color: 'inherit',
+    fontSize: '1.25rem',
+    transition: 'all 0.2s',
+    cursor: 'pointer',
+    textDecoration: 'none',
+  },
+  audioCaption: {
+    fontSize: '0.85rem',
+    marginTop: '0.5rem',
+    opacity: 0.9,
   },
 };
