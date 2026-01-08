@@ -1,4 +1,5 @@
 // careasy-frontend/src/App.jsx - VERSION AVEC MESSAGERIE
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
@@ -34,6 +35,11 @@ import PublicEntreprises from './pages/public/PublicEntreprises';
 import PublicEntrepriseDetails from './pages/public/PublicEntrepriseDetails';
 import PublicServices from './pages/public/PublicServices';
 import PublicServiceDetails from './pages/public/PublicServiceDetails'; 
+
+
+import React from 'react'
+import {AdvancedImage} from '@cloudinary/react';
+import {Cloudinary} from "@cloudinary/url-gen";
 
 function App() {
   return (
