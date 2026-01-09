@@ -289,6 +289,55 @@ export default function DetailsEntreprise() {
                 </div>
               </div>
             </div>
+            {/* Carte Dirigeant */}
+<div style={styles.card}>
+  <h2 style={styles.cardTitle}>👤 Dirigeant</h2>
+  <div style={styles.infoList}>
+    <div style={styles.infoItem}>
+      <span style={styles.infoLabel}>👨‍💼 Nom complet</span>
+      <span style={styles.infoValue}>{entreprise.pdg_full_name}</span>
+    </div>
+    <div style={styles.infoItem}>
+      <span style={styles.infoLabel}>💼 Profession</span>
+      <span style={styles.infoValue}>{entreprise.pdg_full_profession}</span>
+    </div>
+  </div>
+</div>
+
+{/* 👇 NOUVELLE CARTE: Contact */}
+<div style={styles.card}>
+  <h2 style={styles.cardTitle}>📞 Contact</h2>
+  <div style={styles.infoList}>
+    <div style={styles.infoItem}>
+      <span style={styles.infoLabel}>📱 WhatsApp</span>
+      <span style={styles.infoValue}>
+        {entreprise.whatsapp_phone ? (
+          <a 
+            href={`https://wa.me/${entreprise.whatsapp_phone.replace(/\s+/g, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#25D366', textDecoration: 'none', fontWeight: '600' }}
+          >
+            {entreprise.whatsapp_phone}
+          </a>
+        ) : 'Non renseigné'}
+      </span>
+    </div>
+    <div style={styles.infoItem}>
+      <span style={styles.infoLabel}>☎️ Téléphone</span>
+      <span style={styles.infoValue}>
+        {entreprise.call_phone ? (
+          <a 
+            href={`tel:${entreprise.call_phone}`}
+            style={{ color: theme.colors.primary, textDecoration: 'none', fontWeight: '600' }}
+          >
+            {entreprise.call_phone}
+          </a>
+        ) : 'Non renseigné'}
+      </span>
+    </div>
+  </div>
+</div>
           </div>
         </div>
       </div>

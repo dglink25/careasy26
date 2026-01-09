@@ -14,7 +14,7 @@ import {
   FaCheckCircle,
   FaArrowLeft,
   FaArrowRight,
-  FaCheck,
+  FaCheck, 
   FaExclamationTriangle,
   FaSpinner,
   FaMapPin,
@@ -27,7 +27,8 @@ import {
   FaIndustry,
   FaUser,
   FaBriefcase,
-  FaCog
+  FaCog,
+  FaPhone     
 } from 'react-icons/fa';
 import { 
   MdBusiness, 
@@ -75,6 +76,8 @@ export default function CreerEntreprise() {
     siege: '',
     logo: null,
     image_boutique: null,
+    whatsapp_phone: '',
+    call_phone: '',
   });
 
   const [previews, setPreviews] = useState({
@@ -201,6 +204,15 @@ export default function CreerEntreprise() {
           setError('Le rôle dans l\'entreprise est obligatoire');
           return false;
         }
+        // 👇 NOUVELLES VALIDATIONS
+  if (!formData.whatsapp_phone.trim()) {
+    setError('Le téléphone WhatsApp est obligatoire');
+    return false;
+  }
+  if (!formData.call_phone.trim()) {
+    setError('Le téléphone pour appels est obligatoire');
+    return false;
+  }
         break;
       
       case 4:
@@ -549,6 +561,47 @@ export default function CreerEntreprise() {
                   <option value="Autre">Autre</option>
                 </select>
               </div>
+
+      {/* 👇 CHAMPS TÉLÉPHONES UNIQUEMENT */}
+      <div style={styles.formRow}>
+        <div style={styles.formGroup}>
+          <label style={styles.label}>
+            <FaPhone style={styles.labelIcon} />
+            Téléphone WhatsApp <span style={styles.required}>*</span>
+          </label>
+          <p style={styles.hint}>
+            Numéro pour recevoir les messages WhatsApp des clients
+          </p>
+          <input
+            type="tel"
+            name="whatsapp_phone"
+            value={formData.whatsapp_phone}
+            onChange={handleChange}
+            style={styles.input}
+            placeholder="Ex: +229 97 00 00 00"
+            required
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label style={styles.label}>
+            <FaPhone style={styles.labelIcon} />
+            Téléphone pour appels <span style={styles.required}>*</span>
+          </label>
+          <p style={styles.hint}>
+            Numéro pour recevoir les appels directs des clients
+          </p>
+          <input
+            type="tel"
+            name="call_phone"
+            value={formData.call_phone}
+            onChange={handleChange}
+            style={styles.input}
+            placeholder="Ex: +229 97 00 00 00"
+            required
+          />
+        </div>
+      </div>
             </div>
           );
 
@@ -709,6 +762,8 @@ export default function CreerEntreprise() {
                   <p><strong>Nom :</strong> {formData.pdg_full_name}</p>
                   <p><strong>Profession :</strong> {formData.pdg_full_profession}</p>
                   <p><strong>Votre rôle :</strong> {formData.role_user}</p>
+                  <p><strong>WhatsApp :</strong> {formData.whatsapp_phone}</p>
+                  <p><strong>Téléphone appel :</strong> {formData.call_phone}</p>
                 </div>
 
                 <div style={styles.summarySection}>
