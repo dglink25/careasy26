@@ -31,6 +31,7 @@ import AdminEntreprises from './pages/admin/AdminEntreprises';
 import AdminEntrepriseDetails from './pages/admin/AdminEntrepriseDetails';
 
 // Public
+
 import PublicEntreprises from './pages/public/PublicEntreprises';
 import PublicEntrepriseDetails from './pages/public/PublicEntrepriseDetails';
 import PublicServices from './pages/public/PublicServices';
