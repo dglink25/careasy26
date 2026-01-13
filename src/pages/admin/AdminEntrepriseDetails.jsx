@@ -14,7 +14,7 @@ import {
   FiUser,
   FiMapPin,
   FiMail,
-  FiPhone,
+  FiPhone, 
   FiBriefcase,
   FiCalendar,
   FiGlobe,
@@ -37,7 +37,7 @@ import {
   FiTrash2,
   FiMoreVertical,
   FiCornerUpLeft,
-  FiImage // Correction: Utilisez FiImage ou FiCamera
+  FiImage
 } from 'react-icons/fi';
 import {
   MdBusiness,
@@ -856,6 +856,36 @@ export default function AdminEntrepriseDetails() {
                           </span>
                         </div>
                       </div>
+                          
+{/* 👇 NOUVEAUX CHAMPS CONTACT */}
+<div style={styles.prestataireDetailItem}>
+  <div style={styles.prestataireDetailLabel}>
+    <FiPhone style={styles.prestataireDetailIcon} />
+    WhatsApp
+  </div>
+  <div style={styles.prestataireDetailValue}>
+    {entreprise.whatsapp_phone ? (
+      <a 
+        href={`https://wa.me/${entreprise.whatsapp_phone.replace(/\s+/g, '')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: '#25D366', textDecoration: 'none' }}
+      >
+        {entreprise.whatsapp_phone}
+      </a>
+    ) : 'Non renseigné'}
+  </div>
+</div>
+
+<div style={styles.prestataireDetailItem}>
+  <div style={styles.prestataireDetailLabel}>
+    <FiPhone style={styles.prestataireDetailIcon} />
+    Téléphone appel
+  </div>
+  <div style={styles.prestataireDetailValue}>
+    {entreprise.call_phone || 'Non renseigné'}
+  </div>
+</div>
                     </div>
 
                     <div style={styles.prestataireActions}>
@@ -863,8 +893,8 @@ export default function AdminEntrepriseDetails() {
                         onClick={() => console.log('Contacter prestataire')}
                         style={styles.contactButton}
                       >
-                        <FiMail style={styles.contactButtonIcon} />
-                        Contacter
+                        <FiMail style={styles.contactButtonIcon} />                                                                                                       
+                        Contacter                                                                                                                                                                                         
                       </button>
                       <button 
                         onClick={() => navigate(`/admin/prestataires/${entreprise.prestataire.id}`)}

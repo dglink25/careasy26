@@ -199,15 +199,20 @@ export default function Navbar() {
                   </>
                 )}
                 
-                <div style={styles.userInfo}>
-                  <div style={styles.userAvatar}>
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span style={styles.userName}>{user.name.split(' ')[0]}</span>
-                  {user.role === 'admin' && (
-                    <span style={styles.adminBadge}>ADMIN</span>
-                  )}
-                </div>
+                
+<div style={styles.userInfo}>
+  <div style={styles.userAvatarContainer}>
+    <div style={styles.userAvatar}>
+      {user.name.charAt(0).toUpperCase()}
+    </div>
+    {/* 👉 NOUVEAU: Point vert en ligne */}
+    <div style={styles.onlineIndicator} title="En ligne" />
+  </div>
+  <span style={styles.userName}>{user.name.split(' ')[0]}</span>
+  {user.role === 'admin' && (
+    <span style={styles.adminBadge}>ADMIN</span>
+  )}
+</div>
                 
                 <button onClick={handleLogout} style={styles.buttonLogout}>
                   <FaSignOutAlt style={styles.icon} />
@@ -351,18 +356,28 @@ export default function Navbar() {
             <div style={styles.mobileMenuContent}>
               {user ? (
                 <>
-                  {/* Mobile User Info */}
                   <div style={styles.mobileUserInfo}>
-                    <div style={styles.mobileUserAvatar}>
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={styles.mobileUserName}>{user.name}</div>
-                      <div style={styles.mobileUserRole}>
-                        {user.role === 'admin' ? 'Administrateur' : 'Prestataire'}
-                      </div>
-                    </div>
-                  </div>
+  <div style={styles.userAvatarContainer}>
+    <div style={styles.mobileUserAvatar}>
+      {user.name.charAt(0).toUpperCase()}
+    </div>
+    {/* 👉 NOUVEAU: Point vert mobile */}
+    <div style={{
+      ...styles.onlineIndicator,
+      bottom: '2px',
+      right: '2px',
+      width: '14px',
+      height: '14px',
+    }} />
+  </div>
+  <div>
+    <div style={styles.mobileUserName}>{user.name}</div>
+    <div style={styles.mobileUserRole}>
+      {user.role === 'admin' ? 'Administrateur' : 'Prestataire'}
+      <span style={{ color: '#10b981', marginLeft: '0.5rem' }}>● En ligne</span>
+    </div>
+  </div>
+</div>
 
                   {user.role === 'admin' ? (
                     <>
@@ -476,6 +491,17 @@ export default function Navbar() {
           border-radius: 2px;
           transition: transform 0.3s ease;
         }
+            
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.1);
+    }
+  }
         
         .nav-link:hover::after {
           transform: translateX(-50%) scaleX(1);
@@ -584,6 +610,24 @@ const styles = {
     maxWidth: '700px',
     maxHeight: '70vh',
     overflow: 'auto',
+  },
+  userAvatarContainer: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: '0',
+    right: '-2px',
+    width: '12px',
+    height: '12px',
+    backgroundColor: '#10b981', // Vert vif
+    border: '2px solid #fff',
+    borderRadius: '50%',
+    boxShadow: '0 0 8px rgba(16, 185, 129, 0.6)',
+    animation: 'pulse 2s ease-in-out infinite',
   },
   megaDropdownHeader: {
     padding: '1.5rem',
