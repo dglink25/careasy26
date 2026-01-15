@@ -27,7 +27,7 @@ export default function DetailsService() {
     } catch (err) {
       console.error('Erreur chargement service:', err);
       setError('Service non trouvé');
-      setTimeout(() => navigate('/mes-services'), 2000);
+      setTimeout(() => navigate('/mes-services'), 1000);
     } finally {
       setLoading(false);
     }
@@ -65,7 +65,7 @@ export default function DetailsService() {
       <div style={styles.container}>
         <div style={styles.errorContainer}>
           <div style={styles.errorIcon}>❌</div>
-          <h2 style={styles.errorTitle}>{error || 'Service introuvable'}</h2>
+         <h2 style={styles.errorTitle}>{error || 'Service introuvable'}</h2> 
           <Link to="/mes-services" style={styles.errorButton}>
             ← Retour à mes services
           </Link>

@@ -16,11 +16,13 @@ import ResetPassword from './pages/ResetPassword';
 import MesEntreprises from './pages/entreprises/MesEntreprises';
 import CreerEntreprise from './pages/entreprises/CreerEntreprise';
 import DetailsEntreprise from './pages/entreprises/DetailsEntreprise';
+import EditEntreprise from './pages/entreprises/EditEntreprise';
 
 // Services (Prestataire)
 import MesServices from './pages/services/MesServices';
 import CreerService from './pages/services/CreerService';
 import DetailsService from './pages/services/DetailsService';
+import ModifierService from './pages/services/ModifierService';
 
 // 👉 MESSAGERIE - NOUVEAU
 import MessagesPage from './pages/messages/MessagesPage';
@@ -36,11 +38,11 @@ import PublicEntrepriseDetails from './pages/public/PublicEntrepriseDetails';
 import PublicServices from './pages/public/PublicServices';
 import PublicServiceDetails from './pages/public/PublicServiceDetails'; 
 
-
+/*
 import React from 'react'
 import {AdvancedImage} from '@cloudinary/react';
 import {Cloudinary} from "@cloudinary/url-gen";
-
+*/
 function App() {
   return (
     <BrowserRouter>
@@ -78,6 +80,12 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/entreprises/:id/edit"
+               element={
+                <ProtectedRoute>
+                 <EditEntreprise />
+                </ProtectedRoute>
+               } />
 
               {/* Services (Prestataire) */}
               <Route
@@ -104,6 +112,15 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
+              <Route
+               path="/services/modifier/:id" 
+               element={
+                <ProtectedRoute>
+                  <ModifierService />
+                </ProtectedRoute>
+               } 
+               />
 
               {/* 👉 MESSAGERIE - NOUVEAU */}
               <Route
@@ -145,7 +162,7 @@ function App() {
               <Route path="/entreprises" element={<PublicEntreprises />} />
               <Route path="/entreprises/:id" element={<PublicEntrepriseDetails />} />
               <Route path="/services" element={<PublicServices />} />
-              <Route path="/service/:id" element={<PublicServiceDetails />} /> {/* ✅ NOUVEAU */}
+              <Route path="/service/:id" element={<PublicServiceDetails />} /> 
             </Route>
             
             {/* Routes sans Navbar */}

@@ -425,10 +425,13 @@ export default function MesServices() {
                             <FiEye style={styles.viewButtonIcon} />
                             Voir détails
                           </Link>
-                          <button style={styles.editButton}>
+                          <Link 
+                            to={`/services/modifier/${service.id}`}
+                            style={styles.editButton}
+                          >
                             <FiEdit style={styles.editButtonIcon} />
                             Modifier
-                          </button>
+                          </Link>
                         </div>
                       </div>
                     </div>

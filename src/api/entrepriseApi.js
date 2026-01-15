@@ -14,6 +14,15 @@ export const entrepriseApi = {
     return response.data;
   },
 
+   async updateEntreprise(id, data) {
+    const response = await api.post(`/entreprises/${id}`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   // Créer une entreprise
   createEntreprise: async (formData) => {
     const response = await api.post('/entreprises', formData, {

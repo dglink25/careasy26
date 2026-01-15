@@ -1,6 +1,6 @@
-// careasy-frontend/src/pages/messages/MessagesPage.jsx - VERSION CORRIGÉE
+// careasy-frontend/src/pages/messages/MessagesPage.jsx - VERSION SANS ANONYME
 import { useState, useEffect } from 'react';
-import { FiMessageSquare, FiSearch, FiUser, FiClock, FiLoader, FiRefreshCw } from 'react-icons/fi';
+import { FiMessageSquare, FiSearch, FiClock, FiLoader, FiRefreshCw } from 'react-icons/fi';
 import { messageApi } from '../../api/messageApi';
 import ChatModal from '../../components/Chat/ChatModal';
 import theme from '../../config/theme';
@@ -50,7 +50,8 @@ export default function MessagesPage() {
       return 'Aucun message';
     }
     const lastMsg = conversation.messages[0];
-    return lastMsg.content.substring(0, 60) + (lastMsg.content.length > 60 ? '...' : '');
+    const content = lastMsg.content || '';
+    return content.substring(0, 60) + (content.length > 60 ? '...' : '');
   };
 
   const formatDate = (dateString) => {
@@ -77,7 +78,6 @@ export default function MessagesPage() {
     fetchConversations(true);
   };
 
-  // ✅ CORRECTION: Filtrage amélioré
   const filteredConversations = conversations.filter(conv => {
     const otherUser = conv.other_user;
     const userName = otherUser?.name || 'Utilisateur';
@@ -109,7 +109,7 @@ export default function MessagesPage() {
               Messages
             </h1>
             <p style={styles.subtitle}>
-              Gérez vos conversations avec vos clients
+              Gérez vos conversations avec vos contacts
             </p>
           </div>
           <button 
@@ -129,15 +129,6 @@ export default function MessagesPage() {
             <div>
               <div style={styles.statNumber}>{conversations.length}</div>
               <div style={styles.statLabel}>Conversations</div>
-            </div>
-          </div>
-          <div style={styles.statCard}>
-            <FiUser style={styles.statIcon} />
-            <div>
-              <div style={styles.statNumber}>
-                {conversations.filter(c => c.is_anonymous).length}
-              </div>
-              <div style={styles.statLabel}>Visiteurs anonymes</div>
             </div>
           </div>
           <div style={styles.statCard}>
@@ -185,7 +176,7 @@ export default function MessagesPage() {
             </h3>
             <p style={styles.emptyText}>
               {conversations.length === 0 
-                ? "Vos conversations avec vos clients apparaîtront ici. Les clients peuvent vous contacter depuis vos pages d'entreprises."
+                ? "Vos conversations avec vos contacts apparaîtront ici."
                 : `Aucune conversation ne correspond à "${searchTerm}"`
               }
             </p>
@@ -193,9 +184,7 @@ export default function MessagesPage() {
         ) : (
           <div style={styles.conversationsList}>
             {filteredConversations.map((conversation) => {
-              // ✅ CORRECTION: Utiliser directement other_user du backend
               const otherUser = conversation.other_user;
-              const isAnonymous = conversation.is_anonymous;
               const hasUnread = (conversation.unread_count || 0) > 0;
               
               return (
@@ -213,11 +202,10 @@ export default function MessagesPage() {
                     ...styles.conversationAvatar,
                     ...(hasUnread && styles.avatarUnread)
                   }}>
-                    {otherUser?.name ? (
-                      otherUser.name.charAt(0).toUpperCase()
-                    ) : (
-                      <FiUser style={styles.avatarIcon} />
-                    )}
+                    {otherUser?.name 
+                      ? otherUser.name.charAt(0).toUpperCase()
+                      : 'U'
+                    }
                   </div>
 
                   {/* Contenu */}
@@ -228,7 +216,6 @@ export default function MessagesPage() {
                         ...(hasUnread && styles.conversationNameUnread)
                       }}>
                         {otherUser?.name || 'Utilisateur'}
-                        {isAnonymous && ' 👤'}
                       </h3>
                       <span style={styles.conversationDate}>
                         {formatDate(conversation.updated_at)}
@@ -240,11 +227,6 @@ export default function MessagesPage() {
                     }}>
                       {getLastMessage(conversation)}
                     </p>
-                    {isAnonymous && (
-                      <span style={styles.anonymousBadge}>
-                        👤 Anonyme
-                      </span>
-                    )}
                   </div>
 
                   {/* Badge non lu */}
@@ -262,9 +244,8 @@ export default function MessagesPage() {
         {/* Info */}
         <div style={styles.infoBox}>
           <p style={styles.infoText}>
-            💡 <strong>Astuce :</strong> Les visiteurs peuvent vous contacter directement 
-            depuis vos pages d'entreprises et de services sans avoir besoin de créer un compte. 
-            Les conversations sont automatiquement sauvegardées et accessibles ici.
+            💡 <strong>Astuce :</strong> Toutes les conversations sont automatiquement sauvegardées 
+            et accessibles ici. Vous pouvez échanger avec vos contacts en toute sécurité.
           </p>
         </div>
       </div>
@@ -480,9 +461,6 @@ const styles = {
     backgroundColor: theme.colors.primary,
     color: '#fff',
   },
-  avatarIcon: {
-    fontSize: '1.75rem',
-  },
   conversationContent: {
     flex: 1,
     minWidth: 0,
@@ -519,15 +497,6 @@ const styles = {
   conversationPreviewUnread: {
     fontWeight: '500',
     color: '#475569',
-  },
-  anonymousBadge: {
-    display: 'inline-block',
-    backgroundColor: '#fef3c7',
-    color: '#92400e',
-    padding: '0.25rem 0.75rem',
-    borderRadius: theme.borderRadius.full,
-    fontSize: '0.75rem',
-    fontWeight: '600',
   },
   unreadBadge: {
     position: 'absolute',
