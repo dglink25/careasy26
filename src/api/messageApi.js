@@ -1,4 +1,4 @@
-// src/api/messageApi.js - VERSION DEBUG
+// src/api/messageApi.js - VERSION COMPLÈTE ET CORRIGÉE
 import api from './axios';
 
 export const messageApi = {
@@ -15,72 +15,65 @@ export const messageApi = {
   },
 
   /**
-   * ✅ Envoyer un message avec fichier en base64
+   * ✅ Envoyer un message avec support multiple formats
    */
-  sendMessage: async (conversationId, content, location = null, file = null, type = 'text') => {
+  sendMessage: async (conversationId, messageData) => {
     console.log('🔵 API sendMessage - conversationId:', conversationId);
-    console.log('🔵 Type:', type, '- File:', file ? 'OUI' : 'NON');
     
     try {
-      let payload = {
-        type: type,
-        content: content || null,
-      };
-
-      // Si localisation fournie
-      if (location) {
-        payload.latitude = location.latitude;
-        payload.longitude = location.longitude;
+      // Si messageData est déjà un FormData (fichier)
+      if (messageData instanceof FormData) {
+        console.log('📤 Envoi avec FormData (fichier)');
+        const response = await api.post(
+          `/conversation/${conversationId}/send`,
+          messageData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+        console.log('✅ Message avec fichier envoyé avec succès');
+        return response.data;
       }
-
-      // ✅ Si fichier fourni, le convertir en base64
-      if (file) {
-        console.log('📤 Conversion du fichier en base64...');
-        console.log('📤 Fichier original:', {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        });
+      
+      // Si messageData est un objet (texte ou localisation)
+      if (typeof messageData === 'object') {
+        console.log('📤 Envoi avec JSON:', messageData);
         
-        // Convertir le fichier en base64
-        const fileData = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        payload.file_data = fileData; // Data URL complète (data:image/jpeg;base64,...)
-        payload.file_name = file.name || 'audio.webm';
+        // Gérer les fichiers en base64 si présents
+        if (messageData.file_data) {
+          console.log('📤 Fichier base64 détecté');
+          // Le fichier est déjà en base64 dans messageData.file_data
+        }
         
-        console.log('✅ Fichier converti:', {
-          name: payload.file_name,
-          size: (fileData.length / 1024).toFixed(2) + ' KB',
-          type: file.type,
-          preview: fileData.substring(0, 50) + '...',
-        });
+        const response = await api.post(
+          `/conversation/${conversationId}/send`,
+          messageData,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        
+        console.log('✅ Message envoyé avec succès');
+        return response.data;
       }
-
-      console.log('📤 Payload final:', {
-        type: payload.type,
-        content: payload.content,
-        hasFileData: !!payload.file_data,
-        fileName: payload.file_name,
-        hasLocation: !!(payload.latitude && payload.longitude),
-      });
-
-      // Envoyer en JSON (pas de FormData)
+      
+      // Si messageData est une chaîne (texte simple)
+      console.log('📤 Envoi texte simple:', messageData);
       const response = await api.post(
         `/conversation/${conversationId}/send`,
-        payload,
+        { content: messageData, type: 'text' },
         {
           headers: {
             'Content-Type': 'application/json',
           },
         }
       );
-
-      console.log('✅ Message envoyé avec succès:', response.data);
+      
+      console.log('✅ Message texte envoyé avec succès');
       return response.data;
       
     } catch (error) {
@@ -88,7 +81,101 @@ export const messageApi = {
         status: error.response?.status,
         data: error.response?.data,
         message: error.message,
+        url: `/conversation/${conversationId}/send`,
       });
+      throw error;
+    }
+  },
+
+  /**
+   * Envoyer un message avec fichier (méthode simplifiée)
+   */
+  sendMessageWithFile: async (conversationId, content, file, fileType = null) => {
+    console.log('🔵 API sendMessageWithFile - conversationId:', conversationId);
+    
+    try {
+      // Déterminer automatiquement le type de fichier
+      let actualFileType = fileType;
+      if (!actualFileType && file.type) {
+        if (file.type.startsWith('image/')) {
+          actualFileType = 'image';
+        } else if (file.type.startsWith('video/')) {
+          actualFileType = 'video';
+        } else if (file.type.startsWith('audio/')) {
+          actualFileType = 'vocal';
+        } else {
+          actualFileType = 'document';
+        }
+      }
+      
+      console.log('📤 Type de fichier détecté:', actualFileType);
+      console.log('📤 Fichier:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+
+      // Option 1: Envoyer en FormData (recommandé)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', actualFileType);
+      if (content) {
+        formData.append('content', content);
+      }
+
+      const response = await api.post(
+        `/conversation/${conversationId}/send`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      console.log('✅ Message avec fichier envoyé avec succès');
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Erreur envoi message avec fichier:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Envoyer un message audio
+   */
+  sendAudioMessage: async (conversationId, audioBlob, content = null) => {
+    console.log('🔵 API sendAudioMessage - conversationId:', conversationId);
+    
+    try {
+      // Créer un fichier à partir du blob audio
+      const audioFile = new File([audioBlob], `audio_message_${Date.now()}.webm`, {
+        type: 'audio/webm'
+      });
+
+      const formData = new FormData();
+      formData.append('file', audioFile);
+      formData.append('type', 'vocal');
+      if (content) {
+        formData.append('content', content);
+      }
+
+      const response = await api.post(
+        `/conversation/${conversationId}/send`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      console.log('✅ Message audio envoyé avec succès');
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Erreur envoi message audio:', error);
       throw error;
     }
   },
@@ -99,10 +186,23 @@ export const messageApi = {
   getMessages: async (conversationId) => {
     console.log('🔵 API getMessages - conversationId:', conversationId);
     
-    const response = await api.get(`/conversation/${conversationId}`);
-    console.log('📥 Messages reçus:', response.data.messages?.length || 0);
-    
-    return response.data;
+    try {
+      const response = await api.get(`/conversation/${conversationId}`);
+      console.log('📥 Messages reçus:', response.data.messages?.length || 0);
+      
+      // Formater les messages pour s'assurer qu'ils ont file_url
+      if (response.data.messages) {
+        response.data.messages = response.data.messages.map(msg => ({
+          ...msg,
+          file_url: msg.file_url || msg.file_path,
+        }));
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur récupération messages:', error);
+      throw error;
+    }
   },
 
   /**
@@ -111,10 +211,27 @@ export const messageApi = {
   getMyConversations: async () => {
     console.log('🔵 API getMyConversations');
     
-    const response = await api.get('/conversations');
-    console.log('📥 Conversations reçues:', response.data.length);
-    
-    return response.data;
+    try {
+      const response = await api.get('/conversations');
+      console.log('📥 Conversations reçues:', response.data.length);
+      
+      // Formater les conversations pour s'assurer que le dernier message a file_url
+      const formattedConversations = response.data.map(conv => {
+        if (conv.messages && conv.messages.length > 0) {
+          const lastMessage = conv.messages[0];
+          conv.messages[0] = {
+            ...lastMessage,
+            file_url: lastMessage.file_url || lastMessage.file_path,
+          };
+        }
+        return conv;
+      });
+      
+      return formattedConversations;
+    } catch (error) {
+      console.error('❌ Erreur récupération conversations:', error);
+      throw error;
+    }
   },
 
   /**
@@ -123,9 +240,53 @@ export const messageApi = {
   markAsRead: async (conversationId) => {
     console.log('🔵 API markAsRead - conversationId:', conversationId);
     
-    const response = await api.post(`/conversation/${conversationId}/mark-read`);
-    console.log('✅ Messages marqués comme lus');
+    try {
+      const response = await api.post(`/conversation/${conversationId}/mark-read`);
+      console.log('✅ Messages marqués comme lus');
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur marquage messages lus:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Vérifier le statut en ligne d'un utilisateur
+   */
+  checkOnlineStatus: async (userId) => {
+    console.log('🔵 API checkOnlineStatus - userId:', userId);
     
-    return response.data;
-  }
+    try {
+      const response = await api.get(`/user/${userId}/online-status`);
+      console.log('📡 Statut en ligne:', response.data);
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur vérification statut en ligne:', error);
+      // Retourner un statut par défaut plutôt que de lancer une erreur
+      return {
+        user_id: userId,
+        is_online: false,
+        last_seen_at: null
+      };
+    }
+  },
+
+  /**
+   * Mettre à jour le statut en ligne
+   */
+  updateOnlineStatus: async () => {
+    console.log('🔵 API updateOnlineStatus');
+    
+    try {
+      const response = await api.post('/user/online-status');
+      console.log('✅ Statut en ligne mis à jour');
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur mise à jour statut en ligne:', error);
+      throw error;
+    }
+  },
 };

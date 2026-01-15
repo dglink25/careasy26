@@ -316,7 +316,7 @@ export default function Home() {
                   <div style={styles.entrepriseInfo}>
                     {service.entreprise?.logo ? (
                       <img 
-                        src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${service.entreprise.logo?.replace(/^\/?storage\//, '')}`}
+                        src={service.entreprise.logo}
                         alt={service.entreprise.name}
                         style={styles.entrepriseLogo}
                       />
@@ -485,7 +485,7 @@ export default function Home() {
         <div style={styles.contactModalAvatar}>
           {selectedService.entreprise?.logo ? (
             <img 
-              src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${selectedService.entreprise.logo?.replace(/^\/?storage\//, '')}`}
+              src={selectedService.entreprise.logo}
               alt={selectedService.entreprise.name}
               style={styles.contactModalLogo}
             />

@@ -143,7 +143,7 @@ export default function PublicServiceDetails() {
               <div style={styles.galleryCard}>
                 <div style={styles.mainImageContainer}>
                   <img 
-                    src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${service.medias[currentImageIndex]?.replace(/^\/?storage\//, '')}`}
+                    src={service.medias[currentImageIndex]}
                     alt={service.name}
                     style={styles.mainImage}
                   />
@@ -181,7 +181,7 @@ export default function PublicServiceDetails() {
                         }}
                       >
                         <img 
-                          src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${media?.replace(/^\/?storage\//, '')}`}
+                          src={media}
                           alt={`${service.name} ${index + 1}`}
                           style={styles.thumbnailImage}
                         />
@@ -211,7 +211,7 @@ export default function PublicServiceDetails() {
                   <div style={styles.entrepriseInfo}>
                     {service.entreprise.logo ? (
                       <img 
-                        src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${service.entreprise.logo?.replace(/^\/?storage\//, '')}`}
+                        src={service.entreprise.logo}
                         alt={service.entreprise.name}
                         style={styles.entrepriseLogo}
                       />

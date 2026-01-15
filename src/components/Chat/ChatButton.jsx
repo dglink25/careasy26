@@ -19,7 +19,7 @@ export default function ChatButton({
     console.log('🔍 ChatButton - receiverName:', receiverName);
     
     if (!receiverId) {
-      console.error('❌ ERREUR: receiverId est NULL ou undefined !');
+      console.error('ERREUR: receiverId est NULL ou undefined !');
       alert('Erreur: Impossible d\'identifier le destinataire. Veuillez réessayer.');
       return;
     }

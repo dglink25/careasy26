@@ -1,40 +1,215 @@
-// src/components/Chat/ChatModal.jsx - VERSION CORRIGÉE
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FiX, FiSend, FiMapPin, FiLoader, FiCheck, FiCheckCircle, 
   FiImage, FiVideo, FiMic, FiStopCircle, FiPlay, FiPause,
-  FiDownload, FiMaximize2, FiMessageCircle, FiPhone
+  FiDownload, FiMaximize2, FiMessageCircle, FiPhone, FiHeadphones,
+  FiNavigation, FiExternalLink, FiFileText, FiUser,
+  FiChevronLeft, FiLogIn, FiPaperclip, FiVideo as FiVideoIcon,
+  FiMusic, FiFile, FiUpload, FiCalendar, FiClock
 } from 'react-icons/fi';
 import { messageApi } from '../../api/messageApi';
 import { useAuth } from '../../contexts/AuthContext';
 import theme from '../../config/theme';
 
 // Composant pour la carte de localisation
-const LocationMap = ({ latitude, longitude }) => {
+const LocationMap = ({ latitude, longitude, address = null }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const mapSrc = `https://maps.google.com/maps?q=${latitude},${longitude}&z=15&output=embed`;
+
   return (
-    <div style={styles.mapContainer}>
-      <div style={styles.mapHeader}>
-        <FiMapPin style={styles.mapIcon} />
-        <span style={styles.mapTitle}>📍 Position partagée</span>
+    <div style={styles.locationContainer}>
+      <div style={styles.locationHeader}>
+        <FiMapPin style={styles.locationIcon} />
+        <span style={styles.locationTitle}>📍 Localisation partagée</span>
+        <button 
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={styles.expandButton}
+          title={isExpanded ? "Réduire" : "Agrandir"}
+        >
+          <FiMaximize2 />
+        </button>
       </div>
-      <div style={styles.mapFrame}>
+      
+      <div 
+        style={{
+          ...styles.mapPreview,
+          height: isExpanded ? '250px' : '150px'
+        }}
+      >
         <iframe
           title="Carte de localisation"
-          src={`https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_KEY || 'YOUR_API_KEY'}&center=${latitude},${longitude}&zoom=15&maptype=roadmap`}
+          src={mapSrc}
           style={styles.mapIframe}
           allowFullScreen
           loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
         />
       </div>
-      <a
-        href={`https://www.google.com/maps?q=${latitude},${longitude}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={styles.mapLink}
+      
+      <div style={styles.mapActions}>
+        <a
+          href={`https://www.google.com/maps?q=${latitude},${longitude}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={styles.mapLink}
+        >
+          <FiExternalLink style={styles.mapLinkIcon} />
+          Ouvrir dans Google Maps
+        </a>
+      </div>
+    </div>
+  );
+};
+
+// Composant pour les messages audio
+const AudioMessage = ({ audioUrl, duration = null }) => {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [durationState, setDurationState] = useState(duration || 0);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateProgress = () => {
+      setCurrentTime(audio.currentTime);
+      setProgress((audio.currentTime / audio.duration) * 100 || 0);
+    };
+
+    const handleLoadedMetadata = () => {
+      setDurationState(audio.duration || duration || 0);
+    };
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setProgress(0);
+    };
+
+    const handleError = () => {
+      console.error('Erreur de chargement audio');
+      setError(true);
+    };
+
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('error', handleError);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateProgress);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('error', handleError);
+    };
+  }, [duration]);
+
+  const togglePlay = () => {
+    if (!audioRef.current || error) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(err => {
+        console.error('Erreur lecture audio:', err);
+        setError(true);
+      });
+    }
+  };
+
+  const formatTime = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  if (error) {
+    return (
+      <div style={styles.audioErrorContainer}>
+        <div style={styles.audioErrorIcon}>⚠️</div>
+        <div style={styles.audioErrorInfo}>
+          <span style={styles.audioErrorText}>Impossible de lire l'audio</span>
+          <a 
+            href={audioUrl}
+            download
+            style={styles.audioErrorDownload}
+          >
+            <FiDownload /> Télécharger
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.audioMessageContainer}>
+      <audio 
+        ref={audioRef} 
+        src={audioUrl} 
+        preload="metadata" 
+        style={{ display: 'none' }}
+        crossOrigin="anonymous"
+      />
+      
+      <button 
+        onClick={togglePlay}
+        style={styles.audioPlayButton}
+        title={isPlaying ? "Pause" : "Lecture"}
       >
-        <FiMaximize2 style={styles.mapLinkIcon} />
-        Ouvrir dans Google Maps
+        {isPlaying ? <FiPause /> : <FiPlay />}
+      </button>
+      
+      <div style={styles.audioInfo}>
+        <div style={styles.audioHeader}>
+          <FiHeadphones style={styles.audioIcon} />
+          <span style={styles.audioLabel}>Message vocal</span>
+        </div>
+        
+        <div style={styles.progressBar}>
+          <div 
+            style={{
+              ...styles.progressFill,
+              width: `${progress}%`
+            }}
+          />
+        </div>
+        
+        <div style={styles.audioTime}>
+          <span style={styles.currentTime}>{formatTime(currentTime)}</span>
+          <span style={styles.duration}>{formatTime(durationState)}</span>
+        </div>
+      </div>
+      
+      <a 
+        href={audioUrl}
+        download
+        style={styles.downloadAudioButton}
+        title="Télécharger"
+      >
+        <FiDownload />
       </a>
+    </div>
+  );
+};
+
+// Composant pour le séparateur de date
+const DateSeparator = ({ date }) => {
+  return (
+    <div style={styles.dateSeparator}>
+      <div style={styles.dateLine} />
+      <span style={styles.dateText}>{date}</span>
+      <div style={styles.dateLine} />
     </div>
   );
 };
@@ -48,6 +223,7 @@ export default function ChatModal({
   existingConversation = false
 }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -64,6 +240,7 @@ export default function ChatModal({
   // États pour les fichiers
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
+  const [fileType, setFileType] = useState(null);
   
   // États pour le statut en ligne
   const [isReceiverOnline, setIsReceiverOnline] = useState(false);
@@ -75,58 +252,53 @@ export default function ChatModal({
   // État pour le modal de contact
   const [showContactModal, setShowContactModal] = useState(false);
   
+  // État pour la redirection login
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  
   const messagesEndRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingIntervalRef = useRef(null);
   const fileInputRef = useRef(null);
   const onlineCheckIntervalRef = useRef(null);
+  const inputRef = useRef(null);
+  const audioStreamRef = useRef(null);
+
+  // Gestion responsive
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const isMobile = windowWidth < 768;
 
   useEffect(() => {
-    initConversation();
-    
-    // Vérifier le statut en ligne toutes les 30 secondes
-    if (receiverId) {
-      checkOnlineStatus();
-      onlineCheckIntervalRef.current = setInterval(checkOnlineStatus, 30000);
-    }
-    
-    // Mettre à jour mon propre statut en ligne
-    const updateMyStatus = setInterval(() => {
-      if (user) {
-        messageApi.updateOnlineStatus();
-      }
-    }, 60000); // Toutes les minutes
-    
-    return () => {
-      if (onlineCheckIntervalRef.current) {
-        clearInterval(onlineCheckIntervalRef.current);
-      }
-      clearInterval(updateMyStatus);
-      stopRecording();
-    };
-  }, [receiverId, conversationId]);
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
+  // Rediriger vers login si utilisateur non connecté
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const checkOnlineStatus = async () => {
-    if (!receiverId) return;
-    try {
-      const status = await messageApi.checkOnlineStatus(receiverId);
-      setIsReceiverOnline(status.is_online);
-      setLastSeen(status.last_seen_at);
-    } catch (err) {
-      console.error('Erreur vérification statut:', err);
+    if (!user && receiverId) {
+      setShowLoginPrompt(true);
     }
+  }, [user, receiverId]);
+
+  const handleLoginRedirect = () => {
+    onClose();
+    navigate('/login', { 
+      state: { 
+        from: 'chat',
+        receiverId,
+        receiverName,
+        receiverPhone
+      } 
+    });
   };
 
-  const initConversation = async () => {
+  const initConversation = useCallback(async () => {
+    if (!user && receiverId) {
+      setError('Veuillez vous connecter pour envoyer des messages');
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
@@ -134,38 +306,31 @@ export default function ChatModal({
       let conv;
       
       if (conversationId && existingConversation) {
-        conv = { id: conversationId };
-        setConversation(conv);
-        
+        // Charger une conversation existante
         const convData = await messageApi.getMessages(conversationId);
+        setConversation(convData);
         setMessages(convData.messages || []);
         
-        // Récupérer le statut en ligne depuis la conversation
-        if (convData.other_user_online !== undefined) {
-          setIsReceiverOnline(convData.other_user_online);
-          setLastSeen(convData.other_user_last_seen);
+        // Vérifier le statut du destinataire
+        if (convData.user_one_id === user?.id) {
+          checkOnlineStatus(convData.user_two_id);
+        } else if (convData.user_two_id === user?.id) {
+          checkOnlineStatus(convData.user_one_id);
         }
-      } else {
-        if (!receiverId && user) {
-          setError('Erreur: Destinataire non défini');
-          return;
-        }
-        
+      } else if (receiverId) {
+        // Démarrer une nouvelle conversation
         conv = await messageApi.startConversation(receiverId);
         setConversation(conv);
         
         const convData = await messageApi.getMessages(conv.id);
         setMessages(convData.messages || []);
         
-        // Récupérer le statut en ligne
-        if (conv.other_user_online !== undefined) {
-          setIsReceiverOnline(conv.other_user_online);
-          setLastSeen(conv.other_user_last_seen);
-        }
+        // Vérifier le statut en ligne
+        checkOnlineStatus(receiverId);
         
-        // Si anonyme ET prestataire offline → Afficher modal contact
-        if (!user && !conv.other_user_online && receiverPhone) {
-          setShowContactModal(true);
+        // Afficher modal contact si prestataire hors ligne
+        if (!isReceiverOnline && receiverPhone) {
+          setTimeout(() => setShowContactModal(true), 1000);
         }
       }
     } catch (err) {
@@ -174,10 +339,66 @@ export default function ChatModal({
     } finally {
       setLoading(false);
     }
+  }, [user, receiverId, conversationId, existingConversation, receiverPhone, isReceiverOnline]);
+
+  useEffect(() => {
+    if (user || (!user && conversationId)) {
+      initConversation();
+      
+      // Vérifier le statut en ligne toutes les 30 secondes
+      if (receiverId) {
+        checkOnlineStatus(receiverId);
+        onlineCheckIntervalRef.current = setInterval(() => {
+          checkOnlineStatus(receiverId);
+        }, 30000);
+      }
+      
+      // Mettre à jour mon statut en ligne
+      const updateMyStatusInterval = setInterval(() => {
+        if (user) {
+          messageApi.updateOnlineStatus();
+        }
+      }, 60000);
+      
+      return () => {
+        if (onlineCheckIntervalRef.current) {
+          clearInterval(onlineCheckIntervalRef.current);
+        }
+        clearInterval(updateMyStatusInterval);
+        stopRecording();
+      };
+    }
+  }, [user, receiverId, conversationId, initConversation]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const checkOnlineStatus = async (userId) => {
+    if (!userId) return;
+    try {
+      const status = await messageApi.checkOnlineStatus(userId);
+      setIsReceiverOnline(status.is_online);
+      setLastSeen(status.last_seen_at);
+    } catch (err) {
+      console.error('Erreur vérification statut:', err);
+      // Ne pas afficher d'erreur à l'utilisateur, juste log
+    }
   };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
+    
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
     
     if ((!newMessage.trim() && !selectedFile && !audioBlob) || sending || !conversation) return;
 
@@ -187,36 +408,83 @@ export default function ChatModal({
 
       let sentMessage;
       
-      // Préparer les données pour l'envoi
-      const formData = new FormData();
-      formData.append('conversation_id', conversation.id);
-      
-      if (newMessage.trim()) {
-        formData.append('content', newMessage.trim());
-      }
-      
-      if (selectedFile) {
-        formData.append('file', selectedFile);
-        formData.append('file_type', selectedFile.type.startsWith('image/') ? 'image' : 'video');
-      }
-      
-      if (audioBlob) {
-        const audioFile = new File([audioBlob], 'audio_message.webm', { 
-          type: 'audio/webm' 
+      // Préparer les données à envoyer
+      if (selectedFile || audioBlob) {
+        // Cas avec fichier (image, vidéo, audio)
+        const formData = new FormData();
+        const fileToSend = audioBlob || selectedFile;
+        
+        // Déterminer le type
+        let fileTypeValue;
+        if (audioBlob) {
+          fileTypeValue = 'vocal';
+          // Créer un fichier à partir du blob audio
+          const audioFile = new File([audioBlob], `audio_message_${Date.now()}.webm`, {
+            type: 'audio/webm'
+          });
+          formData.append('file', audioFile);
+        } else {
+          if (selectedFile.type.startsWith('image/')) {
+            fileTypeValue = 'image';
+          } else if (selectedFile.type.startsWith('video/')) {
+            fileTypeValue = 'video';
+          } else {
+            fileTypeValue = 'document';
+          }
+          formData.append('file', selectedFile);
+        }
+        
+        formData.append('type', fileTypeValue);
+        
+        // Ajouter le contenu texte si présent
+        if (newMessage.trim()) {
+          formData.append('content', newMessage.trim());
+        }
+        
+        // Envoyer avec FormData
+        sentMessage = await messageApi.sendMessage(conversation.id, formData);
+      } else {
+        // Cas message texte simple
+        sentMessage = await messageApi.sendMessage(conversation.id, {
+          type: 'text',
+          content: newMessage.trim()
         });
-        formData.append('file', audioFile);
-        formData.append('file_type', 'vocal');
       }
+
+      // Ajouter le message à la liste avec les bonnes propriétés
+      const newMessageObj = {
+        id: sentMessage.id || Date.now(),
+        conversation_id: conversation.id,
+        sender_id: user.id,
+        sender: {
+          id: user.id,
+          name: user.name,
+          email: user.email
+        },
+        type: sentMessage.type || 'text',
+        content: sentMessage.content || newMessage.trim(),
+        file_path: sentMessage.file_path,
+        file_url: sentMessage.file_url || sentMessage.file_path,
+        latitude: sentMessage.latitude,
+        longitude: sentMessage.longitude,
+        read_at: null,
+        created_at: sentMessage.created_at || new Date().toISOString(),
+        updated_at: sentMessage.updated_at || new Date().toISOString()
+      };
+
+      setMessages(prev => [...prev, newMessageObj]);
       
-      // Envoyer au backend qui gérera l'upload
-      sentMessage = await messageApi.sendMessageWithFile(formData);
-      
-      // Mettre à jour les messages
-      setMessages(prev => [...prev, sentMessage]);
+      // Réinitialiser l'état
       setNewMessage('');
       setSelectedFile(null);
       setFilePreview(null);
       setAudioBlob(null);
+      setFileType(null);
+      
+      // Focus sur l'input après envoi
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
       
     } catch (err) {
       console.error('Erreur envoi message:', err);
@@ -228,33 +496,53 @@ export default function ChatModal({
 
   // 🎤 ENREGISTREMENT AUDIO
   const startRecording = async () => {
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100
+        } 
+      });
+      
+      audioStreamRef.current = stream;
       mediaRecorderRef.current = new MediaRecorder(stream);
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { 
+          type: 'audio/webm;codecs=opus' 
+        });
         setAudioBlob(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
+        
+        // Arrêter le stream audio
+        if (audioStreamRef.current) {
+          audioStreamRef.current.getTracks().forEach(track => track.stop());
+          audioStreamRef.current = null;
+        }
       };
 
-      mediaRecorderRef.current.start();
+      mediaRecorderRef.current.start(100); // Collecter les données par chunks de 100ms
       setIsRecording(true);
       setRecordingTime(0);
       
-      // Timer
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
-      
     } catch (err) {
       console.error('Erreur enregistrement audio:', err);
-      alert('Impossible d\'accéder au microphone');
+      alert('Impossible d\'accéder au microphone. Veuillez vérifier les permissions.');
     }
   };
 
@@ -272,30 +560,64 @@ export default function ChatModal({
     stopRecording();
     setAudioBlob(null);
     setRecordingTime(0);
+    
+    // Arrêter le stream audio si toujours actif
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach(track => track.stop());
+      audioStreamRef.current = null;
+    }
   };
 
   // 📷 SÉLECTION DE FICHIERS
   const handleFileSelect = (e) => {
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    
     const file = e.target.files[0];
     if (!file) return;
 
-    // Vérifier la taille (max 10MB)
+    // Vérifier la taille du fichier (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('Fichier trop volumineux (max 10MB)');
+      alert('Fichier trop volumineux (maximum 10MB)');
       return;
     }
 
     setSelectedFile(file);
     
-    // Créer une prévisualisation
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFilePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
+    // Déterminer le type de fichier
+    if (file.type.startsWith('image/')) {
+      setFileType('image');
+    } else if (file.type.startsWith('video/')) {
+      setFileType('video');
+    } else if (file.type.startsWith('audio/')) {
+      setFileType('vocal');
+    } else {
+      setFileType('document');
+    }
+
+    // Créer une prévisualisation pour les images et vidéos
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    } else if (file.type.startsWith('video/')) {
+      const videoUrl = URL.createObjectURL(file);
+      setFilePreview(videoUrl);
+    } else {
+      setFilePreview(null);
+    }
   };
 
   const handleShareLocation = async () => {
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    
     if (!conversation) return;
 
     try {
@@ -311,13 +633,32 @@ export default function ChatModal({
           try {
             const { latitude, longitude } = position.coords;
             
+            // Envoyer le message avec localisation
             const locationMessage = await messageApi.sendMessage(
               conversation.id,
-              `📍 Ma position actuelle`,
-              { latitude, longitude }
+              {
+                type: 'text',
+                content: '📍 Ma position actuelle',
+                latitude: latitude,
+                longitude: longitude
+              }
             );
 
-            setMessages(prev => [...prev, locationMessage]);
+            // Ajouter le message à la liste
+            const newLocationMessage = {
+              id: locationMessage.id || Date.now(),
+              conversation_id: conversation.id,
+              sender_id: user.id,
+              sender: user,
+              type: 'text',
+              content: '📍 Ma position actuelle',
+              latitude: latitude,
+              longitude: longitude,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+
+            setMessages(prev => [...prev, newLocationMessage]);
             setLocationSharing(false);
           } catch (err) {
             console.error('Erreur envoi localisation:', err);
@@ -327,8 +668,13 @@ export default function ChatModal({
         },
         (error) => {
           console.error('Erreur géolocalisation:', error);
-          alert('Impossible d\'accéder à votre position');
+          alert('Impossible d\'accéder à votre position. Veuillez vérifier les permissions.');
           setLocationSharing(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
       );
     } catch (err) {
@@ -338,6 +684,7 @@ export default function ChatModal({
   };
 
   const formatTime = (timestamp) => {
+    if (!timestamp) return '';
     const date = new Date(timestamp);
     return date.toLocaleTimeString('fr-FR', { 
       hour: '2-digit', 
@@ -345,334 +692,492 @@ export default function ChatModal({
     });
   };
 
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return "Aujourd'hui";
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return "Hier";
+    } else {
+      return date.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
+      });
+    }
+  };
+
   const formatRecordingTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const formatLastSeen = (lastSeenAt) => {
-    if (!lastSeenAt) return '';
-    const date = new Date(lastSeenAt);
-    const now = new Date();
-    const diffMinutes = Math.floor((now - date) / 60000);
-    
-    if (diffMinutes < 1) return 'À l\'instant';
-    if (diffMinutes < 60) return `Il y a ${diffMinutes} min`;
-    if (diffMinutes < 1440) return `Il y a ${Math.floor(diffMinutes / 60)}h`;
-    return date.toLocaleDateString('fr-FR');
+    if (!lastSeenAt) return 'Jamais en ligne';
+    try {
+      const date = new Date(lastSeenAt);
+      const now = new Date();
+      const diffMinutes = Math.floor((now - date) / 60000);
+      
+      if (diffMinutes < 1) return 'À l\'instant';
+      if (diffMinutes < 60) return `Il y a ${diffMinutes} min`;
+      if (diffMinutes < 1440) return `Il y a ${Math.floor(diffMinutes / 60)}h`;
+      return date.toLocaleDateString('fr-FR');
+    } catch (err) {
+      return 'Inconnu';
+    }
   };
 
   const isMyMessage = (message) => {
-    if (user) {
-      return message.sender_id === user.id;
-    }
-    return message.sender_id === null;
+    return user && message.sender_id === user.id;
   };
 
   const renderMessageContent = (message) => {
-    // Message texte
-    if (message.type === 'text' || !message.type) {
-      return <div style={styles.messageContent}>{message.content}</div>;
-    }
-
-    // Message avec localisation
+    // Vérifier si c'est un message de localisation
     if (message.latitude && message.longitude) {
       return (
         <div style={styles.messageContent}>
-          {message.content && <div style={styles.messageContent}>{message.content}</div>}
-          <LocationMap latitude={message.latitude} longitude={message.longitude} />
+          {message.content && message.content !== '📍 Ma position actuelle' && (
+            <div style={styles.messageText}>{message.content}</div>
+          )}
+          <LocationMap 
+            latitude={message.latitude} 
+            longitude={message.longitude} 
+          />
         </div>
       );
     }
 
+    // Message texte simple
+    if (message.type === 'text' || !message.type) {
+      return <div style={styles.messageText}>{message.content}</div>;
+    }
+
     // Message avec fichier
-    if (message.file_url) {
-      // Image
-      if (message.type === 'image') {
-        return (
-          <div style={styles.mediaContainer}>
-            {message.content && <div style={styles.messageContent}>{message.content}</div>}
-            <img 
-              src={message.file_url} 
-              alt="Image envoyée" 
-              style={styles.imageMessage}
-              onClick={() => setMediaPreview({ 
-                type: 'image', 
-                src: message.file_url,
-                alt: 'Image envoyée' 
-              })}
-              onError={(e) => {
-                e.target.src = '/placeholder-image.png';
-              }}
-            />
-          </div>
-        );
-      }
+    if (message.file_url || message.file_path) {
+      const fileUrl = message.file_url || message.file_path;
       
-      // Vidéo - CORRECTION : Utilisation de la balise video avec src
-      if (message.type === 'video') {
-        return (
-          <div style={styles.mediaContainer}>
-            {message.content && <div style={styles.messageContent}>{message.content}</div>}
-            <div style={styles.videoContainer}>
-              <video 
-                src={message.file_url} 
-                controls 
-                style={styles.videoMessage}
-                preload="metadata"
+      switch (message.type) {
+        case 'image':
+          return (
+            <div style={styles.mediaContainer}>
+              {message.content && message.content !== '🖼️ Image' && (
+                <div style={styles.messageCaption}>{message.content}</div>
+              )}
+              <img 
+                src={fileUrl} 
+                alt="Image envoyée" 
+                style={styles.imageMessage}
+                onClick={() => setMediaPreview({ 
+                  type: 'image', 
+                  src: fileUrl,
+                  alt: message.content || 'Image envoyée' 
+                })}
+                loading="lazy"
                 onError={(e) => {
-                  console.error('Erreur chargement vidéo:', e);
-                  e.target.style.display = 'none';
-                  e.target.nextElementSibling.style.display = 'flex';
+                  e.target.src = '/placeholder-image.png';
                 }}
               />
-              <div style={styles.videoFallback}>
-                <FiVideo style={styles.videoFallbackIcon} />
-                <span>Vidéo non disponible</span>
+            </div>
+          );
+          
+        case 'video':
+          return (
+            <div style={styles.mediaContainer}>
+              {message.content && message.content !== '🎥 Vidéo' && (
+                <div style={styles.messageCaption}>{message.content}</div>
+              )}
+              <div style={styles.videoContainer}>
+                <video 
+                  src={fileUrl} 
+                  controls 
+                  style={styles.videoMessage}
+                  preload="metadata"
+                  poster="/video-thumbnail.png"
+                >
+                  Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+              </div>
+            </div>
+          );
+          
+        case 'vocal':
+          return (
+            <div style={styles.audioContainer}>
+              {message.content && message.content !== '🎤 Message vocal' && (
+                <div style={styles.messageCaption}>{message.content}</div>
+              )}
+              <AudioMessage audioUrl={fileUrl} />
+            </div>
+          );
+          
+        case 'document':
+          return (
+            <div style={styles.documentContainer}>
+              <div style={styles.documentIcon}>
+                <FiFileText />
+              </div>
+              <div style={styles.documentInfo}>
+                <div style={styles.documentName}>
+                  {message.content || 'Document'}
+                </div>
                 <a 
-                  href={message.file_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                  href={fileUrl}
+                  download
                   style={styles.downloadLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <FiDownload /> Télécharger
                 </a>
               </div>
             </div>
-          </div>
-        );
-      }
-      
-      // Audio
-      if (message.type === 'vocal') {
-        return (
-          <div style={styles.audioContainer}>
-            <FiMic style={styles.audioIcon} />
-            <audio 
-              src={message.file_url} 
-              controls 
-              style={styles.audioPlayer}
-              preload="metadata"
-            />
-          </div>
-        );
+          );
+          
+        default:
+          return <div style={styles.messageText}>{message.content || '(Fichier)'}</div>;
       }
     }
 
-    return <div style={styles.messageContent}>{message.content || '(Fichier)'}</div>;
+    return <div style={styles.messageText}>{message.content || '(Message)'}</div>;
   };
+
+  // Regrouper les messages par date
+  const groupedMessages = messages.reduce((groups, message) => {
+    const date = formatDate(message.created_at);
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    groups[date].push(message);
+    return groups;
+  }, {});
+
+  // Rendu du prompt de connexion
+  if (showLoginPrompt) {
+    return (
+      <div style={styles.overlay}>
+        <div style={styles.modal}>
+          <div style={styles.loginPrompt}>
+            <div style={styles.loginHeader}>
+              <FiUser style={styles.loginIcon} />
+              <h3 style={styles.loginTitle}>Connexion requise</h3>
+            </div>
+            
+            <div style={styles.loginBody}>
+              <p style={styles.loginMessage}>
+                Vous devez être connecté pour accéder au chat et envoyer des messages.
+              </p>
+            </div>
+            
+            <div style={styles.loginActions}>
+              <button 
+                onClick={onClose}
+                style={styles.cancelLoginButton}
+              >
+                <FiChevronLeft style={styles.backIcon} />
+                Retour
+              </button>
+              <button 
+                onClick={handleLoginRedirect}
+                style={styles.loginButton}
+              >
+                <FiLogIn style={styles.loginButtonIcon} />
+                Se connecter
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div style={styles.overlay} onClick={onClose}>
-        <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div style={styles.overlay}>
+        <div style={{
+          ...styles.modal,
+          width: isMobile ? '100%' : '500px',
+          height: isMobile ? '100vh' : '90vh',
+          maxWidth: isMobile ? '100%' : '500px',
+          borderRadius: isMobile ? 0 : '20px',
+          margin: isMobile ? 0 : 'auto'
+        }}>
           {/* Header */}
           <div style={styles.header}>
-            <div style={styles.headerInfo}>
-              <div style={styles.avatar}>
-                {receiverName.charAt(0).toUpperCase()}
-                {isReceiverOnline && <div style={styles.onlineIndicator} />}
+            <div style={styles.headerLeft}>
+              {isMobile && (
+                <button 
+                  onClick={onClose}
+                  style={styles.mobileBackButton}
+                >
+                  <FiChevronLeft size={24} />
+                </button>
+              )}
+              
+              <div style={styles.avatarContainer}>
+                <div style={styles.avatar}>
+                  {receiverName?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                {isReceiverOnline && (
+                  <div style={styles.onlineIndicator} title="En ligne" />
+                )}
               </div>
-              <div>
+              
+              <div style={styles.userInfo}>
                 <h3 style={styles.headerTitle}>
-                  {receiverName}
+                  {receiverName || 'Utilisateur'}
+                  {isReceiverOnline && (
+                    <span style={styles.onlineBadge}>● En ligne</span>
+                  )}
                 </h3>
                 <div style={styles.headerStatus}>
                   {isReceiverOnline ? (
-                    <span style={styles.statusOnline}>● En ligne</span>
+                    <span style={styles.statusTextActive}>En ligne</span>
                   ) : (
-                    <span style={styles.statusOffline}>
+                    <span style={styles.statusText}>
                       {lastSeen ? `Vu ${formatLastSeen(lastSeen)}` : 'Hors ligne'}
                     </span>
                   )}
                 </div>
               </div>
             </div>
-            <button onClick={onClose} style={styles.closeButton}>
-              <FiX />
-            </button>
+            
+            <div style={styles.headerRight}>
+              <button 
+                onClick={handleShareLocation}
+                disabled={locationSharing || !conversation}
+                style={styles.actionButton}
+                title="Partager ma position"
+              >
+                {locationSharing ? <FiLoader style={styles.spinner} /> : <FiMapPin />}
+              </button>
+              
+              {!isMobile && (
+                <button 
+                  onClick={onClose}
+                  style={styles.closeButton}
+                  title="Fermer"
+                >
+                  <FiX size={20} />
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Messages */}
+          {/* Messages container */}
           <div style={styles.messagesContainer}>
             {loading ? (
               <div style={styles.loadingContainer}>
-                <FiLoader style={styles.spinner} />
-                <p>Chargement de la conversation...</p>
+                <FiLoader style={styles.spinnerLarge} />
+                <p style={styles.loadingText}>Chargement de la conversation...</p>
               </div>
             ) : error ? (
               <div style={styles.errorState}>
                 <div style={styles.errorIcon}>❌</div>
                 <p style={styles.errorText}>{error}</p>
-                <button onClick={initConversation} style={styles.retryButton}>
+                <button 
+                  onClick={initConversation}
+                  style={styles.retryButton}
+                >
                   Réessayer
                 </button>
               </div>
             ) : messages.length === 0 ? (
               <div style={styles.emptyState}>
                 <div style={styles.emptyIcon}>
-                  <FiMessageCircle />
+                  <FiMessageCircle size={48} />
                 </div>
+                <h4 style={styles.emptyTitle}>Aucun message</h4>
                 <p style={styles.emptyText}>
                   Envoyez votre premier message pour démarrer la conversation
                 </p>
               </div>
             ) : (
               <>
-                {messages.map((message) => {
-                  const isMine = isMyMessage(message);
-                  return (
-                    <div
-                      key={message.id}
-                      style={{
-                        ...styles.messageWrapper,
-                        justifyContent: isMine ? 'flex-end' : 'flex-start'
-                      }}
-                    >
-                      <div
-                        style={{
-                          ...styles.messageBubble,
-                          ...(isMine 
-                            ? styles.myMessage 
-                            : styles.theirMessage
-                          )
-                        }}
-                      >
-                        {!isMine && message.sender?.name && (
-                          <div style={styles.senderName}>{message.sender.name}</div>
-                        )}
-                        
-                        {renderMessageContent(message)}
-                        
-                        <div style={styles.messageFooter}>
-                          <span style={styles.messageTime}>
-                            {formatTime(message.created_at)}
-                          </span>
-                          
-                          {isMine && (
-                            <span style={styles.readStatus}>
-                              {message.read_at ? (
-                                <FiCheckCircle style={styles.readIcon} title="Lu" />
-                              ) : (
-                                <FiCheck style={styles.sentIcon} title="Envoyé" />
+                {Object.entries(groupedMessages).map(([date, dateMessages]) => (
+                  <div key={date}>
+                    <DateSeparator date={date} />
+                    
+                    {dateMessages.map((message) => {
+                      const isMine = isMyMessage(message);
+                      return (
+                        <div
+                          key={message.id || `msg-${message.created_at}-${Math.random()}`}
+                          style={{
+                            ...styles.messageWrapper,
+                            justifyContent: isMine ? 'flex-end' : 'flex-start',
+                          }}
+                        >
+                          <div
+                            style={{
+                              ...styles.messageBubble,
+                              ...(isMine ? styles.myMessage : styles.theirMessage),
+                              maxWidth: isMobile ? '85%' : '70%',
+                            }}
+                          >
+                            {!isMine && message.sender?.name && (
+                              <div style={styles.senderName}>
+                                {message.sender.name}
+                              </div>
+                            )}
+                            
+                            {renderMessageContent(message)}
+                            
+                            <div style={styles.messageFooter}>
+                              <span style={styles.messageTime}>
+                                {formatTime(message.created_at)}
+                              </span>
+                              
+                              {isMine && (
+                                <span style={styles.readStatus}>
+                                  {message.read_at ? (
+                                    <FiCheckCircle 
+                                      style={styles.readIcon} 
+                                      title="Lu par le destinataire" 
+                                    />
+                                  ) : (
+                                    <FiCheck 
+                                      style={styles.sentIcon} 
+                                      title="Envoyé" 
+                                    />
+                                  )}
+                                </span>
                               )}
-                            </span>
-                          )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                ))}
                 <div ref={messagesEndRef} />
               </>
             )}
           </div>
 
-          {/* Prévisualisation fichier sélectionné */}
+          {/* Prévisualisation fichier */}
           {(filePreview || audioBlob) && (
-            <div style={styles.filePreview}>
-              {filePreview && selectedFile?.type.startsWith('image/') && (
-                <img src={filePreview} alt="Preview" style={styles.previewImage} />
-              )}
-              {filePreview && selectedFile?.type.startsWith('video/') && (
-                <div style={styles.videoPreview}>
-                  <video src={filePreview} controls style={styles.previewVideo} />
-                </div>
-              )}
-              {audioBlob && (
-                <div style={styles.audioPreview}>
-                  <FiMic style={styles.audioPreviewIcon} />
-                  <span>Message vocal ({formatRecordingTime(recordingTime)})</span>
-                </div>
-              )}
-              <button 
-                onClick={() => {
-                  setSelectedFile(null);
-                  setFilePreview(null);
-                  setAudioBlob(null);
-                }}
-                style={styles.cancelPreviewButton}
-              >
-                <FiX /> Annuler
-              </button>
-            </div>
-          )}
-
-          {/* Error banner */}
-          {error && !loading && (
-            <div style={styles.errorBanner}>
-              {error}
-            </div>
-          )}
-
-          {/* Input */}
-          {isRecording ? (
-            <div style={styles.recordingContainer}>
-              <button onClick={cancelRecording} style={styles.cancelRecordButton}>
-                <FiX />
-              </button>
-              <div style={styles.recordingIndicator}>
-                <FiMic style={styles.recordingIcon} />
-                <span style={styles.recordingTime}>{formatRecordingTime(recordingTime)}</span>
+            <div style={styles.previewContainer}>
+              <div style={styles.previewHeader}>
+                <span style={styles.previewTitle}>
+                  {selectedFile?.type?.startsWith('image/') ? 'Image' : 
+                   selectedFile?.type?.startsWith('video/') ? 'Vidéo' : 
+                   audioBlob ? 'Message vocal' : 'Fichier'}
+                </span>
+                <button 
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setFilePreview(null);
+                    setAudioBlob(null);
+                    setFileType(null);
+                  }}
+                  style={styles.previewCancel}
+                >
+                  <FiX /> Annuler
+                </button>
               </div>
-              <button onClick={stopRecording} style={styles.stopRecordButton}>
-                <FiStopCircle />
-              </button>
+              
+              <div style={styles.previewContent}>
+                {filePreview && selectedFile?.type?.startsWith('image/') && (
+                  <img src={filePreview} alt="Preview" style={styles.previewImage} />
+                )}
+                {filePreview && selectedFile?.type?.startsWith('video/') && (
+                  <video src={filePreview} controls style={styles.previewVideo} />
+                )}
+                {audioBlob && (
+                  <div style={styles.audioPreview}>
+                    <FiMic style={styles.audioPreviewIcon} />
+                    <span>Message vocal ({formatRecordingTime(recordingTime)})</span>
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
+          )}
+
+          {/* Enregistrement audio en cours */}
+          {isRecording && (
+            <div style={styles.recordingContainer}>
+              <div style={styles.recordingHeader}>
+                <div style={styles.recordingIndicator}>
+                  <div style={styles.recordingDot} />
+                  <span style={styles.recordingText}>Enregistrement en cours...</span>
+                </div>
+                <span style={styles.recordingTimer}>
+                  {formatRecordingTime(recordingTime)}
+                </span>
+              </div>
+              
+              <div style={styles.recordingActions}>
+                <button 
+                  onClick={cancelRecording}
+                  style={styles.cancelRecordingButton}
+                >
+                  <FiX /> Annuler
+                </button>
+                <button 
+                  onClick={stopRecording}
+                  style={styles.stopRecordingButton}
+                >
+                  <FiStopCircle /> Terminer
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Zone de saisie */}
+          {!isRecording && (
             <form onSubmit={handleSendMessage} style={styles.inputContainer}>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                accept="image/*,video/*"
-                style={{ display: 'none' }}
-              />
-              
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={sending || !conversation}
-                style={styles.mediaButton}
-                title="Ajouter une image ou vidéo"
-              >
-                <FiImage />
-              </button>
-              
-              <button
-                type="button"
-                onClick={handleShareLocation}
-                disabled={locationSharing || !conversation}
-                style={styles.locationButton}
-                title="Partager ma position"
-              >
-                {locationSharing ? <FiLoader style={styles.spinner} /> : <FiMapPin />}
-              </button>
-              
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Écrivez votre message..."
-                style={styles.input}
-                disabled={sending || !conversation}
-              />
-              
-              {!newMessage.trim() && !selectedFile && !audioBlob ? (
+              <div style={styles.inputActions}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileSelect}
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
+                  style={{ display: 'none' }}
+                />
                 <button
                   type="button"
-                  onMouseDown={startRecording}
-                  onMouseUp={stopRecording}
-                  onTouchStart={startRecording}
-                  onTouchEnd={stopRecording}
+                  onClick={() => fileInputRef.current?.click()}
                   disabled={sending || !conversation}
-                  style={styles.micButton}
-                  title="Maintenir pour enregistrer un audio"
+                  style={styles.attachmentButton}
+                  title="Joindre un fichier"
+                >
+                  <FiPaperclip />
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={startRecording}
+                  disabled={sending || !conversation}
+                  style={styles.recordButton}
+                  title="Enregistrer un message vocal"
                 >
                   <FiMic />
                 </button>
-              ) : (
+              </div>
+              
+              <div style={styles.inputWrapper}>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Écrivez votre message..."
+                  style={styles.messageInput}
+                  disabled={sending || !conversation}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage(e);
+                    }
+                  }}
+                />
                 <button
                   type="submit"
                   disabled={(!newMessage.trim() && !selectedFile && !audioBlob) || sending || !conversation}
@@ -680,107 +1185,138 @@ export default function ChatModal({
                     ...styles.sendButton,
                     ...((!newMessage.trim() && !selectedFile && !audioBlob) || sending || !conversation) && styles.sendButtonDisabled
                   }}
+                  title="Envoyer"
                 >
                   {sending ? <FiLoader style={styles.spinner} /> : <FiSend />}
                 </button>
-              )}
+              </div>
             </form>
-          )}
-
-          {!user && (
-            <div style={styles.infoFooter}>
-              💡 Connectez-vous pour suivre vos conversations
-            </div>
           )}
         </div>
       </div>
 
-      {/* Prévisualisation plein écran des médias */}
+      {/* Prévisualisation plein écran */}
       {mediaPreview && (
-        <div style={styles.mediaPreviewOverlay} onClick={() => setMediaPreview(null)}>
-          <div style={styles.mediaPreviewContainer} onClick={(e) => e.stopPropagation()}>
-            <button 
-              onClick={() => setMediaPreview(null)}
-              style={styles.closePreviewButton}
-            >
-              <FiX />
-            </button>
-            {mediaPreview.type === 'image' && (
-              <img src={mediaPreview.src} alt={mediaPreview.alt} style={styles.fullImage} />
-            )}
-            {mediaPreview.type === 'video' && (
-              <video src={mediaPreview.src} controls autoPlay style={styles.fullVideo} />
-            )}
+        <div 
+          style={styles.fullscreenOverlay}
+          onClick={() => setMediaPreview(null)}
+        >
+          <div style={styles.fullscreenContainer}>
+            <div style={styles.fullscreenHeader}>
+              <button 
+                onClick={() => setMediaPreview(null)}
+                style={styles.fullscreenClose}
+              >
+                <FiX />
+              </button>
+              {mediaPreview.type === 'image' && (
+                <a 
+                  href={mediaPreview.src}
+                  download
+                  style={styles.fullscreenDownload}
+                  title="Télécharger"
+                >
+                  <FiDownload />
+                </a>
+              )}
+            </div>
+            
+            <div style={styles.fullscreenContent}>
+              {mediaPreview.type === 'image' && (
+                <img 
+                  src={mediaPreview.src} 
+                  alt={mediaPreview.alt}
+                  style={styles.fullscreenImage}
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Modal de contact (si utilisateur anonyme et prestataire hors ligne) */}
+      {/* Modal de contact */}
       {showContactModal && (
-        <div style={styles.contactModalOverlay} onClick={() => setShowContactModal(false)}>
-          <div style={styles.contactModal} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.contactModalHeader}>
-              <FiPhone style={styles.contactModalIcon} />
-              <h3 style={styles.contactModalTitle}>Prestataire hors ligne</h3>
+        <div style={styles.contactOverlay}>
+          <div style={styles.contactModal}>
+            <div style={styles.contactHeader}>
+              <div style={styles.contactIconContainer}>
+                <FiPhone style={styles.contactIcon} />
+              </div>
+              <h3 style={styles.contactTitle}>Prestataire hors ligne</h3>
               <button 
                 onClick={() => setShowContactModal(false)}
-                style={styles.contactModalClose}
+                style={styles.contactClose}
               >
                 <FiX />
               </button>
             </div>
             
-            <div style={styles.contactModalBody}>
-              <p style={styles.contactModalText}>
-                Le prestataire <strong>{receiverName}</strong> est actuellement hors ligne.
+            <div style={styles.contactBody}>
+              <p style={styles.contactMessage}>
+                <strong>{receiverName}</strong> est actuellement hors ligne.
               </p>
               
               {receiverPhone && (
                 <div style={styles.contactOptions}>
-                  <div style={styles.contactOption}>
+                  <a 
+                    href={`sms:${receiverPhone}`}
+                    style={styles.contactOption}
+                  >
                     <FiMessageCircle style={styles.optionIcon} />
-                    <div>
-                      <div style={styles.optionTitle}>Envoyer un SMS</div>
-                      <a 
-                        href={`sms:${receiverPhone}`}
-                        style={styles.optionLink}
-                      >
-                        {receiverPhone}
-                      </a>
+                    <div style={styles.optionContent}>
+                      <h4 style={styles.optionTitle}>Envoyer un SMS</h4>
+                      <span style={styles.optionLink}>{receiverPhone}</span>
                     </div>
-                  </div>
+                  </a>
                   
-                  <div style={styles.contactOption}>
+                  <a 
+                    href={`tel:${receiverPhone}`}
+                    style={styles.contactOption}
+                  >
                     <FiPhone style={styles.optionIcon} />
-                    <div>
-                      <div style={styles.optionTitle}>Appeler</div>
-                      <a 
-                        href={`tel:${receiverPhone}`}
-                        style={styles.optionLink}
-                      >
-                        {receiverPhone}
-                      </a>
+                    <div style={styles.optionContent}>
+                      <h4 style={styles.optionTitle}>Appeler directement</h4>
+                      <span style={styles.optionLink}>{receiverPhone}</span>
                     </div>
-                  </div>
+                  </a>
                 </div>
               )}
-              
-              <p style={styles.contactModalNote}>
-                💡 Vous pouvez laisser un message ici, il le verra à son retour.
-              </p>
             </div>
             
-            <div style={styles.contactModalFooter}>
+            <div style={styles.contactFooter}>
               <button 
                 onClick={() => setShowContactModal(false)}
-                style={styles.contactModalButton}
+                style={styles.contactButton}
               >
-                Compris
+                OK
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 768px) {
+          .chat-modal {
+            margin: 0 !important;
+            border-radius: 0 !important;
+            max-height: 100vh !important;
+            height: 100vh !important;
+          }
+        }
+      `}</style>
     </>
   );
 }
@@ -792,7 +1328,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -800,41 +1336,64 @@ const styles = {
     padding: '1rem',
   },
   modal: {
-    backgroundColor: '#fff',
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: '#ffffff',
+    borderRadius: '20px',
     width: '100%',
     maxWidth: '500px',
     maxHeight: '90vh',
     display: 'flex',
     flexDirection: 'column',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
     overflow: 'hidden',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
   },
+  
+  // Header
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '1.25rem',
-    borderBottom: `2px solid ${theme.colors.primaryLight}`,
-    backgroundColor: theme.colors.secondary,
+    padding: '1rem 1.5rem',
+    backgroundColor: '#ffffff',
+    borderBottom: '1px solid #e5e7eb',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+    minHeight: '72px',
   },
-  headerInfo: {
+  headerLeft: {
     display: 'flex',
     alignItems: 'center',
     gap: '1rem',
+    flex: 1,
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+  },
+  mobileBackButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#6b7280',
+    cursor: 'pointer',
+    padding: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarContainer: {
+    position: 'relative',
   },
   avatar: {
     width: '48px',
     height: '48px',
     borderRadius: '50%',
-    backgroundColor: theme.colors.primary,
-    color: '#fff',
+    backgroundColor: theme.colors.primary || '#3b82f6',
+    color: '#ffffff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '1.5rem',
+    fontSize: '1.25rem',
     fontWeight: 'bold',
-    position: 'relative',
+    flexShrink: 0,
   },
   onlineIndicator: {
     position: 'absolute',
@@ -843,248 +1402,402 @@ const styles = {
     width: '12px',
     height: '12px',
     backgroundColor: '#10b981',
-    border: '2px solid #fff',
+    border: '2px solid #ffffff',
     borderRadius: '50%',
+  },
+  userInfo: {
+    flex: 1,
+    minWidth: 0,
   },
   headerTitle: {
     fontSize: '1.125rem',
-    fontWeight: '700',
-    color: theme.colors.text.primary,
-    margin: 0,
+    fontWeight: '600',
+    color: '#111827',
+    margin: '0 0 0.25rem 0',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    flexWrap: 'wrap',
   },
-  headerStatus: {
-    fontSize: '0.8rem',
-    marginTop: '0.25rem',
-  },
-  statusOnline: {
+  onlineBadge: {
+    fontSize: '0.75rem',
     color: '#10b981',
     fontWeight: '500',
   },
-  statusOffline: {
-    color: theme.colors.text.secondary,
+  headerStatus: {
+    fontSize: '0.875rem',
+  },
+  statusTextActive: {
+    color: '#10b981',
+    fontWeight: '500',
+  },
+  statusText: {
+    color: '#6b7280',
+  },
+  actionButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#6b7280',
+    fontSize: '1.25rem',
+    cursor: 'pointer',
+    padding: '0.5rem',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'background-color 0.2s',
   },
   closeButton: {
     backgroundColor: 'transparent',
     border: 'none',
-    color: theme.colors.text.secondary,
-    fontSize: '1.75rem',
+    color: '#6b7280',
+    fontSize: '1.25rem',
     cursor: 'pointer',
-    padding: '0.25rem',
+    width: '40px',
+    height: '40px',
+    borderRadius: '8px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    transition: 'background-color 0.2s',
   },
+  
+  // Messages container
   messagesContainer: {
     flex: 1,
     overflowY: 'auto',
-    padding: '1.5rem',
-    backgroundColor: '#f8fafc',
+    padding: '1rem',
+    backgroundColor: '#f9fafb',
     display: 'flex',
     flexDirection: 'column',
-    gap: '1rem',
+    minHeight: 0,
   },
-  loadingContainer: {
+  
+  // Date separator
+  dateSeparator: {
     display: 'flex',
-    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100%',
+    margin: '1rem 0',
     gap: '1rem',
-    color: theme.colors.text.secondary,
   },
-  spinner: {
-    animation: 'spin 1s linear infinite',
-    fontSize: '1.5rem',
+  dateLine: {
+    flex: 1,
+    height: '1px',
+    backgroundColor: '#e5e7eb',
   },
-  errorState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    gap: '1rem',
-    padding: '2rem',
+  dateText: {
+    backgroundColor: '#f9fafb',
+    padding: '0.375rem 0.75rem',
+    borderRadius: '12px',
+    fontSize: '0.75rem',
+    fontWeight: '500',
+    color: '#6b7280',
+    border: '1px solid #e5e7eb',
+    whiteSpace: 'nowrap',
   },
-  errorIcon: {
-    fontSize: '3rem',
-  },
-  errorText: {
-    color: theme.colors.error,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: theme.colors.primary,
-    color: '#fff',
-    border: 'none',
-    padding: '0.75rem 1.5rem',
-    borderRadius: theme.borderRadius.md,
-    cursor: 'pointer',
-    fontWeight: '600',
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    textAlign: 'center',
-    padding: '2rem',
-  },
-  emptyIcon: {
-    fontSize: '4rem',
-    color: theme.colors.primaryLight,
-    marginBottom: '1rem',
-  },
-  emptyText: {
-    color: theme.colors.text.secondary,
-    fontSize: '0.95rem',
-  },
+  
+  // Message styles
   messageWrapper: {
     display: 'flex',
-    marginBottom: '0.5rem',
+    marginBottom: '0.75rem',
   },
   messageBubble: {
-    maxWidth: '85%',
-    padding: '0.875rem 1rem',
-    borderRadius: theme.borderRadius.lg,
-    wordWrap: 'break-word',
+    padding: '0.75rem 1rem',
+    borderRadius: '18px',
+    wordBreak: 'break-word',
+    maxWidth: '70%',
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
   },
   myMessage: {
-    backgroundColor: theme.colors.primary,
-    color: '#fff',
+    backgroundColor: theme.colors.primary || '#3b82f6',
+    color: '#ffffff',
     borderBottomRightRadius: '4px',
-    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.2)',
   },
   theirMessage: {
-    backgroundColor: '#fff',
-    color: theme.colors.text.primary,
-    border: `2px solid ${theme.colors.primaryLight}`,
+    backgroundColor: '#ffffff',
+    color: '#111827',
     borderBottomLeftRadius: '4px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+    border: '1px solid #e5e7eb',
   },
   senderName: {
     fontSize: '0.75rem',
     fontWeight: '600',
-    marginBottom: '0.375rem',
-    opacity: 0.8,
-    color: theme.colors.primary,
+    marginBottom: '0.25rem',
+    color: theme.colors.primary || '#3b82f6',
+    opacity: 0.9,
   },
-  messageContent: {
-    fontSize: '0.95rem',
+  messageText: {
+    fontSize: '0.9375rem',
     lineHeight: '1.5',
+    whiteSpace: 'pre-wrap',
   },
+  messageCaption: {
+    fontSize: '0.875rem',
+    color: 'inherit',
+    opacity: 0.9,
+    marginBottom: '0.5rem',
+  },
+  
+  // Media styles
   mediaContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
+    margin: '-0.25rem -0.5rem',
   },
   imageMessage: {
     maxWidth: '100%',
     maxHeight: '300px',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: '8px',
     cursor: 'pointer',
     objectFit: 'cover',
+    backgroundColor: '#f3f4f6',
   },
   videoContainer: {
     position: 'relative',
+    backgroundColor: '#000000',
+    borderRadius: '8px',
+    overflow: 'hidden',
   },
   videoMessage: {
-    maxWidth: '100%',
+    width: '100%',
     maxHeight: '300px',
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: '#000',
-  },
-  videoFallback: {
-    display: 'none',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    padding: '1rem',
-    backgroundColor: '#f3f4f6',
-    borderRadius: theme.borderRadius.md,
-    color: theme.colors.text.secondary,
-  },
-  videoFallbackIcon: {
-    fontSize: '2rem',
-  },
-  downloadLink: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.25rem',
-    color: theme.colors.primary,
-    textDecoration: 'none',
-    fontSize: '0.875rem',
-    padding: '0.5rem',
-    backgroundColor: '#fef2f2',
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: '#000000',
+    display: 'block',
   },
   audioContainer: {
+    minWidth: '200px',
+  },
+  audioMessageContainer: {
     display: 'flex',
     alignItems: 'center',
     gap: '0.75rem',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: '0.75rem 1rem',
+    borderRadius: '12px',
+    marginTop: '0.5rem',
   },
-  audioIcon: {
-    fontSize: '1.25rem',
+  audioPlayButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    color: '#ffffff',
+    border: 'none',
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    flexShrink: 0,
   },
-  audioPlayer: {
+  audioInfo: {
     flex: 1,
-    maxWidth: '200px',
+    minWidth: 0,
   },
-  // Styles pour la carte de localisation
-  mapContainer: {
-    width: '100%',
-    maxWidth: '300px',
-    backgroundColor: '#fff',
-    borderRadius: theme.borderRadius.md,
-    overflow: 'hidden',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-    border: '1px solid #e5e7eb',
-  },
-  mapHeader: {
+  audioHeader: {
     display: 'flex',
     alignItems: 'center',
     gap: '0.5rem',
-    padding: '0.75rem',
-    backgroundColor: '#f8fafc',
+    marginBottom: '0.5rem',
+  },
+  audioIcon: {
+    fontSize: '0.875rem',
+    color: 'currentColor',
+  },
+  audioLabel: {
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    opacity: 0.9,
+  },
+  progressBar: {
+    height: '4px',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: '2px',
+    overflow: 'hidden',
+    marginBottom: '0.25rem',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#ffffff',
+    borderRadius: '2px',
+    transition: 'width 0.1s linear',
+  },
+  audioTime: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '0.75rem',
+    opacity: 0.8,
+  },
+  currentTime: {
+    fontWeight: '500',
+  },
+  duration: {
+    opacity: 0.7,
+  },
+  downloadAudioButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    color: '#ffffff',
+    border: 'none',
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    fontSize: '0.875rem',
+    textDecoration: 'none',
+    flexShrink: 0,
+  },
+  
+  // Audio error styles
+  audioErrorContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    padding: '1rem',
+    backgroundColor: '#fef3c7',
+    borderRadius: '8px',
+    border: '1px solid #f59e0b',
+  },
+  audioErrorIcon: {
+    fontSize: '1.5rem',
+  },
+  audioErrorInfo: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+  },
+  audioErrorText: {
+    fontSize: '0.875rem',
+    color: '#92400e',
+    fontWeight: '500',
+  },
+  audioErrorDownload: {
+    fontSize: '0.75rem',
+    color: '#3b82f6',
+    textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.25rem',
+  },
+  
+  // Document styles
+  documentContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    padding: '1rem',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: '12px',
+    marginTop: '0.5rem',
+  },
+  documentIcon: {
+    fontSize: '2rem',
+    color: 'currentColor',
+    flexShrink: 0,
+  },
+  documentInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  documentName: {
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    marginBottom: '0.5rem',
+    wordBreak: 'break-word',
+  },
+  downloadLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    fontSize: '0.75rem',
+    color: 'currentColor',
+    textDecoration: 'none',
+    padding: '0.25rem 0.5rem',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: '4px',
+  },
+  
+  // Location styles
+  locationContainer: {
+    width: '100%',
+    maxWidth: '300px',
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+    marginTop: '0.5rem',
+  },
+  locationHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.75rem 1rem',
+    backgroundColor: '#f9fafb',
     borderBottom: '1px solid #e5e7eb',
   },
-  mapIcon: {
-    color: theme.colors.primary,
+  locationIcon: {
+    color: theme.colors.primary || '#3b82f6',
+    fontSize: '1rem',
   },
-  mapTitle: {
+  locationTitle: {
     fontSize: '0.875rem',
     fontWeight: '600',
+    color: '#111827',
+    flex: 1,
   },
-  mapFrame: {
+  expandButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#6b7280',
+    fontSize: '0.875rem',
+    cursor: 'pointer',
+    padding: '0.25rem',
+    borderRadius: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapPreview: {
     width: '100%',
-    height: '200px',
+    transition: 'height 0.3s ease',
+    overflow: 'hidden',
   },
   mapIframe: {
     width: '100%',
     height: '100%',
     border: 'none',
   },
+  mapActions: {
+    padding: '0.75rem 1rem',
+    backgroundColor: '#f9fafb',
+    borderTop: '1px solid #e5e7eb',
+  },
   mapLink: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: '0.5rem',
-    padding: '0.75rem',
-    backgroundColor: '#f0f9ff',
-    color: theme.colors.primary,
+    backgroundColor: theme.colors.primary || '#3b82f6',
+    color: '#ffffff',
     textDecoration: 'none',
-    fontSize: '0.875rem',
+    fontSize: '0.75rem',
     fontWeight: '500',
-    borderTop: '1px solid #e0f2fe',
+    padding: '0.5rem 1rem',
+    borderRadius: '6px',
   },
   mapLinkIcon: {
-    fontSize: '0.875rem',
+    fontSize: '0.75rem',
   },
+  
+  // Message footer
   messageFooter: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: '0.375rem',
+    justifyContent: 'flex-end',
+    marginTop: '0.5rem',
     gap: '0.5rem',
   },
   messageTime: {
@@ -1094,10 +1807,10 @@ const styles = {
   readStatus: {
     display: 'flex',
     alignItems: 'center',
-    fontSize: '0.875rem',
+    gap: '0.25rem',
   },
   readIcon: {
-    color: '#10b981',
+    color: '#34d399',
     fontSize: '0.875rem',
   },
   sentIcon: {
@@ -1105,124 +1818,235 @@ const styles = {
     opacity: 0.6,
     fontSize: '0.875rem',
   },
-  filePreview: {
+  
+  // Loading states
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    gap: '1rem',
+    padding: '3rem',
+  },
+  spinnerLarge: {
+    animation: 'spin 1s linear infinite',
+    fontSize: '2rem',
+    color: theme.colors.primary || '#3b82f6',
+  },
+  loadingText: {
+    color: '#6b7280',
+    fontSize: '1rem',
+  },
+  spinner: {
+    animation: 'spin 1s linear infinite',
+  },
+  
+  // Error state
+  errorState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    gap: '1rem',
+    padding: '3rem',
+    textAlign: 'center',
+  },
+  errorIcon: {
+    fontSize: '3rem',
+  },
+  errorText: {
+    color: '#ef4444',
+    textAlign: 'center',
+    fontSize: '0.95rem',
+  },
+  retryButton: {
+    backgroundColor: theme.colors.primary || '#3b82f6',
+    color: '#fff',
+    border: 'none',
+    padding: '0.75rem 1.5rem',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '0.9rem',
+  },
+
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    textAlign: 'center',
+    padding: '3rem',
+  },
+  emptyIcon: {
+    fontSize: '4rem',
+    color: theme.colors.primaryLight || '#93c5fd',
+    marginBottom: '1rem',
+  },
+  emptyTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    color: '#111827',
+    margin: '0 0 0.5rem 0',
+  },
+  emptyText: {
+    color: '#6b7280',
+    fontSize: '0.95rem',
+    maxWidth: '300px',
+  },
+  
+  // Preview container
+  previewContainer: {
+    backgroundColor: '#f9fafb',
+    borderTop: '1px solid #e5e7eb',
+    animation: 'fadeIn 0.3s ease-out',
+  },
+  previewHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '0.75rem 1rem',
+    backgroundColor: '#f3f4f6',
+    borderBottom: '1px solid #e5e7eb',
+  },
+  previewTitle: {
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#111827',
+  },
+  previewCancel: {
     display: 'flex',
     alignItems: 'center',
-    gap: '1rem',
+    gap: '0.25rem',
+    backgroundColor: '#ef4444',
+    color: '#ffffff',
+    border: 'none',
+    padding: '0.375rem 0.75rem',
+    borderRadius: '6px',
+    fontSize: '0.75rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+  },
+  previewContent: {
     padding: '1rem',
-    backgroundColor: '#f1f5f9',
-    borderTop: '1px solid #e2e8f0',
   },
   previewImage: {
-    width: '60px',
-    height: '60px',
-    objectFit: 'cover',
-    borderRadius: theme.borderRadius.md,
-  },
-  videoPreview: {
-    width: '100px',
-    height: '60px',
+    width: '100%',
+    maxHeight: '150px',
+    objectFit: 'contain',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    backgroundColor: '#ffffff',
   },
   previewVideo: {
     width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    borderRadius: theme.borderRadius.md,
+    maxHeight: '150px',
+    borderRadius: '8px',
+    backgroundColor: '#000000',
   },
   audioPreview: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.5rem',
-    backgroundColor: '#fff',
-    borderRadius: theme.borderRadius.md,
-    flex: 1,
+    gap: '0.75rem',
+    padding: '0.75rem',
+    backgroundColor: '#ffffff',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
   },
   audioPreviewIcon: {
     fontSize: '1.25rem',
-    color: theme.colors.primary,
+    color: theme.colors.primary || '#3b82f6',
   },
-  cancelPreviewButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.25rem',
-    backgroundColor: theme.colors.error,
-    color: '#fff',
-    border: 'none',
-    padding: '0.5rem 0.75rem',
-    borderRadius: theme.borderRadius.md,
-    cursor: 'pointer',
-    fontSize: '0.85rem',
-    fontWeight: '500',
-  },
-  errorBanner: {
-    backgroundColor: '#fee2e2',
-    color: theme.colors.error,
-    padding: '0.75rem 1rem',
-    fontSize: '0.875rem',
-    textAlign: 'center',
-    borderTop: `1px solid ${theme.colors.error}40`,
-  },
+  
+  // Recording container
   recordingContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: '#fef2f2',
+    borderTop: '1px solid #fecaca',
     padding: '1rem',
-    backgroundColor: '#fff',
-    borderTop: '1px solid #e2e8f0',
   },
-  cancelRecordButton: {
-    backgroundColor: theme.colors.error,
-    color: '#fff',
-    border: 'none',
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
+  recordingHeader: {
     display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    fontSize: '1.25rem',
+    marginBottom: '1rem',
   },
   recordingIndicator: {
     display: 'flex',
     alignItems: 'center',
     gap: '0.75rem',
-    color: theme.colors.error,
+  },
+  recordingDot: {
+    width: '12px',
+    height: '12px',
+    backgroundColor: '#dc2626',
+    borderRadius: '50%',
     animation: 'pulse 1.5s infinite',
   },
-  recordingIcon: {
-    fontSize: '1.5rem',
-  },
-  recordingTime: {
+  recordingText: {
+    fontSize: '0.875rem',
     fontWeight: '600',
-    fontSize: '1rem',
+    color: '#991b1b',
   },
-  stopRecordButton: {
-    backgroundColor: '#10b981',
-    color: '#fff',
-    border: 'none',
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
+  recordingTimer: {
+    fontSize: '1rem',
+    fontWeight: '700',
+    color: '#991b1b',
+  },
+  recordingActions: {
+    display: 'flex',
+    gap: '0.75rem',
+  },
+  cancelRecordingButton: {
+    flex: 1,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: '0.5rem',
+    backgroundColor: '#ffffff',
+    color: '#dc2626',
+    border: '2px solid #fecaca',
+    padding: '0.75rem',
+    borderRadius: '8px',
+    fontSize: '0.875rem',
+    fontWeight: '600',
     cursor: 'pointer',
-    fontSize: '1.5rem',
   },
+  stopRecordingButton: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    backgroundColor: '#dc2626',
+    color: '#ffffff',
+    border: 'none',
+    padding: '0.75rem',
+    borderRadius: '8px',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+  },
+  
+  // Input container
   inputContainer: {
     display: 'flex',
     alignItems: 'center',
+    gap: '0.75rem',
+    padding: '1rem',
+    backgroundColor: '#ffffff',
+    borderTop: '1px solid #e5e7eb',
+  },
+  inputActions: {
+    display: 'flex',
     gap: '0.5rem',
-    padding: '0.75rem',
-    backgroundColor: '#fff',
-    borderTop: '1px solid #e2e8f0',
   },
-  mediaButton: {
+  attachmentButton: {
     backgroundColor: 'transparent',
     border: 'none',
-    color: theme.colors.primary,
+    color: '#6b7280',
     fontSize: '1.25rem',
     cursor: 'pointer',
     padding: '0.5rem',
@@ -1230,11 +2054,12 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 0.8,
+    transition: 'opacity 0.2s',
   },
-  locationButton: {
+  recordButton: {
     backgroundColor: 'transparent',
     border: 'none',
-    color: '#10b981',
+    color: '#6b7280',
     fontSize: '1.25rem',
     cursor: 'pointer',
     padding: '0.5rem',
@@ -1242,101 +2067,216 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 0.8,
+    transition: 'opacity 0.2s',
   },
-  input: {
+  inputWrapper: {
+    display: 'flex',
+    flex: 1,
+    gap: '0.75rem',
+  },
+  messageInput: {
     flex: 1,
     padding: '0.75rem 1rem',
-    border: `2px solid ${theme.colors.primaryLight}`,
-    borderRadius: theme.borderRadius.lg,
-    fontSize: '0.95rem',
+    border: '2px solid #e5e7eb',
+    borderRadius: '24px',
+    fontSize: '0.9375rem',
     outline: 'none',
+    backgroundColor: '#f9fafb',
+    transition: 'border-color 0.2s',
   },
-  micButton: {
-    backgroundColor: theme.colors.primary,
-    color: '#fff',
-    border: 'none',
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    fontSize: '1.25rem',
+  messageInputFocus: {
+    borderColor: theme.colors.primary || '#3b82f6',
   },
   sendButton: {
-    backgroundColor: theme.colors.primary,
-    color: '#fff',
+    backgroundColor: theme.colors.primary || '#3b82f6',
+    color: '#ffffff',
     border: 'none',
-    width: '40px',
-    height: '40px',
+    width: '44px',
+    height: '44px',
     borderRadius: '50%',
+    fontSize: '1.25rem',
+    cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    cursor: 'pointer',
-    fontSize: '1.25rem',
+    transition: 'background-color 0.2s',
+    flexShrink: 0,
   },
   sendButtonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: '#d1d5db',
     cursor: 'not-allowed',
     opacity: 0.6,
   },
-  infoFooter: {
-    backgroundColor: '#fef3c7',
-    color: '#92400e',
-    padding: '0.75rem',
+  
+  // Login prompt
+  loginPrompt: {
+    padding: '2rem',
     textAlign: 'center',
-    fontSize: '0.85rem',
-    borderTop: '1px solid #fbbf24',
   },
-  mediaPreviewOverlay: {
+  loginHeader: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '1rem',
+    marginBottom: '2rem',
+  },
+  loginIcon: {
+    fontSize: '3rem',
+    color: theme.colors.primary || '#3b82f6',
+    backgroundColor: '#eff6ff',
+    padding: '1rem',
+    borderRadius: '50%',
+  },
+  loginTitle: {
+    fontSize: '1.5rem',
+    fontWeight: '700',
+    color: '#111827',
+    margin: 0,
+  },
+  loginBody: {
+    marginBottom: '2rem',
+  },
+  loginMessage: {
+    color: '#6b7280',
+    fontSize: '1rem',
+    lineHeight: '1.6',
+    marginBottom: '1.5rem',
+  },
+  loginBenefits: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem',
+    backgroundColor: '#f9fafb',
+    padding: '1rem',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+  },
+  benefitItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    fontSize: '0.9rem',
+    color: '#4b5563',
+  },
+  benefitIcon: {
+    color: '#10b981',
+    fontSize: '1rem',
+  },
+  loginActions: {
+    display: 'flex',
+    gap: '1rem',
+  },
+  cancelLoginButton: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    backgroundColor: '#f3f4f6',
+    color: '#4b5563',
+    border: '1px solid #e5e7eb',
+    padding: '0.875rem 1.5rem',
+    borderRadius: '8px',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+  },
+  loginButton: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    backgroundColor: theme.colors.primary || '#3b82f6',
+    color: '#ffffff',
+    border: 'none',
+    padding: '0.875rem 1.5rem',
+    borderRadius: '8px',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)',
+  },
+  loginButtonIcon: {
+    fontSize: '1.125rem',
+  },
+  backIcon: {
+    fontSize: '1.125rem',
+  },
+  
+  // Fullscreen overlay
+  fullscreenOverlay: {
     position: 'fixed',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10000,
   },
-  mediaPreviewContainer: {
+  fullscreenContainer: {
     position: 'relative',
     maxWidth: '90vw',
     maxHeight: '90vh',
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
   },
-  closePreviewButton: {
+  fullscreenHeader: {
     position: 'absolute',
     top: '1rem',
     right: '1rem',
+    display: 'flex',
+    gap: '0.5rem',
+    zIndex: 10,
+  },
+  fullscreenClose: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    color: '#fff',
+    color: '#ffffff',
     border: 'none',
-    width: '40px',
-    height: '40px',
+    width: '44px',
+    height: '44px',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
     fontSize: '1.5rem',
-    zIndex: 1,
   },
-  fullImage: {
+  fullscreenDownload: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    color: '#ffffff',
+    border: 'none',
+    width: '44px',
+    height: '44px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    fontSize: '1.25rem',
+    textDecoration: 'none',
+  },
+  fullscreenContent: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '2rem',
+  },
+  fullscreenImage: {
     maxWidth: '100%',
-    maxHeight: '90vh',
+    maxHeight: '100%',
     objectFit: 'contain',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: '8px',
   },
-  fullVideo: {
-    maxWidth: '100%',
-    maxHeight: '90vh',
-    borderRadius: theme.borderRadius.md,
-  },
-  // Styles pour le modal de contact
-  contactModalOverlay: {
+  
+  // Contact modal
+  contactOverlay: {
     position: 'fixed',
     top: 0,
     left: 0,
@@ -1350,48 +2290,60 @@ const styles = {
     padding: '1rem',
   },
   contactModal: {
-    backgroundColor: '#fff',
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
     width: '100%',
     maxWidth: '400px',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
     overflow: 'hidden',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
   },
-  contactModalHeader: {
+  contactHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.75rem',
+    gap: '1rem',
     padding: '1.5rem',
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: '#f9fafb',
+    borderBottom: '1px solid #e5e7eb',
     position: 'relative',
   },
-  contactModalIcon: {
-    fontSize: '1.5rem',
-    color: theme.colors.primary,
+  contactIconContainer: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '50%',
+    backgroundColor: theme.colors.primary || '#3b82f6',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  contactModalTitle: {
-    fontSize: '1.25rem',
-    fontWeight: '600',
-    color: theme.colors.text.primary,
+  contactIcon: {
+    fontSize: '1.5rem',
+    color: '#ffffff',
+  },
+  contactTitle: {
+    fontSize: '1.125rem',
+    fontWeight: '700',
+    color: '#111827',
     margin: 0,
     flex: 1,
   },
-  contactModalClose: {
+  contactClose: {
     backgroundColor: 'transparent',
     border: 'none',
-    color: theme.colors.text.secondary,
+    color: '#6b7280',
     fontSize: '1.5rem',
     cursor: 'pointer',
     padding: '0.25rem',
   },
-  contactModalBody: {
+  contactBody: {
     padding: '1.5rem',
   },
-  contactModalText: {
-    color: theme.colors.text.primary,
-    fontSize: '1rem',
+  contactMessage: {
+    color: '#374151',
+    fontSize: '0.95rem',
     lineHeight: '1.6',
     marginBottom: '1.5rem',
+    textAlign: 'center',
   },
   contactOptions: {
     display: 'flex',
@@ -1404,49 +2356,47 @@ const styles = {
     alignItems: 'center',
     gap: '1rem',
     padding: '1rem',
-    backgroundColor: '#f8fafc',
-    borderRadius: theme.borderRadius.md,
-    border: '1px solid #e2e8f0',
+    backgroundColor: '#f9fafb',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+    textDecoration: 'none',
+    color: 'inherit',
+    transition: 'background-color 0.2s',
   },
   optionIcon: {
     fontSize: '1.25rem',
-    color: theme.colors.primary,
+    color: theme.colors.primary || '#3b82f6',
+    flexShrink: 0,
+  },
+  optionContent: {
+    flex: 1,
   },
   optionTitle: {
     fontSize: '0.875rem',
     fontWeight: '600',
-    color: theme.colors.text.secondary,
-    marginBottom: '0.25rem',
+    color: '#6b7280',
+    margin: '0 0 0.25rem 0',
   },
   optionLink: {
     fontSize: '1rem',
     fontWeight: '500',
-    color: theme.colors.primary,
-    textDecoration: 'none',
+    color: '#111827',
+    display: 'block',
   },
-  contactModalNote: {
-    fontSize: '0.875rem',
-    color: theme.colors.text.secondary,
-    fontStyle: 'italic',
-    marginTop: '1rem',
-    padding: '0.75rem',
-    backgroundColor: '#fef3c7',
-    borderRadius: theme.borderRadius.md,
-  },
-  contactModalFooter: {
+  contactFooter: {
     padding: '1rem 1.5rem',
-    backgroundColor: '#f8fafc',
-    borderTop: '1px solid #e2e8f0',
-    textAlign: 'right',
+    backgroundColor: '#f9fafb',
+    borderTop: '1px solid #e5e7eb',
   },
-  contactModalButton: {
-    backgroundColor: theme.colors.primary,
-    color: '#fff',
+  contactButton: {
+    backgroundColor: theme.colors.primary || '#3b82f6',
+    color: '#ffffff',
     border: 'none',
-    padding: '0.75rem 1.5rem',
-    borderRadius: theme.borderRadius.md,
+    padding: '0.875rem 2rem',
+    borderRadius: '8px',
     fontSize: '0.95rem',
     fontWeight: '600',
     cursor: 'pointer',
+    width: '100%',
   },
 };
