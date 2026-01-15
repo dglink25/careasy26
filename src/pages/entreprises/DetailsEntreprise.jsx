@@ -148,7 +148,7 @@ export default function DetailsEntreprise() {
                   <div style={styles.mediaItem}>
                     <p style={styles.mediaLabel}>Logo</p>
                     <img 
-                      src={`${import.meta.env.VITE_API_URL}/storage/${entreprise.logo}`}
+                      src={entreprise.logo}
                       alt="Logo"
                       style={styles.mediaImage}
                     />
@@ -164,7 +164,7 @@ export default function DetailsEntreprise() {
                   <div style={styles.mediaItem}>
                     <p style={styles.mediaLabel}>Image boutique</p>
                     <img 
-                      src={`${import.meta.env.VITE_API_URL}/storage/${entreprise.image_boutique}`}
+                      src={entreprise.image_boutique}
                       alt="Boutique"
                       style={styles.mediaImage}
                     />
@@ -180,7 +180,7 @@ export default function DetailsEntreprise() {
 
             {/* Carte Domaines */}
             <div style={styles.card}>
-              <h2 style={styles.cardTitle}>🏷️ Domaines d'activité</h2>
+              <h2 style={styles.cardTitle}> Domaines d'activité</h2>
               {entreprise.domaines && entreprise.domaines.length > 0 ? (
                 <div style={styles.domainesGrid}>
                   {entreprise.domaines.map((domaine) => (

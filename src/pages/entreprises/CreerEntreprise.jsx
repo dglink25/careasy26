@@ -397,7 +397,7 @@ export default function CreerEntreprise() {
                   <div style={styles.fileUpload}>
                     <input
                       type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept=".jpg,.jpeg,.png"
                       onChange={(e) => handleFileChange(e, 'ifu_file')}
                       style={styles.fileInput}
                       id="ifu-file"
@@ -439,7 +439,7 @@ export default function CreerEntreprise() {
                   <div style={styles.fileUpload}>
                     <input
                       type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept=".jpg,.jpeg,.png"
                       onChange={(e) => handleFileChange(e, 'rccm_file')}
                       style={styles.fileInput}
                       id="rccm-file"
@@ -481,7 +481,7 @@ export default function CreerEntreprise() {
                   <div style={styles.fileUpload}>
                     <input
                       type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept=".jpg,.jpeg,.png"
                       onChange={(e) => handleFileChange(e, 'certificate_file')}
                       style={styles.fileInput}
                       id="certificate-file"

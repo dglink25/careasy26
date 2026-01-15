@@ -92,7 +92,7 @@ export default function DetailsService() {
               <div style={styles.galleryCard}>
                 <div style={styles.mainImageContainer}>
                   <img 
-                    src={`${import.meta.env.VITE_API_URL}/storage/${service.medias[currentImageIndex]}`}
+                    src={service.medias[currentImageIndex]}
                     alt={service.name}
                     style={styles.mainImage}
                   />
@@ -130,7 +130,7 @@ export default function DetailsService() {
                         }}
                       >
                         <img 
-                          src={`${import.meta.env.VITE_API_URL}/storage/${media}`}
+                          src={media}
                           alt={`${service.name} ${index + 1}`}
                           style={styles.thumbnailImage}
                         />
@@ -157,7 +157,7 @@ export default function DetailsService() {
                   <div style={styles.entrepriseInfo}>
                     {service.entreprise.logo ? (
                       <img 
-                        src={`${import.meta.env.VITE_API_URL}/storage/${service.entreprise.logo}`}
+                        src={service.entreprise.logo}
                         alt={service.entreprise.name}
                         style={styles.entrepriseLogo}
                       />

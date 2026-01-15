@@ -1,18 +1,48 @@
-// src/components/Chat/ChatModal.jsx - VERSION COMPLÈTE
+// src/components/Chat/ChatModal.jsx - VERSION CORRIGÉE
 import { useState, useEffect, useRef } from 'react';
 import { 
   FiX, FiSend, FiMapPin, FiLoader, FiCheck, FiCheckCircle, 
   FiImage, FiVideo, FiMic, FiStopCircle, FiPlay, FiPause,
-  FiDownload, FiMaximize2
+  FiDownload, FiMaximize2, FiMessageCircle, FiPhone
 } from 'react-icons/fi';
 import { messageApi } from '../../api/messageApi';
 import { useAuth } from '../../contexts/AuthContext';
 import theme from '../../config/theme';
 
+// Composant pour la carte de localisation
+const LocationMap = ({ latitude, longitude }) => {
+  return (
+    <div style={styles.mapContainer}>
+      <div style={styles.mapHeader}>
+        <FiMapPin style={styles.mapIcon} />
+        <span style={styles.mapTitle}>📍 Position partagée</span>
+      </div>
+      <div style={styles.mapFrame}>
+        <iframe
+          title="Carte de localisation"
+          src={`https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_KEY || 'YOUR_API_KEY'}&center=${latitude},${longitude}&zoom=15&maptype=roadmap`}
+          style={styles.mapIframe}
+          allowFullScreen
+          loading="lazy"
+        />
+      </div>
+      <a
+        href={`https://www.google.com/maps?q=${latitude},${longitude}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={styles.mapLink}
+      >
+        <FiMaximize2 style={styles.mapLinkIcon} />
+        Ouvrir dans Google Maps
+      </a>
+    </div>
+  );
+};
+
 export default function ChatModal({ 
   receiverId, 
   receiverName, 
-  receiverPhone = null, // 👈 NOUVEAU
+  receiverPhone = null,
   onClose, 
   conversationId = null,
   existingConversation = false
@@ -42,13 +72,15 @@ export default function ChatModal({
   // États pour la prévisualisation des médias
   const [mediaPreview, setMediaPreview] = useState(null);
   
+  // État pour le modal de contact
+  const [showContactModal, setShowContactModal] = useState(false);
+  
   const messagesEndRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingIntervalRef = useRef(null);
   const fileInputRef = useRef(null);
   const onlineCheckIntervalRef = useRef(null);
-  const [showContactModal, setShowContactModal] = useState(false);
 
   useEffect(() => {
     initConversation();
@@ -130,10 +162,11 @@ export default function ChatModal({
           setIsReceiverOnline(conv.other_user_online);
           setLastSeen(conv.other_user_last_seen);
         }
-        // 👉 NOUVEAU : Si anonyme ET prestataire offline → Afficher modal contact
-      if (!user && !conv.other_user_online && receiverPhone) {
-        setShowContactModal(true);
-      }
+        
+        // Si anonyme ET prestataire offline → Afficher modal contact
+        if (!user && !conv.other_user_online && receiverPhone) {
+          setShowContactModal(true);
+        }
       }
     } catch (err) {
       console.error('Erreur initialisation conversation:', err);
@@ -154,26 +187,31 @@ export default function ChatModal({
 
       let sentMessage;
       
-      if (selectedFile || audioBlob) {
-        // Envoyer avec fichier
-        const fileToSend = audioBlob || selectedFile;
-        const fileType = audioBlob ? 'vocal' : (selectedFile.type.startsWith('image/') ? 'image' : 'video');
-        
-        sentMessage = await messageApi.sendMessage(
-          conversation.id,
-          newMessage.trim() || null,
-          null,
-          fileToSend,
-          fileType
-        );
-      } else {
-        // Message texte simple
-        sentMessage = await messageApi.sendMessage(
-          conversation.id,
-          newMessage.trim()
-        );
+      // Préparer les données pour l'envoi
+      const formData = new FormData();
+      formData.append('conversation_id', conversation.id);
+      
+      if (newMessage.trim()) {
+        formData.append('content', newMessage.trim());
       }
-
+      
+      if (selectedFile) {
+        formData.append('file', selectedFile);
+        formData.append('file_type', selectedFile.type.startsWith('image/') ? 'image' : 'video');
+      }
+      
+      if (audioBlob) {
+        const audioFile = new File([audioBlob], 'audio_message.webm', { 
+          type: 'audio/webm' 
+        });
+        formData.append('file', audioFile);
+        formData.append('file_type', 'vocal');
+      }
+      
+      // Envoyer au backend qui gérera l'upload
+      sentMessage = await messageApi.sendMessageWithFile(formData);
+      
+      // Mettre à jour les messages
       setMessages(prev => [...prev, sentMessage]);
       setNewMessage('');
       setSelectedFile(null);
@@ -338,45 +376,85 @@ export default function ChatModal({
       return <div style={styles.messageContent}>{message.content}</div>;
     }
 
+    // Message avec localisation
+    if (message.latitude && message.longitude) {
+      return (
+        <div style={styles.messageContent}>
+          {message.content && <div style={styles.messageContent}>{message.content}</div>}
+          <LocationMap latitude={message.latitude} longitude={message.longitude} />
+        </div>
+      );
+    }
+
     // Message avec fichier
     if (message.file_url) {
-      const fileData = message.file_url;
-      
       // Image
-      if (message.type === 'image' || fileData.startsWith('data:image/')) {
+      if (message.type === 'image') {
         return (
           <div style={styles.mediaContainer}>
             {message.content && <div style={styles.messageContent}>{message.content}</div>}
             <img 
-              src={fileData} 
-              alt="Image" 
+              src={message.file_url} 
+              alt="Image envoyée" 
               style={styles.imageMessage}
-              onClick={() => setMediaPreview({ type: 'image', src: fileData })}
+              onClick={() => setMediaPreview({ 
+                type: 'image', 
+                src: message.file_url,
+                alt: 'Image envoyée' 
+              })}
+              onError={(e) => {
+                e.target.src = '/placeholder-image.png';
+              }}
             />
           </div>
         );
       }
       
-      // Vidéo
-      if (message.type === 'video' || fileData.startsWith('data:video/')) {
+      // Vidéo - CORRECTION : Utilisation de la balise video avec src
+      if (message.type === 'video') {
         return (
           <div style={styles.mediaContainer}>
             {message.content && <div style={styles.messageContent}>{message.content}</div>}
-            <video 
-              src={fileData} 
-              controls 
-              style={styles.videoMessage}
-            />
+            <div style={styles.videoContainer}>
+              <video 
+                src={message.file_url} 
+                controls 
+                style={styles.videoMessage}
+                preload="metadata"
+                onError={(e) => {
+                  console.error('Erreur chargement vidéo:', e);
+                  e.target.style.display = 'none';
+                  e.target.nextElementSibling.style.display = 'flex';
+                }}
+              />
+              <div style={styles.videoFallback}>
+                <FiVideo style={styles.videoFallbackIcon} />
+                <span>Vidéo non disponible</span>
+                <a 
+                  href={message.file_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={styles.downloadLink}
+                >
+                  <FiDownload /> Télécharger
+                </a>
+              </div>
+            </div>
           </div>
         );
       }
       
       // Audio
-      if (message.type === 'vocal' || fileData.startsWith('data:audio/')) {
+      if (message.type === 'vocal') {
         return (
           <div style={styles.audioContainer}>
             <FiMic style={styles.audioIcon} />
-            <audio src={fileData} controls style={styles.audioPlayer} />
+            <audio 
+              src={message.file_url} 
+              controls 
+              style={styles.audioPlayer}
+              preload="metadata"
+            />
           </div>
         );
       }
@@ -386,237 +464,235 @@ export default function ChatModal({
   };
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div style={styles.header}>
-          <div style={styles.headerInfo}>
-            <div style={styles.avatar}>
-              {receiverName.charAt(0).toUpperCase()}
-              {isReceiverOnline && <div style={styles.onlineIndicator} />}
-            </div>
-            <div>
-              <h3 style={styles.headerTitle}>
-                {receiverName}
-              </h3>
-              <div style={styles.headerStatus}>
-                {isReceiverOnline ? (
-                  <span style={styles.statusOnline}>● En ligne</span>
-                ) : (
-                  <span style={styles.statusOffline}>
-                    {lastSeen ? `Vu ${formatLastSeen(lastSeen)}` : 'Hors ligne'}
-                  </span>
-                )}
+    <>
+      <div style={styles.overlay} onClick={onClose}>
+        <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div style={styles.header}>
+            <div style={styles.headerInfo}>
+              <div style={styles.avatar}>
+                {receiverName.charAt(0).toUpperCase()}
+                {isReceiverOnline && <div style={styles.onlineIndicator} />}
+              </div>
+              <div>
+                <h3 style={styles.headerTitle}>
+                  {receiverName}
+                </h3>
+                <div style={styles.headerStatus}>
+                  {isReceiverOnline ? (
+                    <span style={styles.statusOnline}>● En ligne</span>
+                  ) : (
+                    <span style={styles.statusOffline}>
+                      {lastSeen ? `Vu ${formatLastSeen(lastSeen)}` : 'Hors ligne'}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-          <button onClick={onClose} style={styles.closeButton}>
-            <FiX />
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div style={styles.messagesContainer}>
-          {loading ? (
-            <div style={styles.loadingContainer}>
-              <FiLoader style={styles.spinner} />
-              <p>Chargement de la conversation...</p>
-            </div>
-          ) : error ? (
-            <div style={styles.errorState}>
-              <div style={styles.errorIcon}>❌</div>
-              <p style={styles.errorText}>{error}</p>
-              <button onClick={initConversation} style={styles.retryButton}>
-                Réessayer
-              </button>
-            </div>
-          ) : messages.length === 0 ? (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>💬</div>
-              <p style={styles.emptyText}>
-                Envoyez votre premier message pour démarrer la conversation
-              </p>
-            </div>
-          ) : (
-            <>
-              {messages.map((message) => {
-                const isMine = isMyMessage(message);
-                return (
-                  <div
-                    key={message.id}
-                    style={{
-                      ...styles.messageWrapper,
-                      justifyContent: isMine ? 'flex-end' : 'flex-start'
-                    }}
-                  >
-                    <div
-                      style={{
-                        ...styles.messageBubble,
-                        ...(isMine 
-                          ? styles.myMessage 
-                          : styles.theirMessage
-                        )
-                      }}
-                    >
-                      {!isMine && message.sender?.name && (
-                        <div style={styles.senderName}>{message.sender.name}</div>
-                      )}
-                      
-                      {renderMessageContent(message)}
-                      
-                      {message.latitude && message.longitude && (
-                        <a
-                          href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={styles.locationLink}
-                        >
-                          <FiMapPin /> Voir sur la carte
-                        </a>
-                      )}
-                      
-                      <div style={styles.messageFooter}>
-                        <span style={styles.messageTime}>
-                          {formatTime(message.created_at)}
-                        </span>
-                        
-                        {isMine && (
-                          <span style={styles.readStatus}>
-                            {message.read_at ? (
-                              <FiCheckCircle style={styles.readIcon} title="Lu" />
-                            ) : (
-                              <FiCheck style={styles.sentIcon} title="Envoyé" />
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
-
-        {/* Prévisualisation fichier sélectionné */}
-        {(filePreview || audioBlob) && (
-          <div style={styles.filePreview}>
-            {filePreview && selectedFile?.type.startsWith('image/') && (
-              <img src={filePreview} alt="Preview" style={styles.previewImage} />
-            )}
-            {filePreview && selectedFile?.type.startsWith('video/') && (
-              <video src={filePreview} controls style={styles.previewVideo} />
-            )}
-            {audioBlob && (
-              <div style={styles.audioPreview}>
-                <FiMic style={styles.audioPreviewIcon} />
-                <span>Message vocal ({formatRecordingTime(recordingTime)})</span>
-              </div>
-            )}
-            <button 
-              onClick={() => {
-                setSelectedFile(null);
-                setFilePreview(null);
-                setAudioBlob(null);
-              }}
-              style={styles.cancelPreviewButton}
-            >
-              <FiX /> Annuler
-            </button>
-          </div>
-        )}
-
-        {/* Error banner */}
-        {error && !loading && (
-          <div style={styles.errorBanner}>
-            {error}
-          </div>
-        )}
-
-        {/* Input */}
-        {isRecording ? (
-          <div style={styles.recordingContainer}>
-            <button onClick={cancelRecording} style={styles.cancelRecordButton}>
+            <button onClick={onClose} style={styles.closeButton}>
               <FiX />
             </button>
-            <div style={styles.recordingIndicator}>
-              <FiMic style={styles.recordingIcon} />
-              <span style={styles.recordingTime}>{formatRecordingTime(recordingTime)}</span>
-            </div>
-            <button onClick={stopRecording} style={styles.stopRecordButton}>
-              <FiStopCircle />
-            </button>
           </div>
-        ) : (
-          <form onSubmit={handleSendMessage} style={styles.inputContainer}>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              accept="image/*,video/*"
-              style={{ display: 'none' }}
-            />
-            
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={sending || !conversation}
-              style={styles.mediaButton}
-              title="Ajouter une image ou vidéo"
-            >
-              <FiImage />
-            </button>
-            
-            <button
-              type="button"
-              onClick={handleShareLocation}
-              disabled={locationSharing || !conversation}
-              style={styles.locationButton}
-              title="Partager ma position"
-            >
-              {locationSharing ? <FiLoader style={styles.spinner} /> : <FiMapPin />}
-            </button>
-            
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Écrivez votre message..."
-              style={styles.input}
-              disabled={sending || !conversation}
-            />
-            
-            {!newMessage.trim() && !selectedFile && !audioBlob ? (
+
+          {/* Messages */}
+          <div style={styles.messagesContainer}>
+            {loading ? (
+              <div style={styles.loadingContainer}>
+                <FiLoader style={styles.spinner} />
+                <p>Chargement de la conversation...</p>
+              </div>
+            ) : error ? (
+              <div style={styles.errorState}>
+                <div style={styles.errorIcon}>❌</div>
+                <p style={styles.errorText}>{error}</p>
+                <button onClick={initConversation} style={styles.retryButton}>
+                  Réessayer
+                </button>
+              </div>
+            ) : messages.length === 0 ? (
+              <div style={styles.emptyState}>
+                <div style={styles.emptyIcon}>
+                  <FiMessageCircle />
+                </div>
+                <p style={styles.emptyText}>
+                  Envoyez votre premier message pour démarrer la conversation
+                </p>
+              </div>
+            ) : (
+              <>
+                {messages.map((message) => {
+                  const isMine = isMyMessage(message);
+                  return (
+                    <div
+                      key={message.id}
+                      style={{
+                        ...styles.messageWrapper,
+                        justifyContent: isMine ? 'flex-end' : 'flex-start'
+                      }}
+                    >
+                      <div
+                        style={{
+                          ...styles.messageBubble,
+                          ...(isMine 
+                            ? styles.myMessage 
+                            : styles.theirMessage
+                          )
+                        }}
+                      >
+                        {!isMine && message.sender?.name && (
+                          <div style={styles.senderName}>{message.sender.name}</div>
+                        )}
+                        
+                        {renderMessageContent(message)}
+                        
+                        <div style={styles.messageFooter}>
+                          <span style={styles.messageTime}>
+                            {formatTime(message.created_at)}
+                          </span>
+                          
+                          {isMine && (
+                            <span style={styles.readStatus}>
+                              {message.read_at ? (
+                                <FiCheckCircle style={styles.readIcon} title="Lu" />
+                              ) : (
+                                <FiCheck style={styles.sentIcon} title="Envoyé" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </>
+            )}
+          </div>
+
+          {/* Prévisualisation fichier sélectionné */}
+          {(filePreview || audioBlob) && (
+            <div style={styles.filePreview}>
+              {filePreview && selectedFile?.type.startsWith('image/') && (
+                <img src={filePreview} alt="Preview" style={styles.previewImage} />
+              )}
+              {filePreview && selectedFile?.type.startsWith('video/') && (
+                <div style={styles.videoPreview}>
+                  <video src={filePreview} controls style={styles.previewVideo} />
+                </div>
+              )}
+              {audioBlob && (
+                <div style={styles.audioPreview}>
+                  <FiMic style={styles.audioPreviewIcon} />
+                  <span>Message vocal ({formatRecordingTime(recordingTime)})</span>
+                </div>
+              )}
+              <button 
+                onClick={() => {
+                  setSelectedFile(null);
+                  setFilePreview(null);
+                  setAudioBlob(null);
+                }}
+                style={styles.cancelPreviewButton}
+              >
+                <FiX /> Annuler
+              </button>
+            </div>
+          )}
+
+          {/* Error banner */}
+          {error && !loading && (
+            <div style={styles.errorBanner}>
+              {error}
+            </div>
+          )}
+
+          {/* Input */}
+          {isRecording ? (
+            <div style={styles.recordingContainer}>
+              <button onClick={cancelRecording} style={styles.cancelRecordButton}>
+                <FiX />
+              </button>
+              <div style={styles.recordingIndicator}>
+                <FiMic style={styles.recordingIcon} />
+                <span style={styles.recordingTime}>{formatRecordingTime(recordingTime)}</span>
+              </div>
+              <button onClick={stopRecording} style={styles.stopRecordButton}>
+                <FiStopCircle />
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSendMessage} style={styles.inputContainer}>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept="image/*,video/*"
+                style={{ display: 'none' }}
+              />
+              
               <button
                 type="button"
-                onMouseDown={startRecording}
+                onClick={() => fileInputRef.current?.click()}
                 disabled={sending || !conversation}
-                style={styles.micButton}
-                title="Maintenir pour enregistrer un audio"
+                style={styles.mediaButton}
+                title="Ajouter une image ou vidéo"
               >
-                <FiMic />
+                <FiImage />
               </button>
-            ) : (
+              
               <button
-                type="submit"
-                disabled={(!newMessage.trim() && !selectedFile && !audioBlob) || sending || !conversation}
-                style={{
-                  ...styles.sendButton,
-                  ...((!newMessage.trim() && !selectedFile && !audioBlob) || sending || !conversation) && styles.sendButtonDisabled
-                }}
+                type="button"
+                onClick={handleShareLocation}
+                disabled={locationSharing || !conversation}
+                style={styles.locationButton}
+                title="Partager ma position"
               >
-                {sending ? <FiLoader style={styles.spinner} /> : <FiSend />}
+                {locationSharing ? <FiLoader style={styles.spinner} /> : <FiMapPin />}
               </button>
-            )}
-          </form>
-        )}
+              
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Écrivez votre message..."
+                style={styles.input}
+                disabled={sending || !conversation}
+              />
+              
+              {!newMessage.trim() && !selectedFile && !audioBlob ? (
+                <button
+                  type="button"
+                  onMouseDown={startRecording}
+                  onMouseUp={stopRecording}
+                  onTouchStart={startRecording}
+                  onTouchEnd={stopRecording}
+                  disabled={sending || !conversation}
+                  style={styles.micButton}
+                  title="Maintenir pour enregistrer un audio"
+                >
+                  <FiMic />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={(!newMessage.trim() && !selectedFile && !audioBlob) || sending || !conversation}
+                  style={{
+                    ...styles.sendButton,
+                    ...((!newMessage.trim() && !selectedFile && !audioBlob) || sending || !conversation) && styles.sendButtonDisabled
+                  }}
+                >
+                  {sending ? <FiLoader style={styles.spinner} /> : <FiSend />}
+                </button>
+              )}
+            </form>
+          )}
 
-        {!user && (
-          <div style={styles.infoFooter}>
-            💡 Connectez-vous pour suivre vos conversations
-          </div>
-        )}
+          {!user && (
+            <div style={styles.infoFooter}>
+              💡 Connectez-vous pour suivre vos conversations
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Prévisualisation plein écran des médias */}
@@ -630,23 +706,82 @@ export default function ChatModal({
               <FiX />
             </button>
             {mediaPreview.type === 'image' && (
-              <img src={mediaPreview.src} alt="Preview" style={styles.fullImage} />
+              <img src={mediaPreview.src} alt={mediaPreview.alt} style={styles.fullImage} />
             )}
-
+            {mediaPreview.type === 'video' && (
+              <video src={mediaPreview.src} controls autoPlay style={styles.fullVideo} />
+            )}
           </div>
         </div>
       )}
 
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}</style>
-    </div>
+      {/* Modal de contact (si utilisateur anonyme et prestataire hors ligne) */}
+      {showContactModal && (
+        <div style={styles.contactModalOverlay} onClick={() => setShowContactModal(false)}>
+          <div style={styles.contactModal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.contactModalHeader}>
+              <FiPhone style={styles.contactModalIcon} />
+              <h3 style={styles.contactModalTitle}>Prestataire hors ligne</h3>
+              <button 
+                onClick={() => setShowContactModal(false)}
+                style={styles.contactModalClose}
+              >
+                <FiX />
+              </button>
+            </div>
+            
+            <div style={styles.contactModalBody}>
+              <p style={styles.contactModalText}>
+                Le prestataire <strong>{receiverName}</strong> est actuellement hors ligne.
+              </p>
+              
+              {receiverPhone && (
+                <div style={styles.contactOptions}>
+                  <div style={styles.contactOption}>
+                    <FiMessageCircle style={styles.optionIcon} />
+                    <div>
+                      <div style={styles.optionTitle}>Envoyer un SMS</div>
+                      <a 
+                        href={`sms:${receiverPhone}`}
+                        style={styles.optionLink}
+                      >
+                        {receiverPhone}
+                      </a>
+                    </div>
+                  </div>
+                  
+                  <div style={styles.contactOption}>
+                    <FiPhone style={styles.optionIcon} />
+                    <div>
+                      <div style={styles.optionTitle}>Appeler</div>
+                      <a 
+                        href={`tel:${receiverPhone}`}
+                        style={styles.optionLink}
+                      >
+                        {receiverPhone}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <p style={styles.contactModalNote}>
+                💡 Vous pouvez laisser un message ici, il le verra à son retour.
+              </p>
+            </div>
+            
+            <div style={styles.contactModalFooter}>
+              <button 
+                onClick={() => setShowContactModal(false)}
+                style={styles.contactModalButton}
+              >
+                Compris
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -797,6 +932,7 @@ const styles = {
   },
   emptyIcon: {
     fontSize: '4rem',
+    color: theme.colors.primaryLight,
     marginBottom: '1rem',
   },
   emptyText: {
@@ -808,7 +944,7 @@ const styles = {
     marginBottom: '0.5rem',
   },
   messageBubble: {
-    maxWidth: '75%',
+    maxWidth: '85%',
     padding: '0.875rem 1rem',
     borderRadius: theme.borderRadius.lg,
     wordWrap: 'break-word',
@@ -849,9 +985,38 @@ const styles = {
     cursor: 'pointer',
     objectFit: 'cover',
   },
+  videoContainer: {
+    position: 'relative',
+  },
   videoMessage: {
     maxWidth: '100%',
     maxHeight: '300px',
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: '#000',
+  },
+  videoFallback: {
+    display: 'none',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    padding: '1rem',
+    backgroundColor: '#f3f4f6',
+    borderRadius: theme.borderRadius.md,
+    color: theme.colors.text.secondary,
+  },
+  videoFallbackIcon: {
+    fontSize: '2rem',
+  },
+  downloadLink: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem',
+    color: theme.colors.primary,
+    textDecoration: 'none',
+    fontSize: '0.875rem',
+    padding: '0.5rem',
+    backgroundColor: '#fef2f2',
     borderRadius: theme.borderRadius.md,
   },
   audioContainer: {
@@ -866,15 +1031,54 @@ const styles = {
     flex: 1,
     maxWidth: '200px',
   },
-  locationLink: {
+  // Styles pour la carte de localisation
+  mapContainer: {
+    width: '100%',
+    maxWidth: '300px',
+    backgroundColor: '#fff',
+    borderRadius: theme.borderRadius.md,
+    overflow: 'hidden',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e5e7eb',
+  },
+  mapHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.375rem',
-    fontSize: '0.85rem',
-    marginTop: '0.5rem',
-    color: 'inherit',
-    textDecoration: 'underline',
-    opacity: 0.9,
+    gap: '0.5rem',
+    padding: '0.75rem',
+    backgroundColor: '#f8fafc',
+    borderBottom: '1px solid #e5e7eb',
+  },
+  mapIcon: {
+    color: theme.colors.primary,
+  },
+  mapTitle: {
+    fontSize: '0.875rem',
+    fontWeight: '600',
+  },
+  mapFrame: {
+    width: '100%',
+    height: '200px',
+  },
+  mapIframe: {
+    width: '100%',
+    height: '100%',
+    border: 'none',
+  },
+  mapLink: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.75rem',
+    backgroundColor: '#f0f9ff',
+    color: theme.colors.primary,
+    textDecoration: 'none',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    borderTop: '1px solid #e0f2fe',
+  },
+  mapLinkIcon: {
+    fontSize: '0.875rem',
   },
   messageFooter: {
     display: 'flex',
@@ -915,12 +1119,17 @@ const styles = {
     objectFit: 'cover',
     borderRadius: theme.borderRadius.md,
   },
-  previewVideo: {
+  videoPreview: {
     width: '100px',
     height: '60px',
+  },
+  previewVideo: {
+    width: '100%',
+    height: '100%',
     objectFit: 'cover',
     borderRadius: theme.borderRadius.md,
-  },  audioPreview: {
+  },
+  audioPreview: {
     display: 'flex',
     alignItems: 'center',
     gap: '0.5rem',
@@ -1021,11 +1230,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 0.8,
-    transition: 'all 0.2s',
-  },
-  mediaButtonHover: {
-    opacity: 1,
-    transform: 'scale(1.1)',
   },
   locationButton: {
     backgroundColor: 'transparent',
@@ -1038,7 +1242,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 0.8,
-    transition: 'all 0.2s',
   },
   input: {
     flex: 1,
@@ -1047,10 +1250,6 @@ const styles = {
     borderRadius: theme.borderRadius.lg,
     fontSize: '0.95rem',
     outline: 'none',
-    transition: 'border-color 0.2s',
-  },
-  inputFocus: {
-    borderColor: theme.colors.primary,
   },
   micButton: {
     backgroundColor: theme.colors.primary,
@@ -1064,11 +1263,6 @@ const styles = {
     justifyContent: 'center',
     cursor: 'pointer',
     fontSize: '1.25rem',
-    transition: 'all 0.2s',
-  },
-  micButtonActive: {
-    transform: 'scale(0.95)',
-    backgroundColor: theme.colors.error,
   },
   sendButton: {
     backgroundColor: theme.colors.primary,
@@ -1082,11 +1276,6 @@ const styles = {
     justifyContent: 'center',
     cursor: 'pointer',
     fontSize: '1.25rem',
-    transition: 'all 0.2s',
-  },
-  sendButtonHover: {
-    backgroundColor: '#dc2626',
-    transform: 'scale(1.05)',
   },
   sendButtonDisabled: {
     backgroundColor: '#9ca3af',
@@ -1140,5 +1329,124 @@ const styles = {
     maxHeight: '90vh',
     objectFit: 'contain',
     borderRadius: theme.borderRadius.md,
+  },
+  fullVideo: {
+    maxWidth: '100%',
+    maxHeight: '90vh',
+    borderRadius: theme.borderRadius.md,
+  },
+  // Styles pour le modal de contact
+  contactModalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10001,
+    padding: '1rem',
+  },
+  contactModal: {
+    backgroundColor: '#fff',
+    borderRadius: theme.borderRadius.xl,
+    width: '100%',
+    maxWidth: '400px',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+    overflow: 'hidden',
+  },
+  contactModalHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    padding: '1.5rem',
+    backgroundColor: theme.colors.secondary,
+    position: 'relative',
+  },
+  contactModalIcon: {
+    fontSize: '1.5rem',
+    color: theme.colors.primary,
+  },
+  contactModalTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    color: theme.colors.text.primary,
+    margin: 0,
+    flex: 1,
+  },
+  contactModalClose: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: theme.colors.text.secondary,
+    fontSize: '1.5rem',
+    cursor: 'pointer',
+    padding: '0.25rem',
+  },
+  contactModalBody: {
+    padding: '1.5rem',
+  },
+  contactModalText: {
+    color: theme.colors.text.primary,
+    fontSize: '1rem',
+    lineHeight: '1.6',
+    marginBottom: '1.5rem',
+  },
+  contactOptions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+    marginBottom: '1.5rem',
+  },
+  contactOption: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    padding: '1rem',
+    backgroundColor: '#f8fafc',
+    borderRadius: theme.borderRadius.md,
+    border: '1px solid #e2e8f0',
+  },
+  optionIcon: {
+    fontSize: '1.25rem',
+    color: theme.colors.primary,
+  },
+  optionTitle: {
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: theme.colors.text.secondary,
+    marginBottom: '0.25rem',
+  },
+  optionLink: {
+    fontSize: '1rem',
+    fontWeight: '500',
+    color: theme.colors.primary,
+    textDecoration: 'none',
+  },
+  contactModalNote: {
+    fontSize: '0.875rem',
+    color: theme.colors.text.secondary,
+    fontStyle: 'italic',
+    marginTop: '1rem',
+    padding: '0.75rem',
+    backgroundColor: '#fef3c7',
+    borderRadius: theme.borderRadius.md,
+  },
+  contactModalFooter: {
+    padding: '1rem 1.5rem',
+    backgroundColor: '#f8fafc',
+    borderTop: '1px solid #e2e8f0',
+    textAlign: 'right',
+  },
+  contactModalButton: {
+    backgroundColor: theme.colors.primary,
+    color: '#fff',
+    border: 'none',
+    padding: '0.75rem 1.5rem',
+    borderRadius: theme.borderRadius.md,
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
   },
 };

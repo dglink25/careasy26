@@ -287,7 +287,7 @@ export default function MesServices() {
                   <div style={styles.entrepriseInfo}>
                     {data.entreprise?.logo ? (
                       <img 
-                        src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${data.entreprise.logo?.replace(/^\/?storage\//, '')}`}
+                        src={data.entreprise.logo}
                         alt={data.entreprise.name}
                         style={styles.entrepriseLogo}
                         onError={(e) => {
@@ -340,7 +340,7 @@ export default function MesServices() {
                       {service.medias && service.medias.length > 0 ? (
                         <div style={styles.serviceImageContainer}>
                           <img 
-                            src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${service.medias[0]?.replace(/^\/?storage\//, '')}`}
+                            src={service.medias[0]}
                             alt={service.name}
                             style={styles.serviceImage}
                             onError={(e) => {

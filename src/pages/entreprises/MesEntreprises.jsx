@@ -370,7 +370,7 @@ export default function MesEntreprises() {
                     <div style={styles.cardHeaderMain}>
                       {entreprise.logo ? (
                         <img 
-                          src={`${import.meta.env.VITE_API_URL}/storage/${entreprise.logo}`}
+                          src={entreprise.logo}
                           alt={entreprise.name}
                           style={styles.logo}
                           onError={(e) => {

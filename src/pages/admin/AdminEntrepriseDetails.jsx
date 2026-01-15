@@ -4,7 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../api/adminApi';
 import theme from '../../config/theme';
 
-// Import des icônes React Icons - CORRECTIONS APPORTÉES
+// Import des icônes React Icons
 import {
   FiArrowLeft,
   FiCheckCircle,
@@ -58,7 +58,7 @@ import {
   MdOutlineVerifiedUser
 } from 'react-icons/md';
 import { 
-  FaRegBuilding, // Correction: Utilisez FaRegBuilding au lieu de FiBuilding
+  FaRegBuilding,
   FaUserTie,
   FaFileInvoice,
   FaRegCalendarAlt,
@@ -149,7 +149,7 @@ export default function AdminEntrepriseDetails() {
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || 'Erreur lors du rejet';
       setError(errorMsg);
-      alert( errorMsg);
+      alert(errorMsg);
     } finally {
       setActionLoading(false);
       setShowRejectModal(false);
@@ -235,7 +235,26 @@ export default function AdminEntrepriseDetails() {
       );
     }
     
-    const fullUrl = `${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage${filePath?.replace(/^\/?storage\//, '')}`;
+    // CORRECTION: Nettoyer l'URL - supprimer le préfixe http://localhost:8000/storage
+    // et utiliser directement l'URL Cloudinary si c'est une URL Cloudinary
+    let fullUrl = filePath;
+    
+    // Si l'URL commence par http://localhost:8000/storage, on le retire
+    if (filePath.startsWith('http://localhost:8000/storage')) {
+      // Si c'est une URL Cloudinary après le préfixe, on prend la partie après '/storage'
+      const cloudinaryUrl = filePath.replace('http://localhost:8000/storage', '');
+      fullUrl = cloudinaryUrl;
+    } 
+    // Si c'est déjà une URL complète (Cloudinary), on l'utilise directement
+    else if (filePath.startsWith('http')) {
+      fullUrl = filePath;
+    }
+    // Sinon, c'est peut-être un chemin relatif
+    else {
+      // Si le chemin commence par /storage, on le retire pour éviter la duplication
+      const cleanPath = filePath.replace(/^\/?storage\//, '');
+      fullUrl = `${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${cleanPath}`;
+    }
     
     return (
       <div style={styles.fileLinkContainer}>
@@ -384,7 +403,7 @@ export default function AdminEntrepriseDetails() {
                 <div style={styles.titleWithLogo}>
                   {entreprise.logo && (
                     <img 
-                      src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${entreprise.logo?.replace(/^\/?storage\//, '')}`}
+                      src={entreprise.logo}
                       alt={entreprise.name}
                       style={styles.companyLogo}
                       onError={(e) => {
@@ -591,12 +610,12 @@ export default function AdminEntrepriseDetails() {
                   <div style={styles.mediaSection}>
                     <div style={styles.mediaItem}>
                       <div style={styles.mediaLabel}>
-                        <FaRegBuilding style={styles.mediaIcon} /> {/* Correction ici */}
+                        <FaRegBuilding style={styles.mediaIcon} />
                         Logo officiel
                       </div>
                       {entreprise.logo ? (
                         <img 
-                          src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${entreprise.logo?.replace(/^\/?storage\//, '')}`}
+                          src={entreprise.logo}
                           alt="Logo de l'entreprise"
                           style={styles.mediaPreview}
                           onError={(e) => {
@@ -607,7 +626,7 @@ export default function AdminEntrepriseDetails() {
                         />
                       ) : (
                         <div style={styles.mediaPlaceholder}>
-                          <FaRegBuilding style={styles.mediaPlaceholderIcon} /> {/* Correction ici */}
+                          <FaRegBuilding style={styles.mediaPlaceholderIcon} />
                           <span>Aucun logo</span>
                         </div>
                       )}
@@ -619,7 +638,7 @@ export default function AdminEntrepriseDetails() {
                       </div>
                       {entreprise.image_boutique ? (
                         <img 
-                          src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${entreprise.image_boutique?.replace(/^\/?storage\//, '')}`}
+                          src={entreprise.image_boutique}
                           alt="Boutique de l'entreprise"
                           style={styles.mediaPreview}
                           onError={(e) => {
@@ -856,36 +875,36 @@ export default function AdminEntrepriseDetails() {
                           </span>
                         </div>
                       </div>
-                          
-{/* 👇 NOUVEAUX CHAMPS CONTACT */}
-<div style={styles.prestataireDetailItem}>
-  <div style={styles.prestataireDetailLabel}>
-    <FiPhone style={styles.prestataireDetailIcon} />
-    WhatsApp
-  </div>
-  <div style={styles.prestataireDetailValue}>
-    {entreprise.whatsapp_phone ? (
-      <a 
-        href={`https://wa.me/${entreprise.whatsapp_phone.replace(/\s+/g, '')}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: '#25D366', textDecoration: 'none' }}
-      >
-        {entreprise.whatsapp_phone}
-      </a>
-    ) : 'Non renseigné'}
-  </div>
-</div>
 
-<div style={styles.prestataireDetailItem}>
-  <div style={styles.prestataireDetailLabel}>
-    <FiPhone style={styles.prestataireDetailIcon} />
-    Téléphone appel
-  </div>
-  <div style={styles.prestataireDetailValue}>
-    {entreprise.call_phone || 'Non renseigné'}
-  </div>
-</div>
+                      {/* NOUVEAUX CHAMPS CONTACT */}
+                      <div style={styles.prestataireDetailItem}>
+                        <div style={styles.prestataireDetailLabel}>
+                          <FiPhone style={styles.prestataireDetailIcon} />
+                          WhatsApp
+                        </div>
+                        <div style={styles.prestataireDetailValue}>
+                          {entreprise.whatsapp_phone ? (
+                            <a 
+                              href={`https://wa.me/${entreprise.whatsapp_phone.replace(/\s+/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: '#25D366', textDecoration: 'none' }}
+                            >
+                              {entreprise.whatsapp_phone}
+                            </a>
+                          ) : 'Non renseigné'}
+                        </div>
+                      </div>
+
+                      <div style={styles.prestataireDetailItem}>
+                        <div style={styles.prestataireDetailLabel}>
+                          <FiPhone style={styles.prestataireDetailIcon} />
+                          Téléphone appel
+                        </div>
+                        <div style={styles.prestataireDetailValue}>
+                          {entreprise.call_phone || 'Non renseigné'}
+                        </div>
+                      </div>
                     </div>
 
                     <div style={styles.prestataireActions}>
@@ -893,8 +912,8 @@ export default function AdminEntrepriseDetails() {
                         onClick={() => console.log('Contacter prestataire')}
                         style={styles.contactButton}
                       >
-                        <FiMail style={styles.contactButtonIcon} />                                                                                                       
-                        Contacter                                                                                                                                                                                         
+                        <FiMail style={styles.contactButtonIcon} />
+                        Contacter
                       </button>
                       <button 
                         onClick={() => navigate(`/admin/prestataires/${entreprise.prestataire.id}`)}
@@ -1175,7 +1194,7 @@ export default function AdminEntrepriseDetails() {
   );
 }
 
-// Styles restent identiques - assurez-vous juste d'utiliser les bonnes icônes
+// Les styles restent exactement les mêmes
 const styles = {
   container: {
     minHeight: '100vh',
@@ -1211,8 +1230,6 @@ const styles = {
     color: '#94a3b8',
     fontSize: '0.875rem',
   },
-  // ... (le reste des styles reste inchangé)
-  // NOTE: Assurez-vous que tous les styles sont bien définis ci-dessous
   errorContainer: {
     display: 'flex',
     flexDirection: 'column',

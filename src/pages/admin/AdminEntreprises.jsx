@@ -643,7 +643,7 @@ export default function AdminEntreprises() {
                           <div style={styles.entrepriseAvatar}>
                             {entreprise.logo ? (
                               <img 
-                                src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${entreprise.logo?.replace(/^\/?storage\//, '')}`}
+                                src={entreprise.logo}
                                 alt={entreprise.name}
                                 style={styles.entrepriseLogo}
                                 onError={(e) => {

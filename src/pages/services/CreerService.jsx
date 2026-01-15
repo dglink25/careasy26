@@ -363,7 +363,7 @@ export default function CreerService() {
                   <div style={styles.entrepriseCardHeader}>
                     {selectedEntreprise.logo ? (
                       <img 
-                        src={`${import.meta.env.VITE_API_URL}/storage/${selectedEntreprise.logo}`}
+                        src={selectedEntreprise.logo}
                         alt={selectedEntreprise.name}
                         style={styles.entrepriseCardLogo}
                         onError={(e) => {
