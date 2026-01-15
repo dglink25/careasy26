@@ -1,16 +1,16 @@
-// careasy-frontend/src/pages/Home.jsx - VERSION PROFESSIONNELLE AVEC REACT ICONS
+// careasy-frontend/src/pages/Home.jsx - VERSION FINALE COMPLÈTE
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import ChatButton from '../components/Chat/ChatButton';
-import ChatModal from '../components/Chat/ChatModal'; // 
-import { publicApi } from '../api/publicApi';
-import theme from '../config/theme';
+import ChatModal from '../components/Chat/ChatModal';
+import { publicApi } from './../api/publicApi';
+import theme from './../config/theme';
 import { 
   FaWrench, FaPaintBrush, FaCog, FaSnowflake, 
   FaCar, FaShieldAlt, FaGraduationCap, FaOilCan,
   FaArrowRight, FaComments, FaTimes, FaPaperPlane,
-  FaMapMarkerAlt, FaPhone, FaEnvelope, FaStar
+  FaMapMarkerAlt, FaPhone, FaEnvelope, FaStar,
+  FaClock, FaWhatsapp, FaUserCircle
 } from 'react-icons/fa';
 
 export default function Home() {
@@ -21,9 +21,9 @@ export default function Home() {
   const [showChatbot, setShowChatbot] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
   const sectionsRef = useRef([]);
-  // Ajoute ces states avec les autres (vers la ligne 25)
-const [showContactModal, setShowContactModal] = useState(false);
-const [selectedService, setSelectedService] = useState(null);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [selectedService, setSelectedService] = useState(null);
+  const [showChatModal, setShowChatModal] = useState(false);
 
   // Hero slides avec vraies images
   const heroSlides = [
@@ -48,7 +48,7 @@ const [selectedService, setSelectedService] = useState(null);
     {
       image: 'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=1600',
       title: 'Climatisation',
-      subtitle: 'Roulez au frais toute l\'année',
+      subtitle: 'Roulez au frais toute l\'annee',
       icon: <FaSnowflake />
     },
     {
@@ -167,6 +167,19 @@ const [selectedService, setSelectedService] = useState(null);
     setChatMessage('');
   };
 
+  // Fonction pour ouvrir le popup de contact
+  const openContactPopup = (service) => {
+    setSelectedService(service);
+    setShowContactModal(true);
+  };
+
+  // Fonction pour ouvrir le chat
+  const openChat = (service) => {
+    setSelectedService(service);
+    setShowContactModal(false);
+    setShowChatModal(true);
+  };
+
   return (
     <div style={styles.container}>
       {/* Hero Carousel avec vraies images */}
@@ -256,7 +269,7 @@ const [selectedService, setSelectedService] = useState(null);
         </div>
       </div>
 
-      {/* Section Services Récents */}
+      {/* Section Services Récents - AVEC 3 LIGNES ET POPUP DE CONTACT */}
       <div 
         ref={el => sectionsRef.current[1] = el}
         className="animate-section"
@@ -270,6 +283,7 @@ const [selectedService, setSelectedService] = useState(null);
         <div style={styles.servicesGrid}>
           {services.map((service) => (
             <div key={service.id} style={styles.serviceCard} className="service-card">
+              {/* Image */}
               {service.medias && service.medias.length > 0 ? (
                 <div style={styles.serviceImage}>
                   <img 
@@ -283,26 +297,80 @@ const [selectedService, setSelectedService] = useState(null);
                   <FaWrench style={{fontSize: '3rem', color: theme.colors.primary}} />
                 </div>
               )}
+              
+              {/* CONTENU - 3 LIGNES CORRIGÉES */}
               <div style={styles.serviceContent}>
-                <h3 style={styles.serviceName}>{service.name}</h3>
-                <p style={styles.serviceEntreprise}>
-                  {service.entreprise?.name || 'Entreprise'}
-                </p>
-                <div style={styles.servicePrice}>
-                  {service.price ? `${service.price.toLocaleString()} FCFA` : 'Prix sur demande'}
+                {/* Ligne 1: Nom du service + Prix sur la même ligne */}
+                <div style={styles.serviceHeader}>
+                  <h3 style={styles.serviceName}>{service.name}</h3>
+                  <div style={styles.servicePrice}>
+                    {service.price 
+                      ? `${service.price.toLocaleString()} FCFA`
+                      : 'Prix sur demande'
+                    }
+                  </div>
+                </div>
+
+                {/* Ligne 2: Logo entreprise + Nom + Horaires */}
+                <div style={styles.serviceInfo}>
+                  <div style={styles.entrepriseInfo}>
+                    {service.entreprise?.logo ? (
+                      <img 
+                        src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${service.entreprise.logo?.replace(/^\/?storage\//, '')}`}
+                        alt={service.entreprise.name}
+                        style={styles.entrepriseLogo}
+                      />
+                    ) : (
+                      <div style={styles.entrepriseLogoPlaceholder}>
+                        {service.entreprise?.name?.charAt(0) || 'E'}
+                      </div>
+                    )}
+                    <span style={styles.entrepriseName}>
+                      {service.entreprise?.name || 'Entreprise'}
+                    </span>
+                  </div>
+                  <div style={styles.serviceHours}>
+                    <span style={{marginRight: '0.4rem'}}>🕐</span>
+                    <span>
+                      {service.start_time && service.end_time 
+                        ? `${service.start_time} - ${service.end_time}`
+                        : service.is_open_24h 
+                          ? '24h/24'
+                          : 'Horaires non spécifiés'
+                      }
+                    </span>
+                  </div>
+                </div>
+
+                {/* Ligne 3: Description avec points de suspension + Voir plus sur la même ligne */}
+                <div style={styles.serviceDescriptionRow}>
+                  <p style={styles.serviceDescription}>
+                    {service.descriptions 
+                      ? (service.descriptions.length > 60 
+                          ? service.descriptions.substring(0, 60) + '...' 
+                          : service.descriptions)
+                      : 'Aucune description disponible'
+                    }
+                  </p>
+                  <Link 
+                    to={`/service/:id`}
+                    style={styles.seeMoreLink}
+                    title="Voir plus de détails"
+                  >
+                    Voir plus <FaArrowRight style={{marginLeft: '0.25rem', fontSize: '0.9rem'}} />
+                  </Link>
                 </div>
               </div>
-              {/* 👉 NOUVEAU CODE */}
-<button
-  onClick={() => {
-    setSelectedService(service);
-    setShowContactModal(true);
-  }}
-  style={styles.contactButton}
-   className="contact-button"  // 👈 AJOUTE CETTE LIGNE
->
-  💬 Contacter
-</button>
+              
+              {/* Bouton Contacter avec popup (TOUJOURS visible) */}
+              <button
+                  onClick={() => openContactPopup(service)}
+                  style={styles.contactButton}
+                  className="contact-button"
+                >
+                  <FaComments style={{marginRight: '0.5rem'}} />
+                  Contacter
+                </button>
             </div>
           ))}
         </div>
@@ -407,37 +475,183 @@ const [selectedService, setSelectedService] = useState(null);
         >
           <FaComments style={{fontSize: '1.75rem'}} />
         </button>
-
-        {/* 👉 MODALE DE CONTACT PROFESSIONNELLE */}
-{showContactModal && selectedService && (
-  <ChatModal
-    receiverId={selectedService.entreprise?.prestataire_id}
-    receiverName={selectedService.entreprise?.name || 'Prestataire'}
-    receiverPhone={selectedService.entreprise?.phone}
-    onClose={() => {
-      setShowContactModal(false);
-      setSelectedService(null);
-    }}
-  />
-)}
       </div>
+
+      {/* MODAL DE CONTACT PROFESSIONNEL AVEC 3 BOUTONS */}
+{showContactModal && selectedService && (
+  <div style={styles.contactModalOverlay} onClick={() => setShowContactModal(false)}>
+    <div style={styles.contactModal} onClick={(e) => e.stopPropagation()}>
+      <div style={styles.contactModalHeader}>
+        <div style={styles.contactModalAvatar}>
+          {selectedService.entreprise?.logo ? (
+            <img 
+              src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${selectedService.entreprise.logo?.replace(/^\/?storage\//, '')}`}
+              alt={selectedService.entreprise.name}
+              style={styles.contactModalLogo}
+            />
+          ) : (
+            <div style={styles.contactModalLogoPlaceholder}>
+              {selectedService.entreprise?.name?.charAt(0) || 'E'}
+            </div>
+          )}
+        </div>
+        <div style={styles.contactModalInfo}>
+          <h3 style={styles.contactModalTitle}>
+            {selectedService.entreprise?.name || 'Prestataire'}
+          </h3>
+          <p style={styles.contactModalService}>
+            {selectedService.name}
+          </p>
+        </div>
+        <button 
+          onClick={() => setShowContactModal(false)}
+          style={styles.contactModalClose}
+        >
+          <FaTimes />
+        </button>
+      </div>
+      
+      <div style={styles.contactModalBody}>
+        <p style={styles.contactModalInstruction}>
+          Choisissez votre méthode de contact préférée :
+        </p>
+        
+        <div style={styles.contactMethodsGrid}>
+          {/* Bouton Appeler - TOUJOURS AFFICHÉ */}
+          <button
+            onClick={() => {
+              if (selectedService.entreprise?.call_phone) {
+                window.open(`tel:${selectedService.entreprise.call_phone}`, '_blank');
+              } else {
+                alert('Numéro de téléphone non disponible');
+              }
+              setShowContactModal(false);
+            }}
+            style={styles.contactMethodButton}
+            className="contact-method-button"
+          >
+            <div style={styles.contactMethodIconCall}>
+              <FaPhone />
+            </div>
+            <div style={styles.contactMethodContent}>
+              <div style={styles.contactMethodTitle}>Appeler</div>
+              <div style={styles.contactMethodSubtitle}>
+                {selectedService.entreprise?.call_phone || 'Numéro non disponible'}
+              </div>
+            </div>
+            <div style={styles.contactMethodArrow}>→</div>
+          </button>
+          
+          {/* Bouton WhatsApp - TOUJOURS AFFICHÉ */}
+          <button
+            onClick={() => {
+              if (selectedService.entreprise?.whatsapp_phone) {
+                const message = encodeURIComponent(`Bonjour ${selectedService.entreprise.name}, je suis intéressé par votre service: ${selectedService.name}`);
+                window.open(`https://wa.me/${selectedService.entreprise.whatsapp_phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+              } else {
+                alert('Numéro WhatsApp non disponible');
+              }
+              setShowContactModal(false);
+            }}
+            style={styles.contactMethodButton}
+            className="contact-method-button"
+          >
+            <div style={styles.contactMethodIconWhatsApp}>
+              <FaWhatsapp />
+            </div>
+            <div style={styles.contactMethodContent}>
+              <div style={styles.contactMethodTitle}>WhatsApp</div>
+              <div style={styles.contactMethodSubtitle}>
+                Message instantané
+              </div>
+            </div>
+            <div style={styles.contactMethodArrow}>→</div>
+          </button>
+          
+          {/* Bouton Message/Chat - TOUJOURS AFFICHÉ */}
+                
+      <button
+        onClick={() => {
+          if (user) {
+            setShowContactModal(false);
+            setTimeout(() => {
+              setShowChatModal(true);
+            }, 300);
+          } else {
+            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+          }
+        }}
+        style={styles.contactMethodButton}
+        className="contact-method-button"
+      >
+        <div style={styles.contactMethodIconChat}>
+          <FaComments />
+        </div>
+        <div style={styles.contactMethodContent}>
+          <div style={styles.contactMethodTitle}>
+            {user ? 'Messagerie' : 'Messagerie'}
+          </div>
+          <div style={styles.contactMethodSubtitle}>
+            {user ? 'Discuter en direct' : 'Connectez-vous pour discuter'}
+          </div>
+        </div>
+        <div style={styles.contactMethodArrow}>→</div>
+      </button>
+              </div>
+              
+              <div style={styles.contactModalFooter}>
+                <p style={styles.contactModalNote}>
+                  💡 <strong>Recommandé :</strong>La messagerie permet de suivre vos conversations et de partager des photos/vidéos.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CHAT (seulement pour utilisateurs connectés) */}
+      {user && selectedService && showChatModal && (
+        <ChatModal
+          receiverId={selectedService.entreprise?.prestataire_id}
+          receiverName={selectedService.entreprise?.name || 'Prestataire'}
+          onClose={() => {
+            setSelectedService(null);
+            setShowChatModal(false);
+          }}
+        />
+      )}
 
       {/* CSS Animations */}
       <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+        }
+        
+        @keyframes scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        
+        @keyframes modalSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(40px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
         .animate-section {
           opacity: 0;
           transform: translateY(50px);
           transition: all 0.8s ease-out;
-        }
-        .contact-button {
-          transition: all 0.3s ease;
-        }
-
-        .contact-button:hover {
-          background-color: #ef4444 !important;
-          color: white !important;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
         
         .animate-section.animate-in {
@@ -463,9 +677,24 @@ const [selectedService, setSelectedService] = useState(null);
           box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
         }
         
-        @keyframes scroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+        .contact-button {
+          transition: all 0.3s ease;
+        }
+        
+        .contact-button:hover {
+          background-color: ${theme.colors.primaryDark || '#dc2626'} !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+        
+        .contact-method-button {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .contact-method-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+          border-color: #cbd5e1;
         }
         
         .partners-scroll {
@@ -476,15 +705,14 @@ const [selectedService, setSelectedService] = useState(null);
           animation-play-state: paused;
         }
         
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-        }
-        
         .chatbot-pulse {
           animation: pulse 2s ease-in-out infinite;
         }
         
+        .seeMoreLink:hover {
+          color: ${theme.colors.primaryDark || '#dc2626'};
+          transform: translateX(3px);
+        }
       `}</style>
     </div>
   );
@@ -681,10 +909,10 @@ const styles = {
     transition: 'all 0.3s',
   },
   
-  // Services
+  // Services - NOUVEAUX STYLES
   servicesGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
     gap: '2rem',
     marginBottom: '3rem',
   },
@@ -694,9 +922,11 @@ const styles = {
     overflow: 'hidden',
     boxShadow: theme.shadows.md,
     border: `2px solid ${theme.colors.primaryLight}`,
+    display: 'flex',
+    flexDirection: 'column',
   },
   serviceImage: {
-    height: '180px',
+    height: '200px',
     overflow: 'hidden',
   },
   serviceImg: {
@@ -705,34 +935,121 @@ const styles = {
     objectFit: 'cover',
   },
   servicePlaceholder: {
-    height: '180px',
+    height: '200px',
     backgroundColor: theme.colors.primaryLight,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
   serviceContent: {
-  padding: '1.5rem',
-  display: 'flex',        // 👈 AJOUTE
-  flexDirection: 'column', // 👈 AJOUTE
-  gap: '0.75rem',         // 👈 AJOUTE
-},
+    padding: '1.5rem',
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem',
+  },
+  serviceHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '0.5rem',
+    gap: '1rem',
+  },
   serviceName: {
-    fontSize: '1.25rem',
+    fontSize: '1.125rem',
     fontWeight: 'bold',
     color: theme.colors.text.primary,
-    marginBottom: '0.5rem',
-  },
-  serviceEntreprise: {
-    color: theme.colors.text.secondary,
-    marginBottom: '0.75rem',
-    fontSize: '0.95rem',
+    margin: 0,
+    flex: 1,
+    lineHeight: '1.3',
   },
   servicePrice: {
     color: theme.colors.primary,
     fontWeight: '700',
-    fontSize: '1.125rem',
+    fontSize: '1rem',
+    whiteSpace: 'nowrap',
+    textAlign: 'right',
+  },
+  serviceInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: '0.75rem',
+    borderBottom: `1px solid ${theme.colors.primaryLight}40`,
+  },
+  entrepriseInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+  },
+  entrepriseLogo: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    objectFit: 'cover',
+  },
+  entrepriseLogoPlaceholder: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: theme.colors.primary,
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
+    fontSize: '0.8rem',
+  },
+  entrepriseName: {
+    fontSize: '0.85rem',
+    color: theme.colors.text.secondary,
+    fontWeight: '500',
+  },
+  serviceHours: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '0.8rem',
+    color: theme.colors.text.secondary,
+  },
+  serviceDescriptionRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: '0.5rem',
+    gap: '1rem',
+  },
+  serviceDescription: {
+    color: theme.colors.text.secondary,
+    fontSize: '0.9rem',
+    lineHeight: '1.4',
+    margin: 0,
+    flex: 1,
+  },
+  seeMoreLink: {
+    display: 'flex',
+    alignItems: 'center',
+    color: theme.colors.primary,
+    fontWeight: '600',
+    fontSize: '0.85rem',
+    textDecoration: 'none',
+    whiteSpace: 'nowrap',
+    transition: 'all 0.2s',
+  },
+  contactButton: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primary,
+    color: '#fff',
+    border: 'none',
+    padding: '0.75rem 1.5rem',
+    borderRadius: `0 0 ${theme.borderRadius.xl} ${theme.borderRadius.xl}`,
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    marginTop: 'auto',
   },
   sectionCta: {
     textAlign: 'center',
@@ -873,7 +1190,7 @@ const styles = {
     borderRadius: theme.borderRadius.md,
     marginBottom: '1rem',
   },
-   chatbotInfo: {
+  chatbotInfo: {
     color: theme.colors.text.secondary,
     fontSize: '0.85rem',
     textAlign: 'center',
@@ -884,7 +1201,6 @@ const styles = {
     borderRadius: theme.borderRadius.md,
     border: `1px solid ${theme.colors.primaryLight}20`,
   },
-
   chatbotFooter: {
     padding: '1.25rem',
     borderTop: `2px solid ${theme.colors.primaryLight}`,
@@ -893,7 +1209,6 @@ const styles = {
     alignItems: 'center',
     background: theme.colors.background,
   },
-
   chatbotInput: {
     flex: 1,
     padding: '1rem 1.5rem',
@@ -906,7 +1221,6 @@ const styles = {
     color: theme.colors.text.primary,
     minHeight: '52px',
   },
-
   chatbotSend: {
     background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.primaryDark || '#991b1b'})`,
     color: '#fff',
@@ -923,7 +1237,6 @@ const styles = {
     fontSize: '1.25rem',
     boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
   },
-
   chatbotButton: {
     background: `linear-gradient(135deg, ${theme.colors.primary}, #991b1b)`,
     color: '#fff',
@@ -943,134 +1256,183 @@ const styles = {
     zIndex: 1001,
   },
 
-  chatbotNotification: {
-    position: 'absolute',
-    top: '-5px',
-    right: '-5px',
-    background: '#ef4444',
+  // Modal de Contact PROFESSIONNEL
+  contactModalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1100,
+    padding: '1rem',
+    backdropFilter: 'blur(10px)',
+  },
+  contactModal: {
+    backgroundColor: '#fff',
+    borderRadius: theme.borderRadius.xl,
+    width: '100%',
+    maxWidth: '450px',
+    maxHeight: '90vh',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 30px 60px rgba(0, 0, 0, 0.4)',
+    overflow: 'hidden',
+    animation: 'modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+  },
+  contactModalHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '1.5rem',
+    backgroundColor: '#f8fafc',
+    borderBottom: `1px solid ${theme.colors.primaryLight}`,
+    position: 'relative',
+  },
+  contactModalAvatar: {
+    marginRight: '1rem',
+  },
+  contactModalLogo: {
+    width: '50px',
+    height: '50px',
+    borderRadius: '12px',
+    objectFit: 'cover',
+    border: `2px solid ${theme.colors.primaryLight}`,
+  },
+  contactModalLogoPlaceholder: {
+    width: '50px',
+    height: '50px',
+    borderRadius: '12px',
+    backgroundColor: theme.colors.primary,
     color: '#fff',
-    width: '25px',
-    height: '25px',
-    borderRadius: '50%',
-    fontSize: '0.75rem',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontWeight: 'bold',
-    border: `2px solid ${theme.colors.secondary}`,
-    boxShadow: '0 3px 10px rgba(0, 0, 0, 0.3)',
-  },
-
-  typingIndicator: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '1rem 1.25rem',
-    background: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    marginBottom: '1rem',
-    width: 'fit-content',
-    border: `1px solid ${theme.colors.primaryLight}40`,
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-  },
-
-  typingDot: {
-    width: '10px',
-    height: '10px',
-    background: theme.colors.primary,
-    borderRadius: '50%',
-    opacity: 0.8,
-  },
-
-  chatbotMessageUser: {
-    backgroundColor: theme.colors.primary,
-    color: '#fff',
-    padding: '1rem 1.25rem',
-    borderRadius: theme.borderRadius.lg,
-    marginBottom: '1rem',
-    marginLeft: 'auto',
-    maxWidth: '80%',
-    border: `1px solid ${theme.colors.primaryDark || '#991b1b'}`,
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-  },
-
-  chatbotMessageBot: {
-    backgroundColor: theme.colors.background,
-    color: theme.colors.text.primary,
-    padding: '1rem 1.25rem',
-    borderRadius: theme.borderRadius.lg,
-    marginBottom: '1rem',
-    marginRight: 'auto',
-    maxWidth: '80%',
-    border: `1px solid ${theme.colors.primaryLight}40`,
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-  },
-
-  chatbotMessagesContainer: {
-    height: '300px',
-    overflowY: 'auto',
-    padding: '1.5rem',
-    scrollBehavior: 'smooth',
-  },
-
-  chatbotWelcome: {
-    textAlign: 'center',
-    padding: '2rem 1rem',
-    color: theme.colors.text.secondary,
-  },
-
-  contactButton: {
-  width: '100%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '0.5rem',
-  backgroundColor: 'transparent',
-  color: theme.colors.primary,
-  border: `2px solid ${theme.colors.primary}`,
-  padding: '0.875rem 1.5rem',
-  borderRadius: theme.borderRadius.lg,
-  fontSize: '0.95rem',
-  fontWeight: '600',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  marginTop: '0.75rem',
-},
-
-  chatbotWelcomeIcon: {
-    fontSize: '3rem',
-    color: theme.colors.primary,
-    marginBottom: '1rem',
-    opacity: 0.8,
-  },
-
-  chatbotWelcomeTitle: {
     fontSize: '1.25rem',
-    fontWeight: '600',
-    marginBottom: '0.5rem',
+    border: `2px solid ${theme.colors.primaryLight}`,
+  },
+  contactModalInfo: {
+    flex: 1,
+  },
+  contactModalTitle: {
+    fontSize: '1.125rem',
+    fontWeight: 'bold',
     color: theme.colors.text.primary,
+    margin: '0 0 0.25rem 0',
   },
-
-  chatbotWelcomeText: {
+  contactModalService: {
+    fontSize: '0.9rem',
+    color: theme.colors.text.secondary,
+    margin: 0,
+  },
+  contactModalClose: {
+    position: 'absolute',
+    top: '1rem',
+    right: '1rem',
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: theme.colors.text.secondary,
+    fontSize: '1.25rem',
+    cursor: 'pointer',
+    padding: '0.25rem',
+    opacity: 0.7,
+  },
+  contactModalBody: {
+    padding: '1.5rem',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1.5rem',
+  },
+  contactModalInstruction: {
+    textAlign: 'center',
+    color: theme.colors.text.secondary,
     fontSize: '0.95rem',
-    lineHeight: '1.6',
-    maxWidth: '280px',
-    margin: '0 auto',
+    margin: 0,
   },
-
-  chatbotStatus: {
+  contactMethodsGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem',
+  },
+  contactMethodButton: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.5rem',
+    gap: '1rem',
+    padding: '1rem 1.25rem',
+    borderRadius: theme.borderRadius.lg,
+    border: `2px solid #e2e8f0`,
+    backgroundColor: '#fff',
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'all 0.3s ease',
+    width: '100%',
+  },
+  contactMethodIconCall: {
+    width: '44px',
+    height: '44px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '1.25rem',
+    color: '#fff',
+    backgroundColor: '#10b981',
+    flexShrink: 0,
+  },
+  contactMethodIconWhatsApp: {
+    width: '44px',
+    height: '44px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '1.25rem',
+    color: '#fff',
+    backgroundColor: '#25D366',
+    flexShrink: 0,
+  },
+  contactMethodIconChat: {
+    width: '44px',
+    height: '44px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '1.25rem',
+    color: '#fff',
+    backgroundColor: theme.colors.primary,
+    flexShrink: 0,
+  },
+  contactMethodContent: {
+    flex: 1,
+  },
+  contactMethodTitle: {
+    fontSize: '1rem',
+    fontWeight: '600',
+    color: theme.colors.text.primary,
+    marginBottom: '0.25rem',
+  },
+  contactMethodSubtitle: {
     fontSize: '0.85rem',
     color: theme.colors.text.secondary,
-    marginTop: '0.75rem',
   },
-
-  chatbotStatusDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    background: '#10b981',
+  contactMethodArrow: {
+    color: theme.colors.primary,
+    fontSize: '1.25rem',
+    opacity: 0.7,
   },
-}
+  contactModalFooter: {
+    paddingTop: '1rem',
+    borderTop: `1px solid ${theme.colors.primaryLight}40`,
+  },
+  contactModalNote: {
+    fontSize: '0.85rem',
+    color: theme.colors.text.secondary,
+    textAlign: 'center',
+    margin: 0,
+    lineHeight: '1.5',
+  },
+};

@@ -23,10 +23,29 @@ export const serviceApi = {
     const response = await api.get(`/services/${id}`);
     return response.data;
   },
-
+  
   // Liste publique des services
   getPublicServices: async () => {
     const response = await api.get('/services');
     return response.data;
   },
+
+  // Méthode pour récupérer un service par ID
+getServiceById: async (id) => {
+  const response = await api.get(`/services/${id}`);
+  return response.data;
+},
+
+// Méthode pour mettre à jour un service
+updateService: async (id, formData) => {
+  const response = await api.post(`/services/${id}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    params: {
+      _method: 'PUT' // Laravel requiert ceci pour les formulaires multipart
+    }
+  });
+  return response.data;
+},
 };

@@ -28,7 +28,7 @@ export const publicApi = {
 
   // ✅ NOUVEAU: Détails d'un service (public)
   getService: async (id) => {
-    const response = await api.get(`/services/${id}`);
+    const response = await api.get(`/service/${id}`);
     return response.data;
   },
   
