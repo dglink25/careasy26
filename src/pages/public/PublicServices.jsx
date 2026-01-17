@@ -215,7 +215,7 @@ export default function PublicServices() {
             {filteredServices.map((service) => (
               <Link
                 key={service.id}
-                to={`/services/${service.id}`}
+                to={`/service/${service.id}`}
                 style={styles.card}
                 className="service-card"
               >

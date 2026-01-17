@@ -1,4 +1,3 @@
-// careasy-frontend/src/api/publicApi.js
 import api from './axios';
 
 export const publicApi = {
@@ -26,9 +25,9 @@ export const publicApi = {
     return response.data;
   },
 
-  // ✅ NOUVEAU: Détails d'un service (public)
+  // NOUVEAU: Détails d'un service (public)
   getService: async (id) => {
-    const response = await api.get(`/service/${id}`);
+    const response = await api.get(`/services/${id}`);
     return response.data;
   },
   

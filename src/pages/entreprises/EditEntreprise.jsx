@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { entrepriseApi } from '../../api/entrepriseApi';
-import { FiSave, FiX, FiUpload, FiMapPin, FiArrowLeft } from 'react-icons/fi';
+import { FiSave, FiX, FiUpload, FiArrowLeft } from 'react-icons/fi';
 import { MdBusiness } from 'react-icons/md';
 
 export default function EditEntreprise() {
@@ -13,6 +13,7 @@ export default function EditEntreprise() {
   const [success, setSuccess] = useState('');
   const [domaines, setDomaines] = useState([]);
   
+  // ✅ UNIQUEMENT LES CHAMPS ACCEPTÉS PAR LE BACKEND (selon votre contrôleur)
   const [formData, setFormData] = useState({
     name: '',
     domaine_ids: [],
@@ -20,17 +21,8 @@ export default function EditEntreprise() {
     description: '',
     whatsapp_phone: '',
     call_phone: '',
-    email: '',
-    website: '',
-    facebook: '',
-    instagram: '',
-    linkedin: '',
     latitude: '',
     longitude: '',
-    status_online: false,
-    horaires_ouverture: '',
-    jours_ouverture: '',
-    tarif_moyen: '',
   });
 
   const [files, setFiles] = useState({
@@ -60,6 +52,7 @@ export default function EditEntreprise() {
         return;
       }
 
+      // ✅ Remplir uniquement les champs qui existent dans le backend
       setFormData({
         name: data.name || '',
         domaine_ids: data.domaines?.map(d => d.id) || [],
@@ -67,31 +60,16 @@ export default function EditEntreprise() {
         description: data.description || '',
         whatsapp_phone: data.whatsapp_phone || '',
         call_phone: data.call_phone || '',
-        email: data.email || '',
-        website: data.website || '',
-        facebook: data.facebook || '',
-        instagram: data.instagram || '',
-        linkedin: data.linkedin || '',
         latitude: data.latitude || '',
         longitude: data.longitude || '',
-        status_online: data.status_online || false,
-        horaires_ouverture: data.horaires_ouverture || '',
-        jours_ouverture: data.jours_ouverture || '',
-        tarif_moyen: data.tarif_moyen || '',
       });
 
       // Définir les aperçus des images existantes
       if (data.logo) {
-        setPreviews(prev => ({
-          ...prev,
-          logo: `${import.meta.env.VITE_API_URL}/storage/${data.logo}`
-        }));
+        setPreviews(prev => ({ ...prev, logo: data.logo }));
       }
       if (data.image_boutique) {
-        setPreviews(prev => ({
-          ...prev,
-          image_boutique: `${import.meta.env.VITE_API_URL}/storage/${data.image_boutique}`
-        }));
+        setPreviews(prev => ({ ...prev, image_boutique: data.image_boutique }));
       }
     } catch (err) {
       console.error('Erreur:', err);
@@ -111,10 +89,10 @@ export default function EditEntreprise() {
   };
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }));
   };
 
@@ -156,18 +134,34 @@ export default function EditEntreprise() {
     try {
       const submitData = new FormData();
 
-      // Ajouter les champs texte
-      Object.keys(formData).forEach(key => {
-        if (key === 'domaine_ids') {
-          formData.domaine_ids.forEach(id => {
-            submitData.append('domaine_ids[]', id);
-          });
-        } else if (formData[key] !== null && formData[key] !== '') {
-          submitData.append(key, formData[key]);
+      // Validation côté client
+      if (!formData.name || formData.name.trim() === '') {
+        setError('Le nom de l\'entreprise est requis');
+        setSubmitting(false);
+        return;
+      }
+
+      // ✅ Ajouter UNIQUEMENT les champs acceptés par le backend
+      const allowedFields = [
+        'name', 'siege', 'description', 'whatsapp_phone', 
+        'call_phone', 'latitude', 'longitude'
+      ];
+
+      // Ajouter les champs textuels
+      allowedFields.forEach(field => {
+        if (formData[field] !== undefined && formData[field] !== null && formData[field] !== '') {
+          submitData.append(field, formData[field]);
         }
       });
 
-      // Ajouter les fichiers
+      // Ajouter les domaines (seulement si au moins un est sélectionné)
+      if (formData.domaine_ids && formData.domaine_ids.length > 0) {
+        formData.domaine_ids.forEach(id => {
+          submitData.append('domaine_ids[]', id);
+        });
+      }
+
+      // Ajouter les fichiers (seulement si un nouveau fichier est sélectionné)
       if (files.logo) {
         submitData.append('logo', files.logo);
       }
@@ -178,6 +172,13 @@ export default function EditEntreprise() {
       // Important: Laravel nécessite _method pour PUT avec FormData
       submitData.append('_method', 'PUT');
 
+      // Debug - afficher ce qu'on envoie
+      console.log('📤 Données envoyées au backend:');
+      for (let [key, value] of submitData.entries()) {
+        console.log(`${key}:`, value);
+      }
+
+      // Envoyer les données
       const response = await entrepriseApi.updateEntreprise(id, submitData);
       
       setSuccess(response.message || 'Entreprise mise à jour avec succès !');
@@ -188,18 +189,20 @@ export default function EditEntreprise() {
       }, 2000);
 
     } catch (err) {
-      console.error('Erreur:', err);
-      setError(
-        err.response?.data?.message || 
-        'Erreur lors de la mise à jour. Veuillez réessayer.'
-      );
+      console.error('❌ Erreur complète:', err);
+      console.error('❌ Response data:', err.response?.data);
       
-      // Afficher les erreurs de validation
+      // Afficher les erreurs de validation détaillées
       if (err.response?.data?.errors) {
-        const errorMessages = Object.values(err.response.data.errors)
-          .flat()
-          .join(', ');
+        const errorMessages = Object.entries(err.response.data.errors)
+          .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+          .join('\n');
         setError(errorMessages);
+      } else {
+        setError(
+          err.response?.data?.message || 
+          'Erreur lors de la mise à jour. Veuillez réessayer.'
+        );
       }
     } finally {
       setSubmitting(false);
@@ -239,7 +242,11 @@ export default function EditEntreprise() {
         {error && (
           <div style={styles.errorAlert}>
             <FiX style={styles.alertIcon} />
-            <span>{error}</span>
+            <div style={styles.errorContent}>
+              {error.split('\n').map((line, i) => (
+                <div key={i}>{line}</div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -311,7 +318,7 @@ export default function EditEntreprise() {
             </div>
           </div>
 
-          {/* Contact */}
+          {/* Contact - SEULEMENT les champs du backend */}
           <div style={styles.section}>
             <h2 style={styles.sectionTitle}>Informations de contact</h2>
             
@@ -340,133 +347,11 @@ export default function EditEntreprise() {
                 />
               </div>
             </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="contact@entreprise.com"
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Site web</label>
-              <input
-                type="url"
-                name="website"
-                value={formData.website}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="https://..."
-              />
-            </div>
           </div>
 
-          {/* Réseaux sociaux */}
+          {/* Géolocalisation - Optionnel */}
           <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>Réseaux sociaux</h2>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Facebook</label>
-              <input
-                type="url"
-                name="facebook"
-                value={formData.facebook}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="https://facebook.com/..."
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Instagram</label>
-              <input
-                type="url"
-                name="instagram"
-                value={formData.instagram}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="https://instagram.com/..."
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>LinkedIn</label>
-              <input
-                type="url"
-                name="linkedin"
-                value={formData.linkedin}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="https://linkedin.com/..."
-              />
-            </div>
-          </div>
-
-          {/* Horaires */}
-          <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>Horaires et tarifs</h2>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Horaires d'ouverture</label>
-              <input
-                type="text"
-                name="horaires_ouverture"
-                value={formData.horaires_ouverture}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="Ex: 8h - 18h"
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Jours d'ouverture</label>
-              <input
-                type="text"
-                name="jours_ouverture"
-                value={formData.jours_ouverture}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="Ex: Lundi - Samedi"
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Tarif moyen</label>
-              <input
-                type="text"
-                name="tarif_moyen"
-                value={formData.tarif_moyen}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="Ex: 50.000 - 200.000 FCFA"
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  name="status_online"
-                  checked={formData.status_online}
-                  onChange={handleInputChange}
-                  style={styles.checkbox}
-                />
-                <span>Entreprise en ligne (visible sur la plateforme)</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Géolocalisation */}
-          <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>
-              <FiMapPin style={styles.sectionIcon} />
-              Géolocalisation
-            </h2>
+            <h2 style={styles.sectionTitle}>Localisation (Optionnel)</h2>
             
             <div style={styles.formRow}>
               <div style={styles.formGroup}>
@@ -495,13 +380,16 @@ export default function EditEntreprise() {
                 />
               </div>
             </div>
+            <p style={styles.helpText}>
+              💡 Si vous fournissez les coordonnées, l'adresse sera automatiquement mise à jour
+            </p>
           </div>
 
           {/* Images */}
           <div style={styles.section}>
             <h2 style={styles.sectionTitle}>
               <FiUpload style={styles.sectionIcon} />
-              Images
+              Images (Optionnel)
             </h2>
             
             {/* Logo */}
@@ -516,9 +404,10 @@ export default function EditEntreprise() {
               {previews.logo && (
                 <div style={styles.imagePreview}>
                   <img src={previews.logo} alt="Logo" style={styles.previewImage} />
+                  <p style={styles.imageInfo}>Image actuelle</p>
                 </div>
               )}
-              <p style={styles.helpText}>Format: JPG, PNG, GIF - Max: 2 Mo</p>
+              <p style={styles.helpText}>Format: JPG, PNG, GIF, SVG - Max: 2 Mo</p>
             </div>
 
             {/* Image boutique */}
@@ -533,9 +422,10 @@ export default function EditEntreprise() {
               {previews.image_boutique && (
                 <div style={styles.imagePreview}>
                   <img src={previews.image_boutique} alt="Boutique" style={styles.previewImage} />
+                  <p style={styles.imageInfo}>Image actuelle</p>
                 </div>
               )}
-              <p style={styles.helpText}>Format: JPG, PNG, GIF - Max: 2 Mo</p>
+              <p style={styles.helpText}>Format: JPG, PNG, GIF, SVG - Max: 2 Mo</p>
             </div>
           </div>
 
@@ -547,11 +437,14 @@ export default function EditEntreprise() {
             </Link>
             <button 
               type="submit" 
-              style={styles.submitButton}
+              style={{
+                ...styles.submitButton,
+                ...(submitting ? styles.submitButtonDisabled : {})
+              }}
               disabled={submitting}
             >
               <FiSave style={styles.buttonIcon} />
-              {submitting ? 'Enregistrement...' : 'Enregistrer les modifications'}
+              {submitting ? 'Enregistrement...' : 'Enregistrer'}
             </button>
           </div>
         </form>
@@ -610,9 +503,7 @@ const styles = {
     marginBottom: '1rem',
     fontWeight: '500',
   },
-  backIcon: {
-    fontSize: '1rem',
-  },
+  backIcon: { fontSize: '1rem' },
   title: {
     display: 'flex',
     alignItems: 'center',
@@ -622,17 +513,11 @@ const styles = {
     color: '#1e293b',
     marginBottom: '0.5rem',
   },
-  titleIcon: {
-    fontSize: '2rem',
-    color: '#ef4444',
-  },
-  subtitle: {
-    color: '#64748b',
-    fontSize: '1rem',
-  },
+  titleIcon: { fontSize: '2rem', color: '#ef4444' },
+  subtitle: { color: '#64748b', fontSize: '1rem' },
   errorAlert: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: '0.75rem',
     backgroundColor: '#fee2e2',
     color: '#dc2626',
@@ -640,6 +525,11 @@ const styles = {
     borderRadius: '0.75rem',
     marginBottom: '1.5rem',
     border: '1px solid #fecaca',
+  },
+  errorContent: {
+    flex: 1,
+    fontSize: '0.875rem',
+    lineHeight: '1.6',
   },
   successAlert: {
     display: 'flex',
@@ -652,15 +542,8 @@ const styles = {
     marginBottom: '1.5rem',
     border: '1px solid #a7f3d0',
   },
-  alertIcon: {
-    fontSize: '1.25rem',
-    flexShrink: 0,
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2rem',
-  },
+  alertIcon: { fontSize: '1.25rem', flexShrink: 0 },
+  form: { display: 'flex', flexDirection: 'column', gap: '2rem' },
   section: {
     backgroundColor: '#fff',
     padding: '2rem',
@@ -668,21 +551,12 @@ const styles = {
     border: '1px solid #e2e8f0',
   },
   sectionTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
     fontSize: '1.25rem',
     fontWeight: '700',
     color: '#1e293b',
     marginBottom: '1.5rem',
   },
-  sectionIcon: {
-    fontSize: '1.25rem',
-    color: '#ef4444',
-  },
-  formGroup: {
-    marginBottom: '1.5rem',
-  },
+  formGroup: { marginBottom: '1.5rem' },
   formRow: {
     display: 'grid',
     gridTemplateColumns: 'repeat(2, 1fr)',
@@ -702,7 +576,6 @@ const styles = {
     borderRadius: '0.5rem',
     fontSize: '0.875rem',
     outline: 'none',
-    transition: 'all 0.2s',
   },
   textarea: {
     width: '100%',
@@ -711,7 +584,6 @@ const styles = {
     borderRadius: '0.5rem',
     fontSize: '0.875rem',
     outline: 'none',
-    transition: 'all 0.2s',
     resize: 'vertical',
   },
   fileInput: {
@@ -734,12 +606,10 @@ const styles = {
     fontSize: '0.875rem',
     color: '#475569',
     cursor: 'pointer',
+    padding: '0.5rem',
+    borderRadius: '0.375rem',
   },
-  checkbox: {
-    width: '18px',
-    height: '18px',
-    cursor: 'pointer',
-  },
+  checkbox: { width: '18px', height: '18px', cursor: 'pointer' },
   imagePreview: {
     marginTop: '1rem',
     borderRadius: '0.5rem',
@@ -750,6 +620,13 @@ const styles = {
     width: '100%',
     maxHeight: '200px',
     objectFit: 'cover',
+  },
+  imageInfo: {
+    textAlign: 'center',
+    padding: '0.5rem',
+    fontSize: '0.75rem',
+    color: '#64748b',
+    backgroundColor: '#f8fafc',
   },
   helpText: {
     fontSize: '0.75rem',
@@ -774,8 +651,6 @@ const styles = {
     fontSize: '0.875rem',
     fontWeight: '600',
     textDecoration: 'none',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
   },
   submitButton: {
     display: 'flex',
@@ -789,9 +664,7 @@ const styles = {
     fontSize: '0.875rem',
     fontWeight: '600',
     cursor: 'pointer',
-    transition: 'all 0.2s',
   },
-  buttonIcon: {
-    fontSize: '1rem',
-  },
+  submitButtonDisabled: { opacity: 0.6, cursor: 'not-allowed' },
+  buttonIcon: { fontSize: '1rem' },
 };

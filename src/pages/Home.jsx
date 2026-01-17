@@ -353,7 +353,7 @@ export default function Home() {
                     }
                   </p>
                   <Link 
-                    to={`/service/:id`}
+                    to={`/service/${service.id}`}
                     style={styles.seeMoreLink}
                     title="Voir plus de détails"
                   >
