@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.jsx
 import { createContext, useState, useContext, useEffect } from 'react';
 import api from '../api/axios';
 
@@ -68,23 +69,52 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // 👉 NOUVELLE FONCTION : Mettre à jour l'utilisateur dans le contexte
+  const updateUser = (updatedUserData) => {
+    try {
+      // Fusionner les nouvelles données avec l'utilisateur existant
+      const updatedUser = {
+        ...user,
+        ...updatedUserData
+      };
+      
+      // Mettre à jour le state
+      setUser(updatedUser);
+      
+      // Mettre à jour le localStorage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      console.log('✅ Utilisateur mis à jour dans le contexte:', updatedUser);
+    } catch (error) {
+      console.error('❌ Erreur mise à jour utilisateur:', error);
+      throw error;
+    }
+  };
+
   const logout = async () => {
-  try {
-    await api.post('/logout');
-  } catch (error) {
-    console.error('Erreur lors de la déconnexion:', error);
-  } finally {
-    // Nettoyer le localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    // navigate('/login'); 
-    window.location.href = '/'; 
-  }
-};
+    try {
+      await api.post('/logout');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    } finally {
+      // Nettoyer le localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      // navigate('/login'); 
+      window.location.href = '/'; 
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      register, 
+      logout, 
+      loading,
+      updateUser // 👈 Ajouter la fonction au contexte
+    }}>
       {children}
     </AuthContext.Provider>
   );

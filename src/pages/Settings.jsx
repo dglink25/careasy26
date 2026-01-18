@@ -23,7 +23,7 @@ import {
 } from 'react-icons/fi';
 
 export default function Settings() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const fileInputRef = useRef(null);
 
   // États principaux
@@ -143,32 +143,32 @@ export default function Settings() {
     }
   };
 
-  // Sauvegarder le profil
-  const handleSaveProfile = async () => {
-    try {
-      setSaving(true);
+  // Ligne 156-168 dans Settings.jsx (extrait du code existant)
+const handleSaveProfile = async () => {
+  try {
+    setSaving(true);
 
-      // Si une photo a été sélectionnée
-      if (profileData.profile_photo) {
-        await userSettingsApi.updateProfilePhoto(profileData.profile_photo);
-      }
-
-      // Mettre à jour le nom
-      const response = await userSettingsApi.updateProfile({
-        name: profileData.name,
-      });
-
-      // Mettre à jour le contexte Auth
-      updateUser(response.user);
-
-      showMessage('Profil mis à jour avec succès', 'success');
-    } catch (error) {
-      console.error('Erreur mise à jour profil:', error);
-      showMessage(error.response?.data?.message || 'Erreur lors de la mise à jour', 'error');
-    } finally {
-      setSaving(false);
+    // Si une photo a été sélectionnée
+    if (profileData.profile_photo) {
+      await userSettingsApi.updateProfilePhoto(profileData.profile_photo);
     }
-  };
+
+    // Mettre à jour le nom
+    const response = await userSettingsApi.updateProfile({
+      name: profileData.name,
+    });
+
+    // 👉 Mettre à jour le contexte Auth avec les nouvelles données
+    updateUser(response.user); // ✅ Cette fonction existe maintenant
+
+    showMessage('Profil mis à jour avec succès', 'success');
+  } catch (error) {
+    console.error('Erreur mise à jour profil:', error);
+    showMessage(error.response?.data?.message || 'Erreur lors de la mise à jour', 'error');
+  } finally {
+    setSaving(false);
+  }
+};
 
   // Changer l'email
   const handleChangeEmail = async () => {
@@ -187,45 +187,61 @@ export default function Settings() {
     }
   };
 
-  // Changer le mot de passe
-  const handleChangePassword = async () => {
-    if (passwordData.new_password !== passwordData.new_password_confirmation) {
-      showMessage('Les mots de passe ne correspondent pas', 'error');
-      return;
-    }
+ // Ligne ~210-240 dans Settings.jsx
+const handleChangePassword = async () => {
+  // Validation frontend
+  if (!passwordData.current_password) {
+    showMessage('Le mot de passe actuel est requis', 'error');
+    return;
+  }
 
-    if (passwordData.new_password.length < 8) {
-      showMessage('Le mot de passe doit contenir au moins 8 caractères', 'error');
-      return;
-    }
+  if (passwordData.new_password !== passwordData.new_password_confirmation) {
+    showMessage('Les mots de passe ne correspondent pas', 'error');
+    return;
+  }
 
-    try {
-      setSaving(true);
-      await userSettingsApi.updatePassword(
-        passwordData.current_password,
-        passwordData.new_password,
-        passwordData.new_password_confirmation
-      );
+  if (passwordData.new_password.length < 8) {
+    showMessage('Le mot de passe doit contenir au moins 8 caractères', 'error');
+    return;
+  }
 
-      setPasswordData({
-        current_password: '',
-        new_password: '',
-        new_password_confirmation: '',
-      });
+  try {
+    setSaving(true);
+    
+    // 👉 Utiliser exactement les noms de champs attendus par le backend
+    await userSettingsApi.updatePassword(
+      passwordData.current_password,
+      passwordData.new_password,
+      passwordData.new_password_confirmation
+    );
 
-      showMessage('Mot de passe mis à jour. Reconnectez-vous.', 'success');
-      
-      // Déconnexion automatique après 2 secondes
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 2000);
-    } catch (error) {
-      console.error('Erreur changement mot de passe:', error);
+    setPasswordData({
+      current_password: '',
+      new_password: '',
+      new_password_confirmation: '',
+    });
+
+    showMessage('Mot de passe mis à jour avec succès !', 'success');
+    
+    // Déconnexion automatique après 2 secondes
+    setTimeout(() => {
+      logout();
+    }, 2000);
+  } catch (error) {
+    console.error('Erreur changement mot de passe:', error);
+    
+    // 👉 Afficher les erreurs de validation spécifiques
+    if (error.response?.data?.errors) {
+      const errors = error.response.data.errors;
+      const firstError = Object.values(errors)[0];
+      showMessage(Array.isArray(firstError) ? firstError[0] : firstError, 'error');
+    } else {
       showMessage(error.response?.data?.message || 'Erreur lors du changement', 'error');
-    } finally {
-      setSaving(false);
     }
-  };
+  } finally {
+    setSaving(false);
+  }
+};
 
   // Mettre à jour le thème
   const handleThemeChange = async (newTheme) => {

@@ -29,14 +29,14 @@ export const userSettingsApi = {
   /**
    * Mettre à jour le mot de passe
    */
-  updatePassword: async (currentPassword, newPassword, newPasswordConfirmation) => {
-    const response = await api.put('/user/password', {
-      current_password: currentPassword,
-      new_password: newPassword,
-      new_password_confirmation: newPasswordConfirmation,
-    });
-    return response.data;
-  },
+ updatePassword: async (currentPassword, newPassword, newPasswordConfirmation) => {
+  const response = await api.put('/user/password', {
+    current_password: currentPassword,
+    new_password: newPassword,
+    new_password_confirmation: newPasswordConfirmation,
+  });
+  return response.data;
+},
 
   /**
    * Récupérer les paramètres
