@@ -26,7 +26,7 @@ import ModifierService from './pages/services/ModifierService';
 
 // 👉 MESSAGERIE - NOUVEAU
 import MessagesPage from './pages/messages/MessagesPage';
-
+import Settings from './pages/Settings';
 // Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminEntreprises from './pages/admin/AdminEntreprises';
@@ -132,6 +132,14 @@ function App() {
                 }
               />
 
+             <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
               {/* Admin */}
               <Route
                 path="/admin/dashboard"

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { entrepriseApi } from '../api/entrepriseApi';
 import { serviceApi } from '../api/serviceApi';
+import { FiSettings } from 'react-icons/fi';
 
 // Import des icônes React Icons
 import {
@@ -15,7 +16,7 @@ import {
   FiDollarSign,
   FiTrendingUp,
   FiBell,
-  FiSettings,
+ // FiSettings,
   FiHelpCircle,
   FiDownload,
   FiActivity,
@@ -321,16 +322,16 @@ export default function Dashboard() {
                   <FiChevronRight style={styles.actionArrow} />
                 </button>
 
-                <button style={styles.actionCard}>
-                  <div style={styles.actionIcon}>
-                    <FiSettings />
-                  </div>
-                  <div style={styles.actionContent}>
-                    <div style={styles.actionTitle}>Paramètres</div>
-                    <div style={styles.actionDescription}>Configurer votre compte</div>
-                  </div>
-                  <FiChevronRight style={styles.actionArrow} />
-                </button>
+                  <Link to="/settings" style={styles.actionCard}>
+                    <div style={styles.actionIcon}>
+                      <FiSettings />
+                    </div>
+                    <div style={styles.actionContent}>
+                      <div style={styles.actionTitle}>Paramètres</div>
+                      <div style={styles.actionDescription}>Configurer votre compte</div>
+                    </div>
+                    <FiChevronRight style={styles.actionArrow} />
+                  </Link>
               </div>
             </div>
 
