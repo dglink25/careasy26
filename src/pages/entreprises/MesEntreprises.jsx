@@ -380,9 +380,7 @@ export default function MesEntreprises() {
                           }}
                         />
                       ) : null}
-                      <div style={styles.logoPlaceholder}>
-                        <MdBusiness style={styles.logoIcon} />
-                      </div>
+                      
                       <div style={styles.cardHeaderInfo}>
                         <h3 style={styles.cardTitle}>{entreprise.name}</h3>
                         <div style={{

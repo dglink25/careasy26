@@ -222,7 +222,7 @@ export default function PublicEntrepriseDetails() {
             <ChatButton
               receiverId={entreprise.prestataire_id}
               receiverName={entreprise.name}
-              buttonText="💬 Discuter avec nous"
+              buttonText="Discuter avec nous"
               variant="primary"
             />
           </div>
@@ -511,14 +511,14 @@ export default function PublicEntrepriseDetails() {
                     </button>
                     
                     {/* 👉 BOUTON CHAT - OPTION 2: Dans la section contact */}
-                    <div style={styles.contactActions}>
-              <ChatButton
-                receiverId={entreprise.prestataire_id}
-                receiverName={entreprise.name}
-                buttonText="Envoyer un message"
-                variant="secondary"
-              />
-            </div>
+                    <div style={styles.contactButtonChat}>
+                        <ChatButton
+                          receiverId={entreprise.prestataire_id}
+                          receiverName={entreprise.name}
+                          buttonText="Envoyer un message"
+                          variant="secondary"
+                        />
+                      </div>
                     <button 
                       onClick={() => handleContact('whatsapp')}
                       style={{...styles.contactButton, ...styles.contactWhatsappButton}}
@@ -614,7 +614,7 @@ export default function PublicEntrepriseDetails() {
                 </div>
               </div>
 
-              {/* Horaires d'ouverture */}
+              {/* Horaires d'ouverture 
               <div style={styles.card}>
                 <div style={styles.cardHeader}>
                   <FiClock style={styles.cardHeaderIcon} />
@@ -641,7 +641,7 @@ export default function PublicEntrepriseDetails() {
                     Horaires indicatifs, recommandé d'appeler avant de vous déplacer
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Actions supplémentaires */}
               <div style={styles.card}>
@@ -680,7 +680,7 @@ export default function PublicEntrepriseDetails() {
                         <div style={styles.actionDescription}>Partagez avec vos contacts</div>
                       </div>
                     </button>
-                    
+                    {/*
                     <button 
                       onClick={() => window.print()}
                       style={styles.actionButton}
@@ -690,7 +690,7 @@ export default function PublicEntrepriseDetails() {
                         <div style={styles.actionTitle}>Imprimer cette page</div>
                         <div style={styles.actionDescription}>Version imprimable</div>
                       </div>
-                    </button>
+                    </button> */}
                   </div>
                 </div>
               </div>
@@ -1294,6 +1294,9 @@ const styles = {
   contactButtonContent: {
     flex: 1,
   },
+ contactButtonChat: {
+  width: '100%',
+},
   contactButtonTitle: {
     fontSize: '0.875rem',
     fontWeight: '600',
@@ -1519,7 +1522,6 @@ const styles = {
   ctaButtonIcon: {
     fontSize: '1.125rem',
   },
-
   // Styles responsives
   '@media (max-width: 1024px)': {
     contentGrid: {
@@ -1582,5 +1584,6 @@ const styles = {
     statItem: {
       justifyContent: 'center',
     },
+  
   },
 };

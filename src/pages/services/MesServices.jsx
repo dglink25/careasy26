@@ -1024,6 +1024,7 @@ const styles = {
     cursor: 'pointer',
     flex: 1,
     justifyContent: 'center',
+    textDecoration: 'none',
   },
   editButtonIcon: {
     fontSize: '0.875rem',
