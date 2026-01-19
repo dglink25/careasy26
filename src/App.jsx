@@ -37,7 +37,7 @@ import PublicEntreprises from './pages/public/PublicEntreprises';
 import PublicEntrepriseDetails from './pages/public/PublicEntrepriseDetails';
 import PublicServices from './pages/public/PublicServices';
 import PublicServiceDetails from './pages/public/PublicServiceDetails'; 
-
+import Partners from './pages/Partners';
 /*
 import React from 'react'
 import {AdvancedImage} from '@cloudinary/react';
@@ -171,6 +171,7 @@ function App() {
               <Route path="/entreprises/:id" element={<PublicEntrepriseDetails />} />
               <Route path="/services" element={<PublicServices />} />
               <Route path="/service/:id" element={<PublicServiceDetails />} /> 
+              <Route path="/partenaires" element={<Partners />} />
             </Route>
             
             {/* Routes sans Navbar */}

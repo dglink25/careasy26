@@ -1,7 +1,8 @@
-// careasy-frontend/src/pages/messages/MessagesPage.jsx - VERSION SANS ANONYME
+// careasy-frontend/src/pages/messages/MessagesPage.jsx - AVEC CRÉATION DE CONVERSATION
 import { useState, useEffect } from 'react';
-import { FiMessageSquare, FiSearch, FiClock, FiLoader, FiRefreshCw } from 'react-icons/fi';
+import { FiMessageSquare, FiSearch, FiClock, FiLoader, FiRefreshCw, FiPlus, FiX } from 'react-icons/fi';
 import { messageApi } from '../../api/messageApi';
+import { publicApi } from '../../api/publicApi';
 import ChatModal from '../../components/Chat/ChatModal';
 import theme from '../../config/theme';
 
@@ -12,6 +13,12 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [error, setError] = useState('');
+  
+  // Nouveaux états pour la modal de création
+  const [showNewConversationModal, setShowNewConversationModal] = useState(false);
+  const [availableProviders, setAvailableProviders] = useState([]);
+  const [loadingProviders, setLoadingProviders] = useState(false);
+  const [providerSearchTerm, setProviderSearchTerm] = useState('');
 
   useEffect(() => {
     fetchConversations();
@@ -38,6 +45,80 @@ export default function MessagesPage() {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const fetchAvailableProviders = async () => {
+    try {
+      setLoadingProviders(true);
+      
+      // Récupérer toutes les entreprises validées
+      const entreprises = await publicApi.getEntreprises();
+      
+      // Grouper par prestataire (owner) et filtrer ceux qui ont au moins une entreprise
+      const providersMap = new Map();
+      
+      entreprises.forEach(entreprise => {
+        if (entreprise.prestataire_id && entreprise.status === 'validated') {
+          if (!providersMap.has(entreprise.prestataire_id)) {
+            providersMap.set(entreprise.prestataire_id, {
+              id: entreprise.prestataire_id,
+              name: entreprise.pdg_full_name || 'Prestataire',
+              companies: []
+            });
+          }
+          
+          const provider = providersMap.get(entreprise.prestataire_id);
+          provider.companies.push({
+            id: entreprise.id,
+            name: entreprise.name,
+            logo: entreprise.logo
+          });
+        }
+      });
+      
+      // Convertir en tableau et trier par nombre d'entreprises
+      const providersArray = Array.from(providersMap.values())
+        .sort((a, b) => b.companies.length - a.companies.length);
+      
+      setAvailableProviders(providersArray);
+    } catch (err) {
+      console.error('Erreur chargement prestataires:', err);
+      setError('Impossible de charger les prestataires');
+    } finally {
+      setLoadingProviders(false);
+    }
+  };
+
+  const handleOpenNewConversation = () => {
+    setShowNewConversationModal(true);
+    fetchAvailableProviders();
+  };
+
+  const handleCloseNewConversationModal = () => {
+    setShowNewConversationModal(false);
+    setProviderSearchTerm('');
+  };
+
+  const handleStartConversation = (provider) => {
+    console.log('🔍 Démarrage conversation avec:', provider);
+    
+    // Vérifier que le provider a un ID valide
+    if (!provider.id) {
+      console.error('❌ ERREUR: Provider ID manquant!', provider);
+      alert('Erreur: Impossible d\'identifier le prestataire. Veuillez réessayer.');
+      return;
+    }
+    
+    // Créer une nouvelle conversation avec ce prestataire
+    setSelectedConversation({
+      id: null, // null signifie nouvelle conversation
+      other_user_id: provider.id,
+      other_user: {
+        id: provider.id,
+        name: provider.name || 'Prestataire'
+      }
+    });
+    setShowNewConversationModal(false);
   };
 
   const handleRefresh = () => {
@@ -87,6 +168,13 @@ export default function MessagesPage() {
            lastMsg.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
+  const filteredProviders = availableProviders.filter(provider => {
+    const name = provider.name || '';
+    const companies = provider.companies || [];
+    return name.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
+           companies.some(c => c.name?.toLowerCase().includes(providerSearchTerm.toLowerCase()));
+  });
+
   if (loading) {
     return (
       <div style={styles.container}>
@@ -112,14 +200,23 @@ export default function MessagesPage() {
               Gérez vos conversations avec vos contacts
             </p>
           </div>
-          <button 
-            onClick={handleRefresh}
-            disabled={refreshing}
-            style={styles.refreshButton}
-          >
-            <FiRefreshCw style={refreshing ? styles.spinningIcon : styles.refreshIcon} />
-            {refreshing ? 'Actualisation...' : 'Actualiser'}
-          </button>
+          <div style={styles.headerActions}>
+            <button 
+              onClick={handleOpenNewConversation}
+              style={styles.newConversationButton}
+            >
+              <FiPlus style={styles.plusIcon} />
+              Nouvelle conversation
+            </button>
+            <button 
+              onClick={handleRefresh}
+              disabled={refreshing}
+              style={styles.refreshButton}
+            >
+              <FiRefreshCw style={refreshing ? styles.spinningIcon : styles.refreshIcon} />
+              {refreshing ? 'Actualisation...' : 'Actualiser'}
+            </button>
+          </div>
         </div>
 
         {/* Statistiques */}
@@ -180,6 +277,15 @@ export default function MessagesPage() {
                 : `Aucune conversation ne correspond à "${searchTerm}"`
               }
             </p>
+            {conversations.length === 0 && (
+              <button 
+                onClick={handleOpenNewConversation}
+                style={styles.emptyActionButton}
+              >
+                <FiPlus style={{ marginRight: '0.5rem' }} />
+                Démarrer une conversation
+              </button>
+            )}
           </div>
         ) : (
           <div style={styles.conversationsList}>
@@ -250,6 +356,90 @@ export default function MessagesPage() {
         </div>
       </div>
 
+      {/* Modal de nouvelle conversation */}
+      {showNewConversationModal && (
+        <div style={styles.modalOverlay} onClick={handleCloseNewConversationModal}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>Nouvelle conversation</h2>
+              <button 
+                onClick={handleCloseNewConversationModal}
+                style={styles.closeButton}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div style={styles.modalBody}>
+              {/* Barre de recherche des prestataires */}
+              <div style={styles.searchContainer}>
+                <FiSearch style={styles.searchIcon} />
+                <input
+                  type="text"
+                  placeholder="Rechercher un prestataire ou une entreprise..."
+                  value={providerSearchTerm}
+                  onChange={(e) => setProviderSearchTerm(e.target.value)}
+                  style={styles.searchInput}
+                />
+              </div>
+
+              {/* Liste des prestataires */}
+              {loadingProviders ? (
+                <div style={styles.modalLoadingContainer}>
+                  <FiLoader style={styles.spinner} />
+                  <p style={styles.loadingText}>Chargement des prestataires...</p>
+                </div>
+              ) : filteredProviders.length === 0 ? (
+                <div style={styles.modalEmptyState}>
+                  <div style={styles.emptyIcon}>👤</div>
+                  <p style={styles.emptyText}>
+                    {availableProviders.length === 0
+                      ? "Aucun prestataire disponible pour le moment"
+                      : `Aucun prestataire ne correspond à "${providerSearchTerm}"`
+                    }
+                  </p>
+                </div>
+              ) : (
+                <div style={styles.providersList}>
+                  {filteredProviders.map((provider) => (
+                    <div
+                      key={provider.id}
+                      onClick={() => handleStartConversation(provider)}
+                      style={styles.providerCard}
+                      className="provider-card"
+                    >
+                      <div style={styles.providerAvatar}>
+                        {provider.companies && provider.companies[0]?.logo ? (
+                          <img 
+                            src={provider.companies[0].logo}
+                            alt={provider.name}
+                            style={styles.providerAvatarImage}
+                          />
+                        ) : (
+                          provider.name?.charAt(0).toUpperCase() || 'P'
+                        )}
+                      </div>
+                      <div style={styles.providerInfo}>
+                        <h4 style={styles.providerName}>{provider.name || 'Prestataire'}</h4>
+                        <p style={styles.providerCompanies}>
+                          {provider.companies?.length > 0 
+                            ? provider.companies.length === 1
+                              ? `${provider.companies[0].name}`
+                              : `${provider.companies.length} entreprises: ${provider.companies.slice(0, 2).map(c => c.name).join(', ')}${provider.companies.length > 2 ? '...' : ''}`
+                            : 'Aucune entreprise'
+                          }
+                        </p>
+                      </div>
+                      <FiMessageSquare style={styles.providerMessageIcon} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de chat pour la conversation sélectionnée */}
       {selectedConversation && (
         <ChatModal
@@ -257,7 +447,7 @@ export default function MessagesPage() {
           receiverId={selectedConversation.other_user_id}
           receiverName={selectedConversation.other_user?.name || 'Utilisateur'}
           onClose={handleCloseChat}
-          existingConversation={true}
+          existingConversation={selectedConversation.id !== null}
         />
       )}
 
@@ -274,6 +464,17 @@ export default function MessagesPage() {
         .conversation-card:hover {
           transform: translateX(8px);
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        .provider-card {
+          transition: all 0.2s ease;
+          cursor: pointer;
+        }
+
+        .provider-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+          border-color: ${theme.colors.primary};
         }
       `}</style>
     </div>
@@ -331,6 +532,29 @@ const styles = {
   },
   subtitle: {
     color: '#64748b',
+    fontSize: '1.125rem',
+  },
+  headerActions: {
+    display: 'flex',
+    gap: '0.75rem',
+    flexWrap: 'wrap',
+  },
+  newConversationButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    backgroundColor: theme.colors.primary,
+    color: '#fff',
+    border: 'none',
+    padding: '0.75rem 1.5rem',
+    borderRadius: theme.borderRadius.lg,
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.2)',
+  },
+  plusIcon: {
     fontSize: '1.125rem',
   },
   refreshButton: {
@@ -538,6 +762,20 @@ const styles = {
     margin: '0 auto',
     lineHeight: '1.6',
   },
+  emptyActionButton: {
+    marginTop: '2rem',
+    display: 'inline-flex',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary,
+    color: '#fff',
+    border: 'none',
+    padding: '0.875rem 1.75rem',
+    borderRadius: theme.borderRadius.lg,
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
   infoBox: {
     backgroundColor: '#dbeafe',
     border: `2px solid ${theme.colors.primaryLight}`,
@@ -550,5 +788,128 @@ const styles = {
     fontSize: '0.95rem',
     margin: 0,
     lineHeight: '1.6',
+  },
+  // Styles pour la modal
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: '1rem',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: theme.borderRadius.xl,
+    width: '100%',
+    maxWidth: '600px',
+    maxHeight: '80vh',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '1.5rem',
+    borderBottom: '1px solid #e2e8f0',
+  },
+  modalTitle: {
+    fontSize: '1.5rem',
+    fontWeight: '700',
+    color: '#1e293b',
+    margin: 0,
+  },
+  closeButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    fontSize: '1.5rem',
+    color: '#64748b',
+    cursor: 'pointer',
+    padding: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '50%',
+    transition: 'all 0.2s',
+  },
+  modalBody: {
+    padding: '1.5rem',
+    overflowY: 'auto',
+    flex: 1,
+  },
+  modalLoadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '3rem 0',
+    gap: '1rem',
+  },
+  modalEmptyState: {
+    textAlign: 'center',
+    padding: '3rem 1rem',
+  },
+  providersList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem',
+  },
+  providerCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    padding: '1rem',
+    backgroundColor: '#fff',
+    border: '1px solid #e2e8f0',
+    borderRadius: theme.borderRadius.lg,
+  },
+  providerAvatar: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '50%',
+    backgroundColor: theme.colors.primaryLight,
+    color: theme.colors.primary,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    fontSize: '1.25rem',
+    fontWeight: 'bold',
+    overflow: 'hidden',
+  },
+  providerAvatarImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+  providerInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  providerName: {
+    fontSize: '1rem',
+    fontWeight: '600',
+    color: '#1e293b',
+    margin: '0 0 0.25rem 0',
+  },
+  providerCompanies: {
+    fontSize: '0.875rem',
+    color: '#64748b',
+    margin: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  providerMessageIcon: {
+    fontSize: '1.25rem',
+    color: theme.colors.primary,
+    flexShrink: 0,
   },
 };

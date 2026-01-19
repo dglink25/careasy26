@@ -18,13 +18,13 @@ export default function Footer() {
           
         </div>
 
-        {/* Section Services */}
+        {/* Section Liens Rapides */}
         <div style={styles.section}>
             <h3 style={styles.sectionTitle}>Liens Rapides</h3>
           <ul style={styles.linkList}>
             <li><Link to="/services" style={styles.link}>Nos Services</Link></li>
-            <li><Link to="/about" style={styles.link}>À Propos</Link></li>
-            <li><Link to="/prestataires" style={styles.link}>Prestataires</Link></li>
+            <li><Link to="/partenaires" style={styles.link}>Partenaires</Link></li>
+            <li><Link to="/entreprises" style={styles.link}>Entreprises</Link></li>
             <li><Link to="/contact" style={styles.link}>Contact</Link></li>
           </ul>
         </div>
@@ -54,7 +54,7 @@ export default function Footer() {
   </ul>
 </div>
 
-        {/* Section Légal */}
+        {/* Section Suivez nous */}
         <div style={styles.section}>
           <h3 style={styles.sectionTitle}>Suivez nous</h3>
           <div style={styles.socialLinks}>
@@ -159,7 +159,7 @@ const styles = {
   },
   icon: {
     flexShrink: 0,
-    color: theme.colors.primary, // ou la couleur que vous voulez pour les icônes
+    color: theme.colors.primary,
   },
   copyright: {
     textAlign: 'center',
