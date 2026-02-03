@@ -1,5 +1,5 @@
-// careasy-frontend/src/pages/services/CreerService.jsx
-import { useState, useEffect } from 'react';
+// careasy-frontend/src/pages/services/CreerService.jsx - VERSION FINALE CORRIGÉE
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { serviceApi } from '../../api/serviceApi';
 import { entrepriseApi } from '../../api/entrepriseApi';
@@ -56,6 +56,7 @@ export default function CreerService() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const entrepriseIdParam = searchParams.get('entreprise');
+  const fileInputRef = useRef(null); // ✅ Référence pour l'input file
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -64,6 +65,7 @@ export default function CreerService() {
   const [loadingEntreprises, setLoadingEntreprises] = useState(true);
   const [selectedEntreprise, setSelectedEntreprise] = useState(null);
   const [activeSection, setActiveSection] = useState('entreprise');
+  const [isSubmitting, setIsSubmitting] = useState(false); // ✅ Flag pour bloquer les soumissions multiples
 
   const [formData, setFormData] = useState({
     entreprise_id: entrepriseIdParam || '',
@@ -118,23 +120,91 @@ export default function CreerService() {
     }));
   };
 
+  // ✅ CORRECTION CRITIQUE : Gestion correcte des fichiers
   const handleFilesChange = (e) => {
-    const files = Array.from(e.target.files);
-    setFormData(prev => ({ ...prev, medias: files }));
+    e.preventDefault();
+    e.stopPropagation();
     
-    // Créer previews
-    const newPreviews = files.map(file => {
-      const reader = new FileReader();
+    console.log('📁 Sélection de fichiers déclenchée');
+    
+    const files = Array.from(e.target.files);
+    
+    if (files.length === 0) {
+      console.log('⚠️ Aucun fichier sélectionné');
+      return;
+    }
+    
+    // Validation de la taille et du type
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    const validFiles = [];
+    const errors = [];
+    
+    files.forEach(file => {
+      console.log(`📄 Fichier: ${file.name}, Type: ${file.type}, Taille: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+      
+      if (file.size > maxSize) {
+        errors.push(`Le fichier "${file.name}" dépasse 2MB`);
+      } else if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
+        errors.push(`Le fichier "${file.name}" n'est pas une image valide`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+    
+    if (errors.length > 0) {
+      setError(errors.join(', '));
+      setTimeout(() => setError(''), 5000);
+    }
+    
+    if (validFiles.length === 0) {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+    
+    console.log(`✅ ${validFiles.length} fichier(s) valide(s)`);
+    
+    // Ajouter les nouveaux fichiers aux fichiers existants
+    setFormData(prev => ({ 
+      ...prev, 
+      medias: [...prev.medias, ...validFiles] 
+    }));
+    
+    // Créer previews pour les nouveaux fichiers
+    const newPreviews = validFiles.map(file => {
       return new Promise((resolve) => {
+        const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result);
         reader.readAsDataURL(file);
       });
     });
     
-    Promise.all(newPreviews).then(setPreviews);
+    Promise.all(newPreviews).then(newPreviewUrls => {
+      setPreviews(prev => [...prev, ...newPreviewUrls]);
+      console.log(`🖼️ ${newPreviewUrls.length} preview(s) créée(s)`);
+    });
+    
+    // Réinitialiser l'input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
+  // ✅ Fonction pour ouvrir le sélecteur de fichiers
+  const handleUploadClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🖱️ Clic sur zone d\'upload');
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // ✅ Fonction pour supprimer une image
   const removeImage = (index) => {
+    console.log(`🗑️ Suppression de l'image ${index + 1}`);
+    
     const newFiles = [...formData.medias];
     newFiles.splice(index, 1);
     setFormData(prev => ({ ...prev, medias: newFiles }));
@@ -144,55 +214,105 @@ export default function CreerService() {
     setPreviews(newPreviews);
   };
 
+  // ✅ CORRECTION CRITIQUE : Validation et soumission du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('🚀 Tentative de soumission du formulaire');
+    
+    // ✅ Bloquer les soumissions multiples
+    if (isSubmitting) {
+      console.log('⚠️ Soumission déjà en cours, abandon');
+      return;
+    }
+    
     setError('');
     setSuccess('');
 
     // Validation
     if (!formData.entreprise_id) {
       setError('Veuillez sélectionner une entreprise');
+      setActiveSection('entreprise');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     if (!formData.domaine_id) {
       setError('Veuillez sélectionner un domaine');
+      setActiveSection('domaine');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (!formData.name || formData.name.trim().length < 3) {
+      setError('Le nom du service doit contenir au moins 3 caractères');
+      setActiveSection('details');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
+    // Validation des horaires si non 24h
+    if (!formData.is_open_24h) {
+      if (!formData.start_time || !formData.end_time) {
+        setError('Veuillez définir les horaires ou cocher "Disponible 24h/24"');
+        setActiveSection('horaires');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
+
     setLoading(true);
+    setIsSubmitting(true); // ✅ Bloquer les nouvelles soumissions
 
     try {
       const submitData = new FormData();
       
       // Ajouter tous les champs
-      Object.keys(formData).forEach(key => {
-        if (key === 'medias') {
-          formData[key].forEach(file => {
-            submitData.append('medias[]', file);
-          });
-        } else if (key === 'is_open_24h') {
-          submitData.append(key, formData[key] ? '1' : '0');
-        } else {
-          submitData.append(key, formData[key]);
-        }
+      submitData.append('entreprise_id', formData.entreprise_id);
+      submitData.append('domaine_id', formData.domaine_id);
+      submitData.append('name', formData.name.trim());
+      
+      if (formData.price) {
+        submitData.append('price', formData.price);
+      }
+      
+      if (formData.descriptions) {
+        submitData.append('descriptions', formData.descriptions.trim());
+      }
+      
+      submitData.append('is_open_24h', formData.is_open_24h ? '1' : '0');
+      
+      if (!formData.is_open_24h) {
+        if (formData.start_time) submitData.append('start_time', formData.start_time);
+        if (formData.end_time) submitData.append('end_time', formData.end_time);
+      }
+
+      // Ajouter les fichiers
+      formData.medias.forEach((file, index) => {
+        submitData.append('medias[]', file);
+        console.log(`📤 Fichier ${index + 1}:`, file.name, file.type, file.size);
       });
 
-      await serviceApi.createService(submitData);
+      console.log('📤 Soumission du service avec', formData.medias.length, 'fichier(s)');
+
+      const response = await serviceApi.createService(submitData);
       
+      console.log('✅ Service créé avec succès:', response);
       setSuccess('✅ Service créé avec succès ! Redirection en cours...');
+      
       setTimeout(() => {
         navigate('/mes-services');
       }, 2000);
       
     } catch (err) {
-      console.error('Erreur création:', err);
+      console.error('❌ Erreur création:', err);
       setError(
         err.response?.data?.message || 
+        err.response?.data?.errors ? 
+          Object.values(err.response.data.errors).flat().join(', ') :
         'Erreur lors de la création du service'
       );
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      setIsSubmitting(false); // ✅ Débloquer en cas d'erreur
     } finally {
       setLoading(false);
     }
@@ -242,7 +362,7 @@ export default function CreerService() {
     { id: 'entreprise', icon: <MdBusiness />, label: 'Entreprise', completed: !!formData.entreprise_id },
     { id: 'domaine', icon: <FiTag />, label: 'Domaine', completed: !!formData.domaine_id },
     { id: 'details', icon: <FiFileText />, label: 'Détails', completed: !!formData.name },
-    { id: 'horaires', icon: <FiClock />, label: 'Horaires', completed: true },
+    { id: 'horaires', icon: <FiClock />, label: 'Horaires', completed: formData.is_open_24h || (formData.start_time && formData.end_time) },
     { id: 'medias', icon: <FiCamera />, label: 'Médias', completed: formData.medias.length > 0 },
   ];
 
@@ -272,6 +392,7 @@ export default function CreerService() {
             {sections.map((section, index) => (
               <div key={section.id} style={styles.stepItem}>
                 <button
+                  type="button"
                   onClick={() => setActiveSection(section.id)}
                   style={{
                     ...styles.stepButton,
@@ -319,8 +440,18 @@ export default function CreerService() {
           </div>
         )}
 
-        {/* Formulaire */}
-        <form onSubmit={handleSubmit} style={styles.form}>
+        {/* ✅ FORMULAIRE AVEC PROTECTION CONTRE SOUMISSION AUTO */}
+        <form 
+          onSubmit={handleSubmit} 
+          style={styles.form}
+          // ✅ Empêcher la soumission par Enter
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+              e.preventDefault();
+              console.log('⚠️ Soumission par Enter bloquée');
+            }
+          }}
+        >
           {/* Section 1: Entreprise */}
           {activeSection === 'entreprise' && (
             <div style={styles.section}>
@@ -629,7 +760,7 @@ export default function CreerService() {
             </div>
           )}
 
-          {/* Section 5: Médias */}
+          {/* ✅ Section 5: Médias - VERSION TOTALEMENT CORRIGÉE */}
           {activeSection === 'medias' && (
             <div style={styles.section}>
               <div style={styles.sectionHeader}>
@@ -639,32 +770,50 @@ export default function CreerService() {
                 <div>
                   <h2 style={styles.sectionTitle}>Photos du service</h2>
                   <p style={styles.sectionSubtitle}>
-                    Ajoutez des images pour illustrer votre service
+                    Ajoutez des images pour illustrer votre service (optionnel)
                   </p>
                 </div>
               </div>
 
               <div style={styles.formGroup}>
                 <div style={styles.uploadArea}>
+                  {/* ✅ Input file totalement isolé avec ref */}
                   <input
+                    ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
                     multiple
                     onChange={handleFilesChange}
                     style={styles.fileInput}
-                    id="file-upload"
+                    onClick={(e) => {
+                      // ✅ Empêcher la propagation du clic
+                      e.stopPropagation();
+                    }}
                   />
-                  <label htmlFor="file-upload" style={styles.uploadLabel}>
+                  
+                  {/* ✅ Div cliquable totalement séparée */}
+                  <div 
+                    onClick={handleUploadClick}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleUploadClick(e);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    style={styles.uploadLabel}
+                  >
                     <div style={styles.uploadIcon}>
                       <FiUpload />
                     </div>
                     <div style={styles.uploadContent}>
-                      <div style={styles.uploadTitle}>Glissez-déposez ou cliquez pour uploader</div>
+                      <div style={styles.uploadTitle}>Cliquez pour ajouter des images</div>
                       <div style={styles.uploadSubtitle}>
                         Formats: JPG, PNG, WEBP • Max: 2MB par image
                       </div>
                     </div>
-                  </label>
+                  </div>
                 </div>
                 
                 {previews.length > 0 && (
@@ -684,7 +833,11 @@ export default function CreerService() {
                             />
                             <button 
                               type="button"
-                              onClick={() => removeImage(index)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                removeImage(index);
+                              }}
                               style={styles.removeImageButton}
                             >
                               <FiX />
@@ -692,7 +845,12 @@ export default function CreerService() {
                           </div>
                           <div style={styles.previewInfo}>
                             <span style={styles.previewName}>
-                              Image {index + 1}
+                              {formData.medias[index]?.name || `Image ${index + 1}`}
+                            </span>
+                            <span style={styles.previewSize}>
+                              {formData.medias[index] ? 
+                                (formData.medias[index].size / 1024 / 1024).toFixed(2) + ' MB' : 
+                                ''}
                             </span>
                           </div>
                         </div>
@@ -710,7 +868,8 @@ export default function CreerService() {
               {sections.findIndex(s => s.id === activeSection) > 0 && (
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
                     const currentIndex = sections.findIndex(s => s.id === activeSection);
                     setActiveSection(sections[currentIndex - 1].id);
                   }}
@@ -726,7 +885,8 @@ export default function CreerService() {
               {sections.findIndex(s => s.id === activeSection) < sections.length - 1 ? (
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
                     const currentIndex = sections.findIndex(s => s.id === activeSection);
                     setActiveSection(sections[currentIndex + 1].id);
                   }}
@@ -738,14 +898,14 @@ export default function CreerService() {
               ) : (
                 <button 
                   type="submit" 
-                  disabled={loading}
+                  disabled={loading || isSubmitting}
                   style={{
                     ...styles.submitButton,
-                    opacity: loading ? 0.6 : 1,
-                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: (loading || isSubmitting) ? 0.6 : 1,
+                    cursor: (loading || isSubmitting) ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {loading ? (
+                  {(loading || isSubmitting) ? (
                     <>
                       <FiRefreshCw style={styles.submitButtonIconLoading} />
                       Création en cours...
@@ -842,18 +1002,12 @@ export default function CreerService() {
         .form-input:focus, .form-select:focus, .form-textarea:focus {
           outline: none;
           border-color: #ef4444;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
           transform: translateY(-1px);
         }
         
         .section-animation {
           animation: fadeIn 0.5s ease-out;
-        }
-        
-        .upload-label:hover {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
         }
         
         .preview-card:hover {
@@ -865,17 +1019,12 @@ export default function CreerService() {
           transform: translateY(-2px);
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         }
-        
-        .submit-button:hover:not(:disabled) {
-          animation: pulse 0.3s ease-in-out;
-          box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
-        }
       `}</style>
     </div>
   );
 }
 
-// Styles
+// Styles (suite dans le prochain message car trop long...)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -1459,9 +1608,18 @@ const styles = {
     borderRadius: '0.75rem',
     backgroundColor: '#f8fafc',
     transition: 'all 0.3s',
+    position: 'relative',
   },
   fileInput: {
-    display: 'none',
+    position: 'absolute',
+    width: '1px',
+    height: '1px',
+    padding: 0,
+    margin: '-1px',
+    overflow: 'hidden',
+    clip: 'rect(0,0,0,0)',
+    whiteSpace: 'nowrap',
+    border: 0,
   },
   uploadLabel: {
     display: 'flex',
@@ -1471,6 +1629,7 @@ const styles = {
     padding: '3rem 2rem',
     cursor: 'pointer',
     textAlign: 'center',
+    transition: 'all 0.3s',
   },
   uploadIcon: {
     fontSize: '3rem',
@@ -1549,13 +1708,20 @@ const styles = {
   previewInfo: {
     padding: '0.75rem',
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column',
+    gap: '0.25rem',
   },
   previewName: {
     fontSize: '0.75rem',
     color: '#64748b',
     fontWeight: '500',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  previewSize: {
+    fontSize: '0.7rem',
+    color: '#94a3b8',
   },
   sectionNavigation: {
     marginTop: '1rem',
