@@ -1,14 +1,15 @@
-import { useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import api from '../api/axios';
 import Logo from '../components/Logo';
 import theme from '../config/theme';
+import { FaEye, FaEyeSlash } from 'react-icons/fa'; // 👈 Import des icônes
 
 export default function ResetPassword() {
+  const { token } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  const token = searchParams.get('token');
   const emailParam = searchParams.get('email');
 
   const [formData, setFormData] = useState({
@@ -21,6 +22,16 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState('');
+  
+  // 👇 NOUVEAUX ÉTATS pour afficher/masquer les mots de passe
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
+
+  useEffect(() => {
+    if (token) {
+      setFormData(prev => ({ ...prev, token }));
+    }
+  }, [token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -29,7 +40,6 @@ export default function ResetPassword() {
       [name]: value
     });
 
-    // Vérifier la force du mot de passe
     if (name === 'password') {
       checkPasswordStrength(value);
     }
@@ -66,17 +76,23 @@ export default function ResetPassword() {
       return;
     }
 
+    if (!formData.email) {
+      setError('Adresse email manquante');
+      return;
+    }
+
     setLoading(true);
 
     try {
+      console.log('📤 Envoi de la requête de réinitialisation');
+
       await api.post('/reset-password', formData);
       
-      // Message de succès
       alert('✅ Mot de passe réinitialisé avec succès !');
-      
-      // Rediriger vers la page de connexion
       navigate('/login');
+      
     } catch (err) {
+      console.error('❌ Erreur réinitialisation:', err);
       setError(
         err.response?.data?.message || 
         err.response?.data?.errors?.email?.[0] ||
@@ -90,9 +106,9 @@ export default function ResetPassword() {
 
   const getStrengthColor = () => {
     switch (passwordStrength) {
-      case 'faible': return theme.colors.error;
-      case 'moyen': return theme.colors.warning;
-      case 'fort': return theme.colors.success;
+      case 'faible': return '#ef4444';
+      case 'moyen': return '#f59e0b';
+      case 'fort': return '#10b981';
       default: return theme.colors.text.secondary;
     }
   };
@@ -100,7 +116,6 @@ export default function ResetPassword() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        {/* Logo */}
         <div style={styles.logoContainer}>
           <Logo size="lg" showText={true} />
         </div>
@@ -117,6 +132,7 @@ export default function ResetPassword() {
         )}
 
         <form onSubmit={handleSubmit} style={styles.form}>
+          {/* Email */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Adresse email</label>
             <input
@@ -130,57 +146,94 @@ export default function ResetPassword() {
             />
           </div>
 
+          {/* 👇 Nouveau mot de passe avec toggle */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Nouveau mot de passe</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              minLength="8"
-              style={styles.input}
-              placeholder="••••••••"
-            />
+            <div style={styles.passwordInputContainer}>
+              <input
+                type={showPassword ? "text" : "password"} // 👈 Toggle type
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength="8"
+                style={styles.passwordInput}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={styles.toggleButton}
+                tabIndex="-1"
+              >
+                {showPassword ? (
+                  <FaEyeSlash style={styles.eyeIcon} />
+                ) : (
+                  <FaEye style={styles.eyeIcon} />
+                )}
+              </button>
+            </div>
+            
+            {/* Indicateur de force */}
             {passwordStrength && (
-              <div style={styles.strengthIndicator}>
-                <div 
-                  style={{
-                    ...styles.strengthBar,
-                    width: passwordStrength === 'faible' ? '33%' : passwordStrength === 'moyen' ? '66%' : '100%',
-                    backgroundColor: getStrengthColor(),
-                  }}
-                />
-              </div>
+              <>
+                <div style={styles.strengthIndicator}>
+                  <div 
+                    style={{
+                      ...styles.strengthBar,
+                      width: passwordStrength === 'faible' ? '33%' : passwordStrength === 'moyen' ? '66%' : '100%',
+                      backgroundColor: getStrengthColor(),
+                    }}
+                  />
+                </div>
+                <small style={{...styles.strengthText, color: getStrengthColor()}}>
+                  Force : {passwordStrength}
+                </small>
+              </>
             )}
-            {passwordStrength && (
-              <small style={{...styles.strengthText, color: getStrengthColor()}}>
-                Force : {passwordStrength}
-              </small>
-            )}
+            
             <small style={styles.hint}>
-              Minimum 8 caractères. Utilisez majuscules, chiffres et symboles pour plus de sécurité.
+              Minimum 8 caractères. Utilisez majuscules, chiffres et symboles.
             </small>
           </div>
 
+          {/* 👇 Confirmation mot de passe avec toggle */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Confirmer le mot de passe</label>
-            <input
-              type="password"
-              name="password_confirmation"
-              value={formData.password_confirmation}
-              onChange={handleChange}
-              required
-              minLength="8"
-              style={styles.input}
-              placeholder="••••••••"
-            />
+            <div style={styles.passwordInputContainer}>
+              <input
+                type={showPasswordConfirmation ? "text" : "password"} // 👈 Toggle type
+                name="password_confirmation"
+                value={formData.password_confirmation}
+                onChange={handleChange}
+                required
+                minLength="8"
+                style={styles.passwordInput}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
+                style={styles.toggleButton}
+                tabIndex="-1"
+              >
+                {showPasswordConfirmation ? (
+                  <FaEyeSlash style={styles.eyeIcon} />
+                ) : (
+                  <FaEye style={styles.eyeIcon} />
+                )}
+              </button>
+            </div>
           </div>
 
           <button 
             type="submit" 
-            disabled={loading}
-            style={{...styles.button, opacity: loading ? 0.6 : 1}}
+            disabled={loading || !formData.token}
+            style={{
+              ...styles.button, 
+              opacity: (loading || !formData.token) ? 0.6 : 1,
+              cursor: (loading || !formData.token) ? 'not-allowed' : 'pointer'
+            }}
           >
             {loading ? 'Réinitialisation...' : 'Réinitialiser mon mot de passe'}
           </button>
@@ -199,7 +252,7 @@ export default function ResetPassword() {
           <div>
             <p style={styles.securityTitle}>Sécurité renforcée</p>
             <p style={styles.securityText}>
-              Votre mot de passe est crypté et stocké de manière sécurisée. Personne, pas même l'équipe CarEasy, ne peut le consulter.
+              Votre mot de passe est crypté et stocké de manière sécurisée.
             </p>
           </div>
         </div>
@@ -245,6 +298,15 @@ const styles = {
     fontSize: '0.95rem',
     lineHeight: '1.5',
   },
+  debugInfo: {
+    backgroundColor: '#DBEAFE',
+    color: '#1E40AF',
+    padding: '0.75rem',
+    borderRadius: theme.borderRadius.md,
+    marginBottom: '1rem',
+    fontSize: '0.85rem',
+    fontFamily: 'monospace',
+  },
   error: {
     backgroundColor: theme.colors.primaryLight,
     color: theme.colors.error,
@@ -277,6 +339,41 @@ const styles = {
     transition: 'all 0.3s',
     outline: 'none',
   },
+  
+  // 👇 NOUVEAUX STYLES pour le toggle password
+  passwordInputContainer: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  passwordInput: {
+    padding: '0.875rem',
+    paddingRight: '3rem', // 👈 Espace pour le bouton
+    border: `2px solid ${theme.colors.primaryLight}`,
+    borderRadius: theme.borderRadius.md,
+    fontSize: '1rem',
+    transition: 'all 0.3s',
+    outline: 'none',
+    flex: 1,
+    width: '100%',
+  },
+  toggleButton: {
+    position: 'absolute',
+    right: '0.75rem',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: theme.colors.text.secondary,
+    transition: 'color 0.3s',
+  },
+  eyeIcon: {
+    fontSize: '1.25rem',
+  },
+  
   strengthIndicator: {
     height: '4px',
     backgroundColor: '#E5E7EB',

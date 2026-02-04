@@ -138,7 +138,7 @@ export default function Home() {
       const data = await publicApi.getEntreprises();
       setPartners(data.slice(0, 10));
     } catch (err) {
-      console.error('Erreur chargement partenaires:', err);
+      console.error('Erreur chargement Entreprise:', err);
     }
   };
 
@@ -388,7 +388,7 @@ export default function Home() {
         className="animate-section"
         style={styles.partnersSection}
       >
-        <h2 style={styles.sectionTitle}>Nos Partenaires de Confiance</h2>
+        <h2 style={styles.sectionTitle}>Nos Entreprises de Confiance</h2>
         <div style={styles.partnersTrack}>
           <div style={styles.partnersSlide} className="partners-scroll">
             {[...partners, ...partners].map((partner, index) => (

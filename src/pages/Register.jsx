@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
 import theme from '../config/theme';
+import { FaEye, FaEyeSlash } from 'react-icons/fa'; // 👈 Import des icônes
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -13,6 +14,10 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // 👇 États pour toggle password
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
   
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -58,7 +63,6 @@ export default function Register() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        {/* Logo */}
         <div style={styles.logoContainer}>
           <Logo size="lg" showText={true} />
         </div>
@@ -73,6 +77,7 @@ export default function Register() {
         )}
 
         <form onSubmit={handleSubmit} style={styles.form}>
+          {/* Nom */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Nom complet</label>
             <input
@@ -86,6 +91,7 @@ export default function Register() {
             />
           </div>
 
+          {/* Email */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Adresse email</label>
             <input
@@ -99,39 +105,73 @@ export default function Register() {
             />
           </div>
 
+          {/* 👇 Mot de passe avec toggle */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Mot de passe</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              minLength="8"
-              style={styles.input}
-              placeholder="••••••••"
-            />
+            <div style={styles.passwordInputContainer}>
+              <input
+                type={showPassword ? "text" : "password"} // 👈 Toggle type
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength="8"
+                style={styles.passwordInput}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={styles.toggleButton}
+                tabIndex="-1"
+              >
+                {showPassword ? (
+                  <FaEyeSlash style={styles.eyeIcon} />
+                ) : (
+                  <FaEye style={styles.eyeIcon} />
+                )}
+              </button>
+            </div>
             <small style={styles.hint}>Minimum 8 caractères</small>
           </div>
 
+          {/* 👇 Confirmation mot de passe avec toggle */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Confirmer le mot de passe</label>
-            <input
-              type="password"
-              name="password_confirmation"
-              value={formData.password_confirmation}
-              onChange={handleChange}
-              required
-              minLength="8"
-              style={styles.input}
-              placeholder="••••••••"
-            />
+            <div style={styles.passwordInputContainer}>
+              <input
+                type={showPasswordConfirmation ? "text" : "password"} // 👈 Toggle type
+                name="password_confirmation"
+                value={formData.password_confirmation}
+                onChange={handleChange}
+                required
+                minLength="8"
+                style={styles.passwordInput}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
+                style={styles.toggleButton}
+                tabIndex="-1"
+              >
+                {showPasswordConfirmation ? (
+                  <FaEyeSlash style={styles.eyeIcon} />
+                ) : (
+                  <FaEye style={styles.eyeIcon} />
+                )}
+              </button>
+            </div>
           </div>
 
           <button 
             type="submit" 
             disabled={loading}
-            style={{...styles.button, opacity: loading ? 0.6 : 1}}
+            style={{
+              ...styles.button, 
+              opacity: loading ? 0.6 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
           >
             {loading ? 'Inscription en cours...' : 'Créer mon compte'}
           </button>
@@ -220,6 +260,41 @@ const styles = {
     transition: 'all 0.3s',
     outline: 'none',
   },
+  
+  // 👇 NOUVEAUX STYLES pour le toggle password
+  passwordInputContainer: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  passwordInput: {
+    padding: '0.875rem',
+    paddingRight: '3rem', // 👈 Espace pour le bouton
+    border: `2px solid ${theme.colors.primaryLight}`,
+    borderRadius: theme.borderRadius.md,
+    fontSize: '1rem',
+    transition: 'all 0.3s',
+    outline: 'none',
+    flex: 1,
+    width: '100%',
+  },
+  toggleButton: {
+    position: 'absolute',
+    right: '0.75rem',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: theme.colors.text.secondary,
+    transition: 'color 0.3s',
+  },
+  eyeIcon: {
+    fontSize: '1.25rem',
+  },
+  
   hint: {
     color: theme.colors.text.secondary,
     fontSize: '0.8rem',

@@ -94,8 +94,10 @@ export default function ModifierService() {
       await serviceApi.updateService(id, formDataToSend);
       
       setSuccess('Service modifié avec succès !');
+      
+      // ✅ CORRECTION : Redirection vers la bonne route après 2 secondes
       setTimeout(() => {
-        navigate('/services/mes-services');
+        navigate('/mes-services'); // ✅ Correction : /mes-services au lieu de /services/mes-services
       }, 2000);
       
     } catch (err) {
@@ -129,7 +131,8 @@ export default function ModifierService() {
             </div>
             <h3 style={styles.errorTitle}>Service non trouvé</h3>
             <p style={styles.errorMessage}>Le service que vous essayez de modifier n'existe pas ou a été supprimé.</p>
-            <Link to="/services/mes-services" style={styles.errorButton}>
+            {/* ✅ CORRECTION : Route corrigée ici aussi */}
+            <Link to="/mes-services" style={styles.errorButton}>
               <FiArrowLeft /> Retour à mes services
             </Link>
           </div>
@@ -144,7 +147,8 @@ export default function ModifierService() {
       <div style={styles.header}>
         <div style={styles.headerContent}>
           <div style={styles.headerLeft}>
-            <Link to="/services/mes-services" style={styles.backButton}>
+            {/* ✅ CORRECTION : Route corrigée ici aussi */}
+            <Link to="/mes-services" style={styles.backButton}>
               <FiArrowLeft size={20} />
               <span>Retour</span>
             </Link>
@@ -392,7 +396,7 @@ export default function ModifierService() {
             <div style={styles.formActions}>
               <button
                 type="button"
-                onClick={() => navigate('/services/mes-services')}
+                onClick={() => navigate('/mes-services')} // ✅ CORRECTION : Route corrigée
                 style={styles.cancelButton}
                 disabled={submitting}
               >

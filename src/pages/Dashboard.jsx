@@ -60,6 +60,24 @@ import {
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // ✅ CORRECTION : Rediriger les admins vers leur dashboard
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      console.log('🔴 Admin détecté - Redirection vers /admin/dashboard');
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
+  // Si c'est un admin, afficher un écran de chargement pendant la redirection
+  if (user && user.role === 'admin') {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p style={styles.loadingText}>Redirection vers le dashboard administrateur...</p>
+      </div>
+    );
+  }
   
   const [loading, setLoading] = useState(true);
   const [entreprises, setEntreprises] = useState([]);
