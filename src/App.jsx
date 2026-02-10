@@ -1,6 +1,4 @@
-// careasy-frontend/src/App.jsx - VERSION AVEC MESSAGERIE
-
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Router } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -11,6 +9,9 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import AuthCallback from './pages/AuthCallback'; 
+import { ModalProvider } from './contexts/ModalContext';
+import AppRoutes from './AppRoutes';
 
 // Entreprises (Prestataire)
 import MesEntreprises from './pages/entreprises/MesEntreprises';
@@ -45,10 +46,13 @@ import {Cloudinary} from "@cloudinary/url-gen";
 */
 function App() {
   return (
+ 
     <BrowserRouter>
       <AuthProvider>
+        <ModalProvider>
         <div style={{ minHeight: '100vh' }}>
           <Routes>
+            
             {/* Routes avec Navbar (utilisant Layout) */}
             <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
@@ -179,8 +183,10 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/password-reset/:token" element={<ResetPassword />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
           </Routes>
         </div>
+        </ModalProvider>
       </AuthProvider>
     </BrowserRouter>
   );
