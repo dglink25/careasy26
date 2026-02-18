@@ -1,4 +1,4 @@
-// careasy-frontend/src/components/Navbar.jsx - VERSION AVEC MENU PARAMÈTRES
+// careasy-frontend/src/components/Navbar.jsx - VERSION AVEC PHOTO DE PROFIL DYNAMIQUE
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,12 +33,22 @@ export default function Navbar() {
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [showServicesDropdown, setShowServicesDropdown] = useState(false);
-  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false); // 👈 NOUVEAU
+  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const settingsDropdownRef = useRef(null); // 👈 NOUVEAU
+  const settingsDropdownRef = useRef(null);
+  
+  // 👉 État local pour la photo de profil (se met à jour en temps réel)
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
   
   const [domaines, setDomaines] = useState([]);
   const [loadingDomaines, setLoadingDomaines] = useState(true);
+
+  // 👉 Synchroniser la photo de profil quand l'utilisateur change
+  useEffect(() => {
+    if (user) {
+      setProfilePhotoUrl(user.profile_photo_url || null);
+    }
+  }, [user, user?.profile_photo_url]);
 
   // Charger les domaines depuis l'API
   useEffect(() => {
@@ -66,7 +76,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 👉 NOUVEAU: Fermer le dropdown des paramètres en cliquant à l'extérieur
+  // Fermer le dropdown des paramètres en cliquant à l'extérieur
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (settingsDropdownRef.current && !settingsDropdownRef.current.contains(event.target)) {
@@ -101,7 +111,7 @@ export default function Navbar() {
 
   const getDomaineIcon = () => <FaTools />;
 
-  // 👉 NOUVEAU: Sections de paramètres
+  // Sections de paramètres
   const settingsSections = [
     {
       id: 'profile',
@@ -140,10 +150,50 @@ export default function Navbar() {
     }
   ];
 
-  // 👉 NOUVEAU: Naviguer vers les paramètres avec section
   const handleSettingsClick = (sectionId) => {
     navigate(`/settings?tab=${sectionId}`);
     setShowSettingsDropdown(false);
+  };
+
+  // 👉 Composant Avatar : affiche photo ou initiale
+  const UserAvatar = ({ size = 35 }) => {
+    const hasPhoto = profilePhotoUrl && !profilePhotoUrl.includes('ui-avatars');
+    
+    return (
+      <div style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        backgroundColor: theme.colors.primary,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: hasPhoto ? `2px solid ${theme.colors.primaryLight}` : 'none',
+        flexShrink: 0,
+      }}>
+        {hasPhoto ? (
+          <img
+            src={profilePhotoUrl}
+            alt={user?.name}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+            onError={() => setProfilePhotoUrl(null)}
+          />
+        ) : (
+          <span style={{
+            color: theme.colors.text.white,
+            fontWeight: 'bold',
+            fontSize: `${size * 0.4}px`,
+          }}>
+            {user?.name?.charAt(0).toUpperCase()}
+          </span>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -269,7 +319,7 @@ export default function Navbar() {
                   </>
                 )}
                 
-                {/* 👉 NOUVEAU: Menu déroulant des paramètres */}
+                {/* Menu déroulant des paramètres avec PHOTO */}
                 <div 
                   ref={settingsDropdownRef}
                   style={styles.settingsDropdown}
@@ -279,10 +329,9 @@ export default function Navbar() {
                     style={styles.userInfo}
                     className="settings-trigger"
                   >
+                    {/* 👉 Avatar avec photo ou initiale */}
                     <div style={styles.userAvatarContainer}>
-                      <div style={styles.userAvatar}>
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
+                      <UserAvatar size={35} />
                       <div style={styles.onlineIndicator} title="En ligne" />
                     </div>
                     <span style={styles.userName}>{user.name.split(' ')[0]}</span>
@@ -297,12 +346,20 @@ export default function Navbar() {
                     />
                   </button>
 
-                  {/* 👉 Dropdown des paramètres */}
+                  {/* Dropdown des paramètres */}
                   {showSettingsDropdown && (
                     <div style={styles.settingsDropdownMenu} className="settings-dropdown-menu">
                       <div style={styles.settingsDropdownHeader}>
-                        <h3 style={styles.settingsDropdownTitle}>Paramètres du compte</h3>
-                        <p style={styles.settingsDropdownSubtitle}>{user.email}</p>
+                        {/* 👉 Grande photo dans le header du dropdown */}
+                        <div style={styles.dropdownHeaderProfile}>
+                          <div style={styles.dropdownAvatarLarge}>
+                            <UserAvatar size={52} />
+                          </div>
+                          <div>
+                            <h3 style={styles.settingsDropdownTitle}>{user.name}</h3>
+                            <p style={styles.settingsDropdownSubtitle}>{user.email}</p>
+                          </div>
+                        </div>
                       </div>
 
                       <div style={styles.settingsSectionsList}>
@@ -464,11 +521,67 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Menu (gardé identique pour simplifier) */}
+      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div style={styles.mobileMenuOverlay} onClick={closeMobileMenu}>
           <div style={styles.mobileMenu} onClick={(e) => e.stopPropagation()}>
-            {/* Contenu mobile inchangé */}
+            {user && (
+              <div style={styles.mobileUserInfo}>
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <UserAvatar size={50} />
+                  <div style={{ ...styles.onlineIndicator, bottom: '0', right: '-2px' }} />
+                </div>
+                <div style={styles.mobileUserDetails}>
+                  <div style={styles.mobileUserName}>{user.name}</div>
+                  <div style={styles.mobileUserEmail}>{user.email}</div>
+                </div>
+              </div>
+            )}
+
+            <div style={styles.mobileMenuLinks}>
+              {user ? (
+                <>
+                  {user.role === 'admin' ? (
+                    <>
+                      <Link to="/admin/dashboard" style={styles.mobileLink} onClick={closeMobileMenu}>
+                        <FaUser /> Dashboard Admin
+                      </Link>
+                      <Link to="/admin/entreprises" style={styles.mobileLink} onClick={closeMobileMenu}>
+                        <FaBuilding /> Entreprises
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/dashboard" style={styles.mobileLink} onClick={closeMobileMenu}>
+                        <FaHome /> Dashboard
+                      </Link>
+                      <Link to="/mes-entreprises" style={styles.mobileLink} onClick={closeMobileMenu}>
+                        <FaBuilding /> Mes Entreprises
+                      </Link>
+                      <Link to="/mes-services" style={styles.mobileLink} onClick={closeMobileMenu}>
+                        <FaTools /> Mes Services
+                      </Link>
+                    </>
+                  )}
+                  <Link to="/messages" style={styles.mobileLink} onClick={closeMobileMenu}>
+                    <FiMessageSquare /> Messages
+                  </Link>
+                  <Link to="/settings" style={styles.mobileLink} onClick={closeMobileMenu}>
+                    <FiSettings /> Paramètres
+                  </Link>
+                  <button onClick={handleLogout} style={styles.mobileLogoutButton}>
+                    <FaSignOutAlt /> Déconnexion
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/" style={styles.mobileLink} onClick={closeMobileMenu}><FaHome /> Accueil</Link>
+                  <Link to="/entreprises" style={styles.mobileLink} onClick={closeMobileMenu}><FaBuilding /> Entreprises</Link>
+                  <Link to="/services" style={styles.mobileLink} onClick={closeMobileMenu}><FaTools /> Services</Link>
+                  <Link to="/login" style={styles.mobileLink} onClick={closeMobileMenu}><FaUser /> Connexion</Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -494,14 +607,8 @@ export default function Navbar() {
         }
             
         @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.8;
-            transform: scale(1.1);
-          }
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.1); }
         }
         
         .nav-link:hover::after {
@@ -513,14 +620,8 @@ export default function Navbar() {
         }
         
         @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes spin {
@@ -551,24 +652,13 @@ export default function Navbar() {
         }
 
         @media (max-width: 968px) {
-          .desktop-menu {
-            display: none;
-          }
+          .desktop-menu { display: none !important; }
         }
-          @media (max-width: 968px) {
-  .desktop-menu {
-    display: none !important;
-  }
-}
 
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
       `}</style>
     </>
   );
@@ -625,8 +715,6 @@ const styles = {
   dropdown: {
     position: 'relative',
   },
-  
-  // 👉 NOUVEAU: Styles pour le menu des paramètres
   settingsDropdown: {
     position: 'relative',
   },
@@ -645,18 +733,6 @@ const styles = {
     position: 'relative',
     display: 'flex',
     alignItems: 'center',
-  },
-  userAvatar: {
-    width: '35px',
-    height: '35px',
-    borderRadius: '50%',
-    backgroundColor: theme.colors.primary,
-    color: theme.colors.text.white,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: 'bold',
-    fontSize: '1rem',
   },
   onlineIndicator: {
     position: 'absolute',
@@ -689,8 +765,6 @@ const styles = {
     transition: 'transform 0.3s',
     marginLeft: '0.25rem',
   },
-  
-  // 👉 Menu déroulant des paramètres
   settingsDropdownMenu: {
     position: 'absolute',
     top: 'calc(100% + 0.5rem)',
@@ -709,14 +783,26 @@ const styles = {
     borderBottom: `2px solid ${theme.colors.primaryLight}`,
     background: `linear-gradient(135deg, ${theme.colors.primaryLight} 0%, ${theme.colors.secondary} 100%)`,
   },
+  dropdownHeaderProfile: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+  },
+  dropdownAvatarLarge: {
+    flexShrink: 0,
+    borderRadius: '50%',
+    overflow: 'hidden',
+    border: `3px solid ${theme.colors.primary}`,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  },
   settingsDropdownTitle: {
-    fontSize: '1.125rem',
+    fontSize: '1.05rem',
     fontWeight: '700',
     color: theme.colors.primary,
     marginBottom: '0.25rem',
   },
   settingsDropdownSubtitle: {
-    fontSize: '0.85rem',
+    fontSize: '0.8rem',
     color: theme.colors.text.secondary,
   },
   settingsSectionsList: {
@@ -786,8 +872,6 @@ const styles = {
   logoutIcon: {
     fontSize: '1rem',
   },
-
-  // Styles existants (services, etc.)
   megaDropdown: {
     position: 'absolute',
     top: '100%',
@@ -916,126 +1000,97 @@ const styles = {
     fontSize: '0.9rem',
   },
   mobileMenuButton: {
-  display: 'none',
-  backgroundColor: 'transparent',
-  border: 'none',
-  color: theme.colors.primary,
-  cursor: 'pointer',
-  padding: '0.5rem',
-  borderRadius: theme.borderRadius.md,
-  transition: 'all 0.3s',
-},
-mobileMenuOverlay: {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  zIndex: 999,
-  display: 'flex',
-  justifyContent: 'flex-end',
-  backdropFilter: 'blur(4px)',
-},
-mobileMenu: {
-  backgroundColor: theme.colors.secondary,
-  width: '80%',
-  maxWidth: '400px',
-  height: '100%',
-  padding: '2rem 1.5rem',
-  overflowY: 'auto',
-  boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.15)',
-  animation: 'slideInRight 0.3s ease',
-},
-mobileMenuHeader: {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '2rem',
-  paddingBottom: '1rem',
-  borderBottom: `2px solid ${theme.colors.primaryLight}`,
-},
-mobileMenuLinks: {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.5rem',
-},
-mobileLink: {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.75rem',
-  padding: '1rem',
-  color: theme.colors.text.primary,
-  textDecoration: 'none',
-  borderRadius: theme.borderRadius.md,
-  transition: 'all 0.3s',
-  fontSize: '1rem',
-  fontWeight: '500',
-  backgroundColor: 'transparent',
-  border: 'none',
-  width: '100%',
-  textAlign: 'left',
-  cursor: 'pointer',
-},
-mobileLinkActive: {
-  backgroundColor: theme.colors.primaryLight,
-  color: theme.colors.primary,
-  fontWeight: '600',
-},
-mobileUserInfo: {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1rem',
-  padding: '1rem',
-  backgroundColor: theme.colors.background,
-  borderRadius: theme.borderRadius.lg,
-  marginBottom: '1.5rem',
-  border: `2px solid ${theme.colors.primaryLight}`,
-},
-mobileUserDetails: {
-  flex: 1,
-},
-mobileUserName: {
-  fontSize: '1.1rem',
-  fontWeight: '700',
-  color: theme.colors.text.primary,
-  marginBottom: '0.25rem',
-},
-mobileUserEmail: {
-  fontSize: '0.85rem',
-  color: theme.colors.text.secondary,
-},
-mobileLogoutButton: {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '0.5rem',
-  width: '100%',
-  padding: '1rem',
-  marginTop: '1.5rem',
-  backgroundColor: theme.colors.danger,
-  color: theme.colors.text.white,
-  border: 'none',
-  borderRadius: theme.borderRadius.lg,
-  cursor: 'pointer',
-  fontWeight: '600',
-  fontSize: '1rem',
-  transition: 'all 0.3s',
-},
-mobileDivider: {
-  height: '1px',
-  backgroundColor: theme.colors.primaryLight,
-  margin: '1.5rem 0',
-},
-mobileServicesSection: {
-  marginTop: '1.5rem',
-},
-mobileSectionTitle: {
-  fontSize: '0.75rem',
-  fontWeight: '700',
-  color: theme.colors.text.secondary,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  marginBottom: '0.75rem',
-  paddingLeft: '1rem',
-},}
+    display: 'none',
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: theme.colors.primary,
+    cursor: 'pointer',
+    padding: '0.5rem',
+    borderRadius: theme.borderRadius.md,
+    transition: 'all 0.3s',
+  },
+  mobileMenuOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 999,
+    display: 'flex',
+    justifyContent: 'flex-end',
+    backdropFilter: 'blur(4px)',
+  },
+  mobileMenu: {
+    backgroundColor: theme.colors.secondary,
+    width: '80%',
+    maxWidth: '400px',
+    height: '100%',
+    padding: '2rem 1.5rem',
+    overflowY: 'auto',
+    boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.15)',
+    animation: 'slideInRight 0.3s ease',
+  },
+  mobileUserInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    padding: '1rem',
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: '1.5rem',
+    border: `2px solid ${theme.colors.primaryLight}`,
+  },
+  mobileUserDetails: {
+    flex: 1,
+  },
+  mobileUserName: {
+    fontSize: '1.1rem',
+    fontWeight: '700',
+    color: theme.colors.text.primary,
+    marginBottom: '0.25rem',
+  },
+  mobileUserEmail: {
+    fontSize: '0.85rem',
+    color: theme.colors.text.secondary,
+  },
+  mobileMenuLinks: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+  },
+  mobileLink: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    padding: '1rem',
+    color: theme.colors.text.primary,
+    textDecoration: 'none',
+    borderRadius: theme.borderRadius.md,
+    transition: 'all 0.3s',
+    fontSize: '1rem',
+    fontWeight: '500',
+    backgroundColor: 'transparent',
+    border: 'none',
+    width: '100%',
+    textAlign: 'left',
+    cursor: 'pointer',
+  },
+  mobileLogoutButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    width: '100%',
+    padding: '1rem',
+    marginTop: '1.5rem',
+    backgroundColor: theme.colors.primary,
+    color: theme.colors.text.white,
+    border: 'none',
+    borderRadius: theme.borderRadius.lg,
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '1rem',
+    transition: 'all 0.3s',
+  },
+};

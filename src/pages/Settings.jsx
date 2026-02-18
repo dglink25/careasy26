@@ -1,5 +1,6 @@
 // src/pages/Settings.jsx
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { userSettingsApi } from '../api/userSettingsApi';
 import theme from '../config/theme';
@@ -25,9 +26,10 @@ import {
 export default function Settings() {
   const { user, updateUser, logout } = useAuth();
   const fileInputRef = useRef(null);
+  const [searchParams] = useSearchParams();
 
   // États principaux
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -63,10 +65,16 @@ export default function Settings() {
     show_online_status: true,
   });
 
-  // Charger les données
+  // ✅ Charger les données AU MONTAGE
   useEffect(() => {
     loadUserData();
   }, []);
+
+  // ✅ Réagir aux changements de l'URL (?tab=...)
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
 
   const loadUserData = async () => {
     try {
@@ -100,7 +108,6 @@ export default function Settings() {
     setTimeout(() => setMessage(null), 5000);
   };
 
-  // Gestion de la photo de profil
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -108,7 +115,6 @@ export default function Settings() {
         showMessage('La photo ne doit pas dépasser 5MB', 'error');
         return;
       }
-
       setProfileData({
         ...profileData,
         profile_photo: file,
@@ -121,19 +127,12 @@ export default function Settings() {
     try {
       setSaving(true);
       await userSettingsApi.deleteProfilePhoto();
-      
       setProfileData({
         ...profileData,
         profile_photo: null,
         profile_photo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.name)}`,
       });
-      
-      // Mettre à jour le contexte Auth
-      updateUser({
-        ...user,
-        profile_photo_url: profileData.profile_photo_url,
-      });
-      
+      updateUser({ ...user, profile_photo_url: profileData.profile_photo_url });
       showMessage('Photo supprimée avec succès', 'success');
     } catch (error) {
       console.error('Erreur suppression photo:', error);
@@ -143,38 +142,26 @@ export default function Settings() {
     }
   };
 
-  // Ligne 156-168 dans Settings.jsx (extrait du code existant)
-const handleSaveProfile = async () => {
-  try {
-    setSaving(true);
-
-    // Si une photo a été sélectionnée
-    if (profileData.profile_photo) {
-      await userSettingsApi.updateProfilePhoto(profileData.profile_photo);
+  const handleSaveProfile = async () => {
+    try {
+      setSaving(true);
+      if (profileData.profile_photo) {
+        await userSettingsApi.updateProfilePhoto(profileData.profile_photo);
+      }
+      const response = await userSettingsApi.updateProfile({ name: profileData.name });
+      updateUser(response.user);
+      showMessage('Profil mis à jour avec succès', 'success');
+    } catch (error) {
+      console.error('Erreur mise à jour profil:', error);
+      showMessage(error.response?.data?.message || 'Erreur lors de la mise à jour', 'error');
+    } finally {
+      setSaving(false);
     }
+  };
 
-    // Mettre à jour le nom
-    const response = await userSettingsApi.updateProfile({
-      name: profileData.name,
-    });
-
-    // 👉 Mettre à jour le contexte Auth avec les nouvelles données
-    updateUser(response.user); // ✅ Cette fonction existe maintenant
-
-    showMessage('Profil mis à jour avec succès', 'success');
-  } catch (error) {
-    console.error('Erreur mise à jour profil:', error);
-    showMessage(error.response?.data?.message || 'Erreur lors de la mise à jour', 'error');
-  } finally {
-    setSaving(false);
-  }
-};
-
-  // Changer l'email
   const handleChangeEmail = async () => {
     const password = prompt('Entrez votre mot de passe pour confirmer le changement d\'email:');
     if (!password) return;
-
     try {
       setSaving(true);
       await userSettingsApi.updateEmail(profileData.email, password);
@@ -187,70 +174,48 @@ const handleSaveProfile = async () => {
     }
   };
 
- // Ligne ~210-240 dans Settings.jsx
-const handleChangePassword = async () => {
-  // Validation frontend
-  if (!passwordData.current_password) {
-    showMessage('Le mot de passe actuel est requis', 'error');
-    return;
-  }
-
-  if (passwordData.new_password !== passwordData.new_password_confirmation) {
-    showMessage('Les mots de passe ne correspondent pas', 'error');
-    return;
-  }
-
-  if (passwordData.new_password.length < 8) {
-    showMessage('Le mot de passe doit contenir au moins 8 caractères', 'error');
-    return;
-  }
-
-  try {
-    setSaving(true);
-    
-    // 👉 Utiliser exactement les noms de champs attendus par le backend
-    await userSettingsApi.updatePassword(
-      passwordData.current_password,
-      passwordData.new_password,
-      passwordData.new_password_confirmation
-    );
-
-    setPasswordData({
-      current_password: '',
-      new_password: '',
-      new_password_confirmation: '',
-    });
-
-    showMessage('Mot de passe mis à jour avec succès !', 'success');
-    
-    // Déconnexion automatique après 2 secondes
-    setTimeout(() => {
-      logout();
-    }, 2000);
-  } catch (error) {
-    console.error('Erreur changement mot de passe:', error);
-    
-    // 👉 Afficher les erreurs de validation spécifiques
-    if (error.response?.data?.errors) {
-      const errors = error.response.data.errors;
-      const firstError = Object.values(errors)[0];
-      showMessage(Array.isArray(firstError) ? firstError[0] : firstError, 'error');
-    } else {
-      showMessage(error.response?.data?.message || 'Erreur lors du changement', 'error');
+  const handleChangePassword = async () => {
+    if (!passwordData.current_password) {
+      showMessage('Le mot de passe actuel est requis', 'error');
+      return;
     }
-  } finally {
-    setSaving(false);
-  }
-};
+    if (passwordData.new_password !== passwordData.new_password_confirmation) {
+      showMessage('Les mots de passe ne correspondent pas', 'error');
+      return;
+    }
+    if (passwordData.new_password.length < 8) {
+      showMessage('Le mot de passe doit contenir au moins 8 caractères', 'error');
+      return;
+    }
+    try {
+      setSaving(true);
+      await userSettingsApi.updatePassword(
+        passwordData.current_password,
+        passwordData.new_password,
+        passwordData.new_password_confirmation
+      );
+      setPasswordData({ current_password: '', new_password: '', new_password_confirmation: '' });
+      showMessage('Mot de passe mis à jour avec succès !', 'success');
+      setTimeout(() => { logout(); }, 2000);
+    } catch (error) {
+      console.error('Erreur changement mot de passe:', error);
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const firstError = Object.values(errors)[0];
+        showMessage(Array.isArray(firstError) ? firstError[0] : firstError, 'error');
+      } else {
+        showMessage(error.response?.data?.message || 'Erreur lors du changement', 'error');
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  // Mettre à jour le thème
   const handleThemeChange = async (newTheme) => {
     try {
       setSelectedTheme(newTheme);
       await userSettingsApi.updateTheme(newTheme);
       showMessage('Thème mis à jour avec succès', 'success');
-      
-      // Appliquer le thème immédiatement
       if (newTheme === 'dark') {
         document.documentElement.classList.add('dark');
       } else {
@@ -262,7 +227,6 @@ const handleChangePassword = async () => {
     }
   };
 
-  // Mettre à jour les notifications
   const handleNotificationChange = async (key, value) => {
     try {
       const newNotifications = { ...notifications, [key]: value };
@@ -275,16 +239,11 @@ const handleChangePassword = async () => {
     }
   };
 
-  // Mettre à jour la confidentialité
   const handlePrivacyChange = async (key, value) => {
     try {
       const newPrivacy = { ...privacy, [key]: value };
       setPrivacy(newPrivacy);
-      
-      await userSettingsApi.updateSettings({
-        privacy: newPrivacy,
-      });
-      
+      await userSettingsApi.updateSettings({ privacy: newPrivacy });
       showMessage('Paramètres de confidentialité mis à jour', 'success');
     } catch (error) {
       console.error('Erreur confidentialité:', error);
@@ -313,9 +272,7 @@ const handleChangePassword = async () => {
               <FiSettings style={styles.titleIcon} />
               Paramètres
             </h1>
-            <p style={styles.subtitle}>
-              Gérez vos préférences et votre compte
-            </p>
+            <p style={styles.subtitle}>Gérez vos préférences et votre compte</p>
           </div>
         </div>
 
@@ -331,10 +288,7 @@ const handleChangePassword = async () => {
               <FiAlertCircle style={styles.messageIcon} />
             )}
             <span style={styles.messageText}>{message.text}</span>
-            <button
-              onClick={() => setMessage(null)}
-              style={styles.messageClose}
-            >
+            <button onClick={() => setMessage(null)} style={styles.messageClose}>
               <FiX />
             </button>
           </div>
@@ -342,158 +296,74 @@ const handleChangePassword = async () => {
 
         {/* Tabs */}
         <div style={styles.tabs}>
-          <button
-            onClick={() => setActiveTab('profile')}
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'profile' ? styles.tabActive : {}),
-            }}
-          >
-            <FiUser style={styles.tabIcon} />
-            Profil
-          </button>
-          <button
-            onClick={() => setActiveTab('security')}
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'security' ? styles.tabActive : {}),
-            }}
-          >
-            <FiLock style={styles.tabIcon} />
-            Sécurité
-          </button>
-          <button
-            onClick={() => setActiveTab('notifications')}
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'notifications' ? styles.tabActive : {}),
-            }}
-          >
-            <FiBell style={styles.tabIcon} />
-            Notifications
-          </button>
-          <button
-            onClick={() => setActiveTab('appearance')}
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'appearance' ? styles.tabActive : {}),
-            }}
-          >
-            <FiMoon style={styles.tabIcon} />
-            Apparence
-          </button>
-          <button
-            onClick={() => setActiveTab('privacy')}
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'privacy' ? styles.tabActive : {}),
-            }}
-          >
-            <FiShield style={styles.tabIcon} />
-            Confidentialité
-          </button>
+          {[
+            { id: 'profile', label: 'Profil', icon: FiUser },
+            { id: 'security', label: 'Sécurité', icon: FiLock },
+            { id: 'notifications', label: 'Notifications', icon: FiBell },
+            { id: 'appearance', label: 'Apparence', icon: FiMoon },
+            { id: 'privacy', label: 'Confidentialité', icon: FiShield },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              style={{
+                ...styles.tab,
+                ...(activeTab === id ? styles.tabActive : {}),
+              }}
+            >
+              <Icon style={styles.tabIcon} />
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Contenu des tabs */}
         <div style={styles.tabContent}>
+
           {/* Tab Profil */}
           {activeTab === 'profile' && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>Informations du profil</h2>
-
-              {/* Photo de profil */}
               <div style={styles.photoSection}>
                 <div style={styles.photoContainer}>
-                  <img
-                    src={profileData.profile_photo_url}
-                    alt="Photo de profil"
-                    style={styles.photoImage}
-                  />
-                  <button
-  onClick={() => fileInputRef.current?.click()}
-  className="photo-button"
-  style={styles.photoButton}
-  disabled={saving}
->
-  <FiCamera />
-</button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                    style={{ display: 'none' }}
-                  />
+                  <img src={profileData.profile_photo_url} alt="Photo de profil" style={styles.photoImage} />
+                  <button onClick={() => fileInputRef.current?.click()} className="photo-button" style={styles.photoButton} disabled={saving}>
+                    <FiCamera />
+                  </button>
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
                 </div>
                 <div style={styles.photoInfo}>
                   <h3 style={styles.photoTitle}>Photo de profil</h3>
-                  <p style={styles.photoDescription}>
-                    JPG, PNG ou GIF. Maximum 5MB.
-                  </p>
+                  <p style={styles.photoDescription}>JPG, PNG ou GIF. Maximum 5MB.</p>
                   <div style={styles.photoActions}>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      style={styles.buttonSecondary}
-                      disabled={saving}
-                    >
+                    <button onClick={() => fileInputRef.current?.click()} style={styles.buttonSecondary} disabled={saving}>
                       Changer la photo
                     </button>
                     {profileData.profile_photo_url && !profileData.profile_photo_url.includes('ui-avatars') && (
-                      <button
-                        onClick={handleDeletePhoto}
-                        style={styles.buttonDanger}
-                        disabled={saving}
-                      >
+                      <button onClick={handleDeletePhoto} style={styles.buttonDanger} disabled={saving}>
                         Supprimer
                       </button>
                     )}
                   </div>
                 </div>
               </div>
-
-              {/* Nom */}
               <div style={styles.formGroup}>
                 <label style={styles.label}>Nom complet</label>
-                <input
-                  type="text"
-                  value={profileData.name}
-                  onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                  style={styles.input}
-                  placeholder="Votre nom"
-                />
+                <input type="text" value={profileData.name} onChange={(e) => setProfileData({ ...profileData, name: e.target.value })} style={styles.input} placeholder="Votre nom" />
               </div>
-
-              {/* Email */}
               <div style={styles.formGroup}>
                 <label style={styles.label}>Adresse email</label>
                 <div style={styles.inputGroup}>
-                  <input
-                    type="email"
-                    value={profileData.email}
-                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                    style={styles.input}
-                    placeholder="votre@email.com"
-                  />
+                  <input type="email" value={profileData.email} onChange={(e) => setProfileData({ ...profileData, email: e.target.value })} style={styles.input} placeholder="votre@email.com" />
                   {profileData.email !== user.email && (
-                    <button
-                      onClick={handleChangeEmail}
-                      style={styles.buttonSecondary}
-                      disabled={saving}
-                    >
+                    <button onClick={handleChangeEmail} style={styles.buttonSecondary} disabled={saving}>
                       Valider le changement
                     </button>
                   )}
                 </div>
-                <p style={styles.hint}>
-                  Un email de vérification sera envoyé à la nouvelle adresse
-                </p>
+                <p style={styles.hint}>Un email de vérification sera envoyé à la nouvelle adresse</p>
               </div>
-
-              <button
-                onClick={handleSaveProfile}
-                style={styles.buttonPrimary}
-                disabled={saving}
-              >
+              <button onClick={handleSaveProfile} style={styles.buttonPrimary} disabled={saving}>
                 <FiSave style={styles.buttonIcon} />
                 {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
               </button>
@@ -504,48 +374,20 @@ const handleChangePassword = async () => {
           {activeTab === 'security' && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>Changer le mot de passe</h2>
-
               <div style={styles.formGroup}>
                 <label style={styles.label}>Mot de passe actuel</label>
-                <input
-                  type="password"
-                  value={passwordData.current_password}
-                  onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
-                  style={styles.input}
-                  placeholder="••••••••"
-                />
+                <input type="password" value={passwordData.current_password} onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })} style={styles.input} placeholder="••••••••" />
               </div>
-
               <div style={styles.formGroup}>
                 <label style={styles.label}>Nouveau mot de passe</label>
-                <input
-                  type="password"
-                  value={passwordData.new_password}
-                  onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
-                  style={styles.input}
-                  placeholder="••••••••"
-                />
-                <p style={styles.hint}>
-                  Minimum 8 caractères avec majuscules, minuscules, chiffres et symboles
-                </p>
+                <input type="password" value={passwordData.new_password} onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })} style={styles.input} placeholder="••••••••" />
+                <p style={styles.hint}>Minimum 8 caractères avec majuscules, minuscules, chiffres et symboles</p>
               </div>
-
               <div style={styles.formGroup}>
                 <label style={styles.label}>Confirmer le nouveau mot de passe</label>
-                <input
-                  type="password"
-                  value={passwordData.new_password_confirmation}
-                  onChange={(e) => setPasswordData({ ...passwordData, new_password_confirmation: e.target.value })}
-                  style={styles.input}
-                  placeholder="••••••••"
-                />
+                <input type="password" value={passwordData.new_password_confirmation} onChange={(e) => setPasswordData({ ...passwordData, new_password_confirmation: e.target.value })} style={styles.input} placeholder="••••••••" />
               </div>
-
-              <button
-                onClick={handleChangePassword}
-                style={styles.buttonPrimary}
-                disabled={saving || !passwordData.current_password || !passwordData.new_password}
-              >
+              <button onClick={handleChangePassword} style={styles.buttonPrimary} disabled={saving || !passwordData.current_password || !passwordData.new_password}>
                 <FiLock style={styles.buttonIcon} />
                 {saving ? 'Mise à jour...' : 'Changer le mot de passe'}
               </button>
@@ -556,71 +398,22 @@ const handleChangePassword = async () => {
           {activeTab === 'notifications' && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>Préférences de notifications</h2>
-{/* Notifications par email */}
-<div style={styles.settingItem}>
-  <div>
-    <h3 style={styles.settingTitle}>Notifications par email</h3>
-    <p style={styles.settingDescription}>
-      Recevez des notifications par email
-    </p>
-  </div>
-  <label style={styles.switch}>
-    <input
-      type="checkbox"
-      checked={notifications.email}
-      onChange={(e) => handleNotificationChange('email', e.target.checked)}
-      style={{ display: 'none' }}
-    />
-    <span 
-      className={`switch-slider ${notifications.email ? 'switch-slider-active' : ''}`}
-      style={styles.switchSlider}
-    />
-  </label>
-</div>
-
-             {/* Notifications push */}
-<div style={styles.settingItem}>
-  <div>
-    <h3 style={styles.settingTitle}>Notifications push</h3>
-    <p style={styles.settingDescription}>
-      Recevez des notifications sur votre navigateur
-    </p>
-  </div>
-  <label style={styles.switch}>
-    <input
-      type="checkbox"
-      checked={notifications.push}
-      onChange={(e) => handleNotificationChange('push', e.target.checked)}
-      style={{ display: 'none' }}
-    />
-    <span 
-      className={`switch-slider ${notifications.push ? 'switch-slider-active' : ''}`}
-      style={styles.switchSlider}
-    />
-  </label>
-</div>
-
-              {/* Notifications SMS */}
-<div style={styles.settingItem}>
-  <div>
-    <h3 style={styles.settingTitle}>Notifications SMS</h3>
-    <p style={styles.settingDescription}>
-      Recevez des notifications par SMS
-    </p>
-  </div>
-  <label style={styles.switch}>
-    <input
-      type="checkbox"
-      checked={notifications.sms}
-      onChange={(e) => handleNotificationChange('sms', e.target.checked)}
-      style={{ display: 'none' }}
-    />
-    <span 
-      className={`switch-slider ${notifications.sms ? 'switch-slider-active' : ''}`}
-      style={styles.switchSlider}
-    />
-  </label>
-</div>
+              {[
+                { key: 'email', title: 'Notifications par email', desc: 'Recevez des notifications par email' },
+                { key: 'push', title: 'Notifications push', desc: 'Recevez des notifications sur votre navigateur' },
+                { key: 'sms', title: 'Notifications SMS', desc: 'Recevez des notifications par SMS' },
+              ].map(({ key, title, desc }) => (
+                <div key={key} style={styles.settingItem}>
+                  <div>
+                    <h3 style={styles.settingTitle}>{title}</h3>
+                    <p style={styles.settingDescription}>{desc}</p>
+                  </div>
+                  <label style={styles.switch}>
+                    <input type="checkbox" checked={notifications[key]} onChange={(e) => handleNotificationChange(key, e.target.checked)} style={{ display: 'none' }} />
+                    <span className={`switch-slider ${notifications[key] ? 'switch-slider-active' : ''}`} style={styles.switchSlider} />
+                  </label>
+                </div>
+              ))}
             </div>
           )}
 
@@ -628,51 +421,23 @@ const handleChangePassword = async () => {
           {activeTab === 'appearance' && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>Thème de l'interface</h2>
-
               <div style={styles.themeGrid}>
-                
-<button
-  onClick={() => handleThemeChange('light')}
-  className="theme-card"
-  style={{
-    ...styles.themeCard,
-    ...(selectedTheme === 'light' ? styles.themeCardActive : {}),
-  }}
->
-  <FiSun style={styles.themeIcon} />
-  <span style={styles.themeLabel}>Clair</span>
-  {selectedTheme === 'light' && (
-    <FiCheckCircle style={styles.themeCheck} />
-  )}
-</button>
-
-                <button
-                  onClick={() => handleThemeChange('dark')}
-                  style={{
-                    ...styles.themeCard,
-                    ...(selectedTheme === 'dark' ? styles.themeCardActive : {}),
-                  }}
-                >
-                  <FiMoon style={styles.themeIcon} />
-                  <span style={styles.themeLabel}>Sombre</span>
-                  {selectedTheme === 'dark' && (
-                    <FiCheckCircle style={styles.themeCheck} />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleThemeChange('system')}
-                  style={{
-                    ...styles.themeCard,
-                    ...(selectedTheme === 'system' ? styles.themeCardActive : {}),
-                  }}
-                >
-                  <FiMonitor style={styles.themeIcon} />
-                  <span style={styles.themeLabel}>Système</span>
-                  {selectedTheme === 'system' && (
-                    <FiCheckCircle style={styles.themeCheck} />
-                  )}
-                </button>
+                {[
+                  { id: 'light', label: 'Clair', icon: FiSun },
+                  { id: 'dark', label: 'Sombre', icon: FiMoon },
+                  { id: 'system', label: 'Système', icon: FiMonitor },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => handleThemeChange(id)}
+                    className="theme-card"
+                    style={{ ...styles.themeCard, ...(selectedTheme === id ? styles.themeCardActive : {}) }}
+                  >
+                    <Icon style={styles.themeIcon} />
+                    <span style={styles.themeLabel}>{label}</span>
+                    {selectedTheme === id && <FiCheckCircle style={styles.themeCheck} />}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -681,135 +446,63 @@ const handleChangePassword = async () => {
           {activeTab === 'privacy' && (
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>Paramètres de confidentialité</h2>
-
               <div style={styles.formGroup}>
                 <label style={styles.label}>Visibilité du profil</label>
-                <select
-                  value={privacy.profile_visibility}
-                  onChange={(e) => handlePrivacyChange('profile_visibility', e.target.value)}
-                  style={styles.select}
-                >
+                <select value={privacy.profile_visibility} onChange={(e) => handlePrivacyChange('profile_visibility', e.target.value)} style={styles.select}>
                   <option value="public">Public - Visible par tous</option>
                   <option value="private">Privé - Visible uniquement par vous</option>
                   <option value="friends_only">Contacts uniquement</option>
                 </select>
               </div>
-
-              {/* Privacy - Show online status */}
-<div style={styles.settingItem}>
-  <div>
-    <h3 style={styles.settingTitle}>Afficher le statut en ligne</h3>
-    <p style={styles.settingDescription}>
-      Les autres utilisateurs peuvent voir quand vous êtes en ligne
-    </p>
-  </div>
-  <label style={styles.switch}>
-    <input
-      type="checkbox"
-      checked={privacy.show_online_status}
-      onChange={(e) => handlePrivacyChange('show_online_status', e.target.checked)}
-      style={{ display: 'none' }}
-    />
-    <span 
-      className={`switch-slider ${privacy.show_online_status ? 'switch-slider-active' : ''}`}
-      style={styles.switchSlider}
-    />
-  </label>
-</div>
+              <div style={styles.settingItem}>
+                <div>
+                  <h3 style={styles.settingTitle}>Afficher le statut en ligne</h3>
+                  <p style={styles.settingDescription}>Les autres utilisateurs peuvent voir quand vous êtes en ligne</p>
+                </div>
+                <label style={styles.switch}>
+                  <input type="checkbox" checked={privacy.show_online_status} onChange={(e) => handlePrivacyChange('show_online_status', e.target.checked)} style={{ display: 'none' }} />
+                  <span className={`switch-slider ${privacy.show_online_status ? 'switch-slider-active' : ''}`} style={styles.switchSlider} />
+                </label>
+              </div>
             </div>
           )}
+
         </div>
       </div>
 
       <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .switch-slider {
+          position: absolute; cursor: pointer;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background-color: #cbd5e1; transition: 0.4s; border-radius: 28px;
         }
-          .switch-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #cbd5e1;
-  transition: 0.4s;
-  border-radius: 28px;
-}
+        .switch-slider::before {
+          position: absolute; content: "";
+          height: 20px; width: 20px; left: 4px; bottom: 4px;
+          background-color: white; transition: 0.4s; border-radius: 50%;
+        }
+        .switch-slider-active { background-color: #ef4444; }
+        .switch-slider-active::before { transform: translateX(24px); }
 
-.switch-slider::before {
-  position: absolute;
-  content: "";
-  height: 20px;
-  width: 20px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  transition: 0.4s;
-  border-radius: 50%;
-}
+        .theme-card { transition: all 0.3s ease; }
+        .theme-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
 
-.switch-slider-active {
-  background-color: #ef4444;
-}
+        button:hover:not(:disabled) { opacity: 0.9; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.switch-slider-active::before {
-  transform: translateX(24px);
-}
+        input:focus, select:focus {
+          border-color: #ef4444 !important;
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
 
-/* Hover effects */
-.switch:hover .switch-slider {
-  background-color: #94a3b8;
-}
+        .photo-button:hover:not(:disabled) { background-color: #dc2626; }
 
-.switch:hover .switch-slider-active {
-  background-color: #dc2626;
-}
-
-/* Theme cards hover */
-.theme-card {
-  transition: all 0.3s ease;
-}
-
-.theme-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-}
-
-/* Button hover effects */
-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Input focus effects */
-input:focus, select:focus {
-  border-color: #ef4444;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
-/* Photo button hover */
-.photo-button:hover:not(:disabled) {
-  background-color: #dc2626;
-  transform: scale(1.05);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .theme-grid {
-    grid-template-columns: 1fr !important;
-  }
-  
-  .photo-section {
-    flex-direction: column;
-  }
-}
+        @media (max-width: 768px) {
+          .theme-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
     </div>
   );
@@ -842,523 +535,121 @@ const styles = {
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
-  loadingText: {
-    color: '#475569',
-    fontSize: '1.125rem',
-  },
-  header: {
-    marginBottom: '2rem',
-  },
+  loadingText: { color: '#475569', fontSize: '1.125rem' },
+  header: { marginBottom: '2rem' },
   title: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    fontSize: '2rem',
-    fontWeight: '800',
-    color: '#1e293b',
-    marginBottom: '0.5rem',
+    display: 'flex', alignItems: 'center', gap: '0.75rem',
+    fontSize: '2rem', fontWeight: '800', color: '#1e293b', marginBottom: '0.5rem',
   },
-  titleIcon: {
-    fontSize: '2rem',
-    color: '#ef4444',
-  },
-  subtitle: {
-    color: '#64748b',
-    fontSize: '1rem',
-  },
+  titleIcon: { fontSize: '2rem', color: '#ef4444' },
+  subtitle: { color: '#64748b', fontSize: '1rem' },
   messageContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    padding: '1rem',
-    borderRadius: '0.75rem',
-    marginBottom: '1.5rem',
+    display: 'flex', alignItems: 'center', gap: '0.75rem',
+    padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem',
   },
-  messageSuccess: {
-    backgroundColor: '#d1fae5',
-    color: '#059669',
-    border: '1px solid #6ee7b7',
-  },
-  messageError: {
-    backgroundColor: '#fee2e2',
-    color: '#dc2626',
-    border: '1px solid #fca5a5',
-  },
-  messageIcon: {
-    fontSize: '1.25rem',
-  },
-  messageText: {
-    flex: 1,
-    fontWeight: '600',
-  },
+  messageSuccess: { backgroundColor: '#d1fae5', color: '#059669', border: '1px solid #6ee7b7' },
+  messageError: { backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5' },
+  messageIcon: { fontSize: '1.25rem' },
+  messageText: { flex: 1, fontWeight: '600' },
   messageClose: {
-    backgroundColor: 'transparent',
-    border: 'none',
-    color: 'inherit',
-    cursor: 'pointer',
-    fontSize: '1.25rem',
-    padding: '0.25rem',
+    backgroundColor: 'transparent', border: 'none',
+    color: 'inherit', cursor: 'pointer', fontSize: '1.25rem', padding: '0.25rem',
   },
   tabs: {
-    display: 'flex',
-    gap: '0.5rem',
-    borderBottom: '2px solid #e2e8f0',
-    marginBottom: '2rem',
-    overflowX: 'auto',
+    display: 'flex', gap: '0.5rem',
+    borderBottom: '2px solid #e2e8f0', marginBottom: '2rem', overflowX: 'auto',
   },
   tab: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '1rem 1.5rem',
-    backgroundColor: 'transparent',
-    border: 'none',
-    borderBottom: '3px solid transparent',
-    color: '#64748b',
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '0.95rem',
-    transition: 'all 0.3s',
-    whiteSpace: 'nowrap',
+    display: 'flex', alignItems: 'center', gap: '0.5rem',
+    padding: '1rem 1.5rem', backgroundColor: 'transparent', border: 'none',
+    borderBottom: '3px solid transparent', color: '#64748b',
+    cursor: 'pointer', fontWeight: '600', fontSize: '0.95rem',
+    transition: 'all 0.3s', whiteSpace: 'nowrap',
   },
-  tabActive: {
-    color: '#ef4444',
-    borderBottomColor: '#ef4444',
-  },
-  tabIcon: {
-    fontSize: '1.125rem',
-  },
+  tabActive: { color: '#ef4444', borderBottomColor: '#ef4444' },
+  tabIcon: { fontSize: '1.125rem' },
   tabContent: {
-    backgroundColor: '#fff',
-    borderRadius: '1rem',
-    padding: '2rem',
-    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+    backgroundColor: '#fff', borderRadius: '1rem',
+    padding: '2rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
   },
-  section: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1.5rem',
-  },
-  sectionTitle: {
-    fontSize: '1.5rem',
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: '0.5rem',
-  },
+  section: { display: 'flex', flexDirection: 'column', gap: '1.5rem' },
+  sectionTitle: { fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' },
   photoSection: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '2rem',
-    padding: '1.5rem',
-    backgroundColor: '#f8fafc',
-    borderRadius: '0.75rem',
+    display: 'flex', alignItems: 'center', gap: '2rem',
+    padding: '1.5rem', backgroundColor: '#f8fafc', borderRadius: '0.75rem',
   },
-  photoContainer: {
-    position: 'relative',
-  },
+  photoContainer: { position: 'relative' },
   photoImage: {
-    width: '120px',
-    height: '120px',
-    borderRadius: '50%',
-    objectFit: 'cover',
-    border: '4px solid #fff',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover',
+    border: '4px solid #fff', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
   },
   photoButton: {
-    position: 'absolute',
-    bottom: '0',
-    right: '0',
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    backgroundColor: '#ef4444',
-    color: '#fff',
-    border: '3px solid #fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    fontSize: '1.125rem',
-    transition: 'all 0.3s',
+    position: 'absolute', bottom: '0', right: '0',
+    width: '40px', height: '40px', borderRadius: '50%',
+    backgroundColor: '#ef4444', color: '#fff', border: '3px solid #fff',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', fontSize: '1.125rem', transition: 'all 0.3s',
   },
-  photoInfo: {
-    flex: 1,
-  },
-  photoTitle: {
-    fontSize: '1.125rem',
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: '0.25rem',
-  },
-  photoDescription: {
-    fontSize: '0.875rem',
-    color: '#64748b',
-    marginBottom: '1rem',
-  },
-  photoActions: {
-    display: 'flex',
-    gap: '0.75rem',
-  },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
-  },
-  label: {
-    fontSize: '0.875rem',
-    fontWeight: '600',
-    color: '#475569',
-  },
+  photoInfo: { flex: 1 },
+  photoTitle: { fontSize: '1.125rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.25rem' },
+  photoDescription: { fontSize: '0.875rem', color: '#64748b', marginBottom: '1rem' },
+  photoActions: { display: 'flex', gap: '0.75rem' },
+  formGroup: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
+  label: { fontSize: '0.875rem', fontWeight: '600', color: '#475569' },
   input: {
-    padding: '0.75rem 1rem',
-    borderRadius: '0.5rem',
-    border: '2px solid #e2e8f0',
-    fontSize: '1rem',
-    transition: 'all 0.3s',
-    outline: 'none',
+    padding: '0.75rem 1rem', borderRadius: '0.5rem',
+    border: '2px solid #e2e8f0', fontSize: '1rem', transition: 'all 0.3s', outline: 'none',
   },
   select: {
-    padding: '0.75rem 1rem',
-    borderRadius: '0.5rem',
-    border: '2px solid #e2e8f0',
-    fontSize: '1rem',
-    backgroundColor: '#fff',
-    cursor: 'pointer',
-    outline: 'none',
+    padding: '0.75rem 1rem', borderRadius: '0.5rem',
+    border: '2px solid #e2e8f0', fontSize: '1rem',
+    backgroundColor: '#fff', cursor: 'pointer', outline: 'none',
   },
-  inputGroup: {
-    display: 'flex',
-    gap: '0.75rem',
-    alignItems: 'center',
-  },
-  hint: {
-    fontSize: '0.75rem',
-    color: '#94a3b8',
-  },
+  inputGroup: { display: 'flex', gap: '0.75rem', alignItems: 'center' },
+  hint: { fontSize: '0.75rem', color: '#94a3b8' },
   buttonPrimary: {
-    backgroundColor: theme.colors.primary,
-    color: theme.colors.text.white,
-    border: 'none',
-    padding: '0.875rem 1.5rem',
-    borderRadius: theme.borderRadius.lg,
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '0.95rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    transition: 'all 0.3s',
-    boxShadow: theme.shadows.md,
+    backgroundColor: '#ef4444', color: '#ffffff', border: 'none',
+    padding: '0.875rem 1.5rem', borderRadius: '0.75rem', cursor: 'pointer',
+    fontWeight: '600', fontSize: '0.95rem', display: 'flex', alignItems: 'center',
+    gap: '0.5rem', transition: 'all 0.3s', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
   },
   buttonSecondary: {
-    backgroundColor: 'transparent',
-    color: theme.colors.primary,
-    border: `2px solid ${theme.colors.primary}`,
-    padding: '0.625rem 1.25rem',
-    borderRadius: theme.borderRadius.lg,
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '0.875rem',
-    transition: 'all 0.3s',
+    backgroundColor: 'transparent', color: '#ef4444',
+    border: '2px solid #ef4444', padding: '0.625rem 1.25rem',
+    borderRadius: '0.75rem', cursor: 'pointer', fontWeight: '600',
+    fontSize: '0.875rem', transition: 'all 0.3s',
   },
   buttonDanger: {
-    backgroundColor: '#dc2626',
-    color: '#fff',
-    border: 'none',
-    padding: '0.625rem 1.25rem',
-    borderRadius: theme.borderRadius.lg,
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '0.875rem',
-    transition: 'all 0.3s',
+    backgroundColor: '#dc2626', color: '#fff', border: 'none',
+    padding: '0.625rem 1.25rem', borderRadius: '0.75rem',
+    cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', transition: 'all 0.3s',
   },
-  buttonIcon: {
-    fontSize: '1.125rem',
-  },
+  buttonIcon: { fontSize: '1.125rem' },
   settingItem: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '1.25rem',
-    backgroundColor: '#f8fafc',
-    borderRadius: theme.borderRadius.lg,
-    border: '1px solid #e2e8f0',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '1.25rem', backgroundColor: '#f8fafc',
+    borderRadius: '0.75rem', border: '1px solid #e2e8f0',
   },
-  settingTitle: {
-    fontSize: '1rem',
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: '0.25rem',
-  },
-  settingDescription: {
-    fontSize: '0.875rem',
-    color: '#64748b',
-  },
+  settingTitle: { fontSize: '1rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.25rem' },
+  settingDescription: { fontSize: '0.875rem', color: '#64748b' },
   switch: {
-    position: 'relative',
-    display: 'inline-block',
-    width: '52px',
-    height: '28px',
-    cursor: 'pointer',
+    position: 'relative', display: 'inline-block',
+    width: '52px', height: '28px', cursor: 'pointer',
   },
   switchSlider: {
-    position: 'absolute',
-    cursor: 'pointer',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#cbd5e1',
-    transition: '0.4s',
-    borderRadius: '28px',
+    position: 'absolute', cursor: 'pointer',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: '#cbd5e1', transition: '0.4s', borderRadius: '28px',
   },
-  switchSliderActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  themeGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '1rem',
-  },
+  themeGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' },
   themeCard: {
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '0.75rem',
-    padding: '1.5rem',
-    backgroundColor: '#f8fafc',
-    border: '2px solid #e2e8f0',
-    borderRadius: theme.borderRadius.lg,
-    cursor: 'pointer',
-    transition: 'all 0.3s',
+    position: 'relative', display: 'flex', flexDirection: 'column',
+    alignItems: 'center', gap: '0.75rem', padding: '1.5rem',
+    backgroundColor: '#f8fafc', border: '2px solid #e2e8f0',
+    borderRadius: '0.75rem', cursor: 'pointer', transition: 'all 0.3s',
   },
-  themeCardActive: {
-    backgroundColor: '#dbeafe',
-    borderColor: theme.colors.primary,
-  },
-  themeIcon: {
-    fontSize: '2rem',
-    color: theme.colors.primary,
-  },
-  themeLabel: {
-    fontSize: '0.95rem',
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  themeCheck: {
-    position: 'absolute',
-    top: '0.5rem',
-    right: '0.5rem',
-    fontSize: '1.25rem',
-    color: theme.colors.primary,
-  },
-
-  // Responsive styles
-  '@media (max-width: 768px)': {
-    container: {
-      padding: '1rem 0 3rem 0',
-    },
-    content: {
-      padding: '0 1rem',
-    },
-    tabs: {
-      gap: '0.25rem',
-    },
-    tab: {
-      padding: '0.75rem 1rem',
-      fontSize: '0.875rem',
-    },
-    tabContent: {
-      padding: '1.5rem',
-    },
-    photoSection: {
-      flexDirection: 'column',
-      alignItems: 'center',
-      textAlign: 'center',
-    },
-    themeGrid: {
-      gridTemplateColumns: '1fr',
-    },
-    actionsGrid: {
-      gridTemplateColumns: '1fr',
-    },
-  },
-
-   settingItem: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '1.25rem',
-    backgroundColor: '#f8fafc',
-    borderRadius: '0.75rem',
-    borderWidth: '1px',
-    borderStyle: 'solid',
-    borderColor: '#e2e8f0',
-  },
-  
-  messageSuccess: {
-    backgroundColor: '#d1fae5',
-    color: '#059669',
-    borderWidth: '1px',
-    borderStyle: 'solid',
-    borderColor: '#6ee7b7',
-  },
-  
-  messageError: {
-    backgroundColor: '#fee2e2',
-    color: '#dc2626',
-    borderWidth: '1px',
-    borderStyle: 'solid',
-    borderColor: '#fca5a5',
-  },
-  
-  tabs: {
-    display: 'flex',
-    gap: '0.5rem',
-    borderBottomWidth: '2px',
-    borderBottomStyle: 'solid',
-    borderBottomColor: '#e2e8f0',
-    marginBottom: '2rem',
-    overflowX: 'auto',
-  },
-  
-  tab: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '1rem 1.5rem',
-    backgroundColor: 'transparent',
-    borderStyle: 'none',
-    borderBottomWidth: '3px',
-    borderBottomStyle: 'solid',
-    borderBottomColor: 'transparent',
-    color: '#64748b',
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '0.95rem',
-    transition: 'all 0.3s',
-    whiteSpace: 'nowrap',
-  },
-  
-  input: {
-    padding: '0.75rem 1rem',
-    borderRadius: '0.5rem',
-    borderWidth: '2px',
-    borderStyle: 'solid',
-    borderColor: '#e2e8f0',
-    fontSize: '1rem',
-    transition: 'all 0.3s',
-    outline: 'none',
-  },
-  
-  select: {
-    padding: '0.75rem 1rem',
-    borderRadius: '0.5rem',
-    borderWidth: '2px',
-    borderStyle: 'solid',
-    borderColor: '#e2e8f0',
-    fontSize: '1rem',
-    backgroundColor: '#fff',
-    cursor: 'pointer',
-    outline: 'none',
-  },
-  
-  buttonSecondary: {
-    backgroundColor: 'transparent',
-    color: '#ef4444',
-    borderWidth: '2px',
-    borderStyle: 'solid',
-    borderColor: '#ef4444',
-    padding: '0.625rem 1.25rem',
-    borderRadius: '0.75rem',
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '0.875rem',
-    transition: 'all 0.3s',
-  },
-  
-  buttonDanger: {
-    backgroundColor: '#dc2626',
-    color: '#fff',
-    borderStyle: 'none',
-    padding: '0.625rem 1.25rem',
-    borderRadius: '0.75rem',
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '0.875rem',
-    transition: 'all 0.3s',
-  },
-  
-  buttonPrimary: {
-    backgroundColor: '#ef4444',
-    color: '#ffffff',
-    borderStyle: 'none',
-    padding: '0.875rem 1.5rem',
-    borderRadius: '0.75rem',
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '0.95rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    transition: 'all 0.3s',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-  },
-  
-  photoImage: {
-    width: '120px',
-    height: '120px',
-    borderRadius: '50%',
-    objectFit: 'cover',
-    borderWidth: '4px',
-    borderStyle: 'solid',
-    borderColor: '#fff',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-  },
-  
-  photoButton: {
-    position: 'absolute',
-    bottom: '0',
-    right: '0',
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    backgroundColor: '#ef4444',
-    color: '#fff',
-    borderWidth: '3px',
-    borderStyle: 'solid',
-    borderColor: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    fontSize: '1.125rem',
-    transition: 'all 0.3s',
-  },
-  
-  themeCard: {
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '0.75rem',
-    padding: '1.5rem',
-    backgroundColor: '#f8fafc',
-    borderWidth: '2px',
-    borderStyle: 'solid',
-    borderColor: '#e2e8f0',
-    borderRadius: '0.75rem',
-    cursor: 'pointer',
-    transition: 'all 0.3s',
-  },
-  
-  messageClose: {
-    backgroundColor: 'transparent',
-    borderStyle: 'none',
-    color: 'inherit',
-    cursor: 'pointer',
-    fontSize: '1.25rem',
-    padding: '0.25rem',
-  },
+  themeCardActive: { backgroundColor: '#dbeafe', borderColor: '#ef4444' },
+  themeIcon: { fontSize: '2rem', color: '#ef4444' },
+  themeLabel: { fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' },
+  themeCheck: { position: 'absolute', top: '0.5rem', right: '0.5rem', fontSize: '1.25rem', color: '#ef4444' },
 };
