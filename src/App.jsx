@@ -12,6 +12,7 @@ import ResetPassword from './pages/ResetPassword';
 import AuthCallback from './pages/AuthCallback'; 
 import { ModalProvider } from './contexts/ModalContext';
 import AppRoutes from './AppRoutes';
+import FAQ from './pages/FAQ'
 
 // Entreprises (Prestataire)
 import MesEntreprises from './pages/entreprises/MesEntreprises';
@@ -176,6 +177,7 @@ function App() {
               <Route path="/services" element={<PublicServices />} />
               <Route path="/service/:id" element={<PublicServiceDetails />} /> 
               <Route path="/partenaires" element={<Partners />} />
+              <Route path="/faq" element={<FAQ />} />
             </Route>
             
             {/* Routes sans Navbar */}
