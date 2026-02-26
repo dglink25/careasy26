@@ -9,32 +9,6 @@ export default function Footer() {
   return (
     <footer style={styles.footer}>
 
-      {/* ── BANDE SUPÉRIEURE : CTA Newsletter ── */}
-     { /** <div style={styles.newsletter}>
-        <div style={styles.newsletterInner}>
-          <div style={styles.newsletterLeft}>
-            <span style={styles.newsletterBadge}>📬 Newsletter</span>
-            <h3 style={styles.newsletterTitle}>Restez informé des nouveautés CarEasy</h3>
-            <p style={styles.newsletterSub}>
-              Offres exclusives, nouveaux prestataires, conseils auto — directement dans votre boîte mail.
-            </p>
-          </div>
-          <div style={styles.newsletterRight}>
-            <div style={styles.newsletterForm}>
-              <input
-                type="email"
-                placeholder="votre@email.com"
-                style={styles.newsletterInput}
-              />
-              <button style={styles.newsletterBtn}>S'abonner</button>
-            </div>
-            <p style={styles.newsletterDisclaimer}>
-              🔒 Aucun spam. Désabonnement en un clic.
-            </p>
-          </div>
-        </div>
-      </div>  */}
-
       {/* ── CORPS PRINCIPAL ── */}
       <div style={styles.mainBody}>
         <div style={styles.mainGrid}>
@@ -47,11 +21,6 @@ export default function Footer() {
               des milliers d'automobilistes avec des prestataires certifiés partout dans
               le pays, pour tous vos besoins de mobilité.
             </p>
-            <div style={styles.badges}>
-              <div style={styles.badge}>✅ Prestataires vérifiés</div>
-              <div style={styles.badge}>🔒 Paiements sécurisés</div>
-              <div style={styles.badge}>⭐ Service de qualité</div>
-            </div>
             {/* Réseaux sociaux */}
             <div style={styles.socialTitle}>Suivez-nous</div>
             <div style={styles.socialRow}>
@@ -86,17 +55,16 @@ export default function Footer() {
           {/* COL 2 — Services */}
           <div style={styles.col}>
             <h4 style={styles.colTitle}>
-              <span style={styles.colTitleDot} />
               Nos Services
             </h4>
             <ul style={styles.navList}>
-              <li><Link to="/services?type=1" style={styles.navLink}>🔧 Mécanique automobile</Link></li>
-              <li><Link to="/services?type=2" style={styles.navLink}>🎨 Peinture & Carrosserie</Link></li>
-              <li><Link to="/services?type=3" style={styles.navLink}>🛞 Pneumatique & Jantes</Link></li>
-              <li><Link to="/services?type=4" style={styles.navLink}>❄️ Climatisation</Link></li>
-              <li><Link to="/services?type=5" style={styles.navLink}>🎓 Auto-école</Link></li>
-              <li><Link to="/services?type=6" style={styles.navLink}>🛡️ Assurance automobile</Link></li>
-              <li><Link to="/services?type=7" style={styles.navLink}>⚡ Électricité auto</Link></li>
+              <li><Link to="/services?type=1" style={styles.navLink}>Mécanique automobile</Link></li>
+              <li><Link to="/services?type=2" style={styles.navLink}>Peinture & Carrosserie</Link></li>
+              <li><Link to="/services?type=3" style={styles.navLink}>Pneumatique & Jantes</Link></li>
+              <li><Link to="/services?type=4" style={styles.navLink}>Climatisation auto</Link></li>
+              <li><Link to="/services?type=5" style={styles.navLink}>Auto-école</Link></li>
+              <li><Link to="/services?type=6" style={styles.navLink}>Assurance automobile</Link></li>
+              <li><Link to="/services?type=7" style={styles.navLink}>Électricité auto</Link></li>
               <li><Link to="/services" style={styles.navLinkMore}>Voir tous les services →</Link></li>
             </ul>
           </div>
@@ -104,76 +72,62 @@ export default function Footer() {
           {/* COL 3 — Plateforme */}
           <div style={styles.col}>
             <h4 style={styles.colTitle}>
-              <span style={styles.colTitleDot} />
               Plateforme
             </h4>
             <ul style={styles.navList}>
-              <li><Link to="/entreprises" style={styles.navLink}>🏢 Trouver une entreprise</Link></li>
-              <li><Link to="/services" style={styles.navLink}>🛠️ Explorer les services</Link></li>
-              <li><Link to="/partenaires" style={styles.navLink}>🤝 Nos partenaires</Link></li>
-              <li><Link to="/register" style={styles.navLink}>✨ Créer un compte</Link></li>
-              <li><Link to="/login" style={styles.navLink}>🔑 Se connecter</Link></li>
-              <li><a href="#" style={styles.navLink}>📱 Application mobile (bientôt)</a></li>
+              <li><Link to="/entreprises" style={styles.navLink}>Trouver une entreprise</Link></li>
+              <li><Link to="/services" style={styles.navLink}>Explorer les services</Link></li>
+              <li><Link to="/partenaires" style={styles.navLink}>Nos partenaires</Link></li>
+              <li><Link to="/register" style={styles.navLink}>Créer un compte</Link></li>
+              <li><Link to="/login" style={styles.navLink}>Se connecter</Link></li>
+              <li><a href="#" style={styles.navLink}>Application mobile (bientôt)</a></li>
             </ul>
 
             <h4 style={{ ...styles.colTitle, marginTop: '2rem' }}>
-              <span style={styles.colTitleDot} />
               Prestataires
             </h4>
             <ul style={styles.navList}>
-              <li><Link to="/register" style={styles.navLink}>➕ Inscrire mon entreprise</Link></li>
-              <li><Link to="/mes-entreprises" style={styles.navLink}>🏗️ Gérer mes entreprises</Link></li>
-              <li><Link to="/mes-services" style={styles.navLink}>📋 Gérer mes services</Link></li>
-              <li><Link to="/messages" style={styles.navLink}>💬 Mes messages</Link></li>
-              <li><Link to="/dashboard" style={styles.navLink}>📊 Mon tableau de bord</Link></li>
+              <li><Link to="/register" style={styles.navLink}>Inscrire mon entreprise</Link></li>
+              <li><Link to="/mes-entreprises" style={styles.navLink}>Gérer mes entreprises</Link></li>
+              <li><Link to="/mes-services" style={styles.navLink}>Gérer mes services</Link></li>
+              <li><Link to="/messages" style={styles.navLink}>Mes messages</Link></li>
+              <li><Link to="/dashboard" style={styles.navLink}>Mon tableau de bord</Link></li>
             </ul>
           </div>
 
           {/* COL 4 — Aide & Contact */}
           <div style={styles.col}>
             <h4 style={styles.colTitle}>
-              <span style={styles.colTitleDot} />
               Aide & Support
             </h4>
             <ul style={styles.navList}>
-              <li><Link to="/faq" style={styles.navLink}>❓ Centre d'aide / FAQ</Link></li>
-              <li><a href="#" style={styles.navLink}>📖 Guide du prestataire</a></li>
-              <li><a href="#" style={styles.navLink}>🐛 Signaler un bug</a></li>
-              <li><a href="#" style={styles.navLink}>💡 Suggérer une fonctionnalité</a></li>
-              <li><a href="#" style={styles.navLink}>🔒 Politique de confidentialité</a></li>
-              <li><a href="#" style={styles.navLink}>📜 Conditions d'utilisation</a></li>
-              <li><a href="#" style={styles.navLink}>🍪 Gestion des cookies</a></li>
+              <li><Link to="/faq" style={styles.navLink}>Centre d'aide / FAQ</Link></li>
+              <li><a href="#" style={styles.navLink}>Guide du prestataire</a></li>
+              <li><a href="#" style={styles.navLink}>Suggérer une fonctionnalité</a></li>
+              <li><a href="#" style={styles.navLink}>Politique de confidentialité</a></li>
+              <li><a href="#" style={styles.navLink}>Conditions d'utilisation</a></li>
             </ul>
 
             {/* Bloc contact direct */}
             <div style={styles.contactCard}>
-              <div style={styles.contactCardHeader}>📞 Contact direct</div>
-              <a href="tel:+22990000000" style={styles.contactRow}>
-                <div style={styles.contactIcon}>📱</div>
-                <div>
-                  <div style={styles.contactLabel}>Téléphone / WhatsApp</div>
-                  <div style={styles.contactValue}>+229 90 00 00 00</div>
-                </div>
-              </a>
+              <div style={styles.contactCardHeader}>Contact direct</div>
+              
               <a href="mailto:careasy26@gmail.com" style={styles.contactRow}>
-                <div style={styles.contactIcon}>✉️</div>
                 <div>
                   <div style={styles.contactLabel}>Email</div>
                   <div style={styles.contactValue}>careasy26@gmail.com</div>
                 </div>
               </a>
               <div style={styles.contactRow}>
-                <div style={styles.contactIcon}>📍</div>
                 <div>
                   <div style={styles.contactLabel}>Siège social</div>
                   <div style={styles.contactValue}>Cotonou, Bénin</div>
                 </div>
               </div>
               <div style={styles.contactRow}>
-                <div style={styles.contactIcon}>🕐</div>
                 <div>
                   <div style={styles.contactLabel}>Horaires support</div>
-                  <div style={styles.contactValue}>Lun–Sam · 7h00 – 20h00</div>
+                  <div style={styles.contactValue}>Lundi – Samedi : 7h00 – 20h00</div>
                 </div>
               </div>
             </div>
@@ -187,8 +141,7 @@ export default function Footer() {
       <div style={styles.bottomBar}>
         <div style={styles.bottomInner}>
           <p style={styles.copyright}>
-            © {currentYear} <strong style={styles.brandName}>CarEasy</strong> — Tous droits réservés.
-            Fait avec ❤️ au Bénin 🇧🇯
+            © {currentYear} <strong style={styles.brandName}>CarEasy</strong> — Tous droits réservés
           </p>
           <div style={styles.bottomLinks}>
             <a href="#" style={styles.bottomLink}>Confidentialité</a>

@@ -67,7 +67,7 @@ export default function Register({ isModal = false, onClose }) { // AJOUTER prop
   const handleGoogleLogin = () => {
     const apiUrl = import.meta.env.VITE_APP_URL || 'http://localhost:8000';
     const baseUrl = apiUrl.endsWith('/auth') ? apiUrl.replace('/auth', '') : apiUrl;
-    const googleAuthUrl = `${baseUrl}/api/auth/google`;
+    const googleAuthUrl = `${baseUrl}/auth/google`;
     console.log('Redirecting to Google auth:', googleAuthUrl);
     window.location.href = googleAuthUrl;
   };
@@ -111,7 +111,7 @@ export default function Register({ isModal = false, onClose }) { // AJOUTER prop
         
         {error && (
           <div style={styles.error}>
-            ⚠️ {error}
+            {error}
           </div>
         )}
 
@@ -228,7 +228,7 @@ export default function Register({ isModal = false, onClose }) { // AJOUTER prop
           type="button"
         >
           <FaGoogle style={styles.googleIcon} />
-          <span>S'inscrire avec Google</span>
+          <span>Continuer avec Google</span>
         </button>
 
         <div style={styles.footer}>

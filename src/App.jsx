@@ -40,15 +40,12 @@ import PublicEntrepriseDetails from './pages/public/PublicEntrepriseDetails';
 import PublicServices from './pages/public/PublicServices';
 import PublicServiceDetails from './pages/public/PublicServiceDetails'; 
 import Partners from './pages/Partners';
-/*
-import React from 'react'
-import {AdvancedImage} from '@cloudinary/react';
-import {Cloudinary} from "@cloudinary/url-gen";
-*/
+
+
 function App() {
   return (
- 
     <BrowserRouter>
+    
       <AuthProvider>
         <ModalProvider>
         <div style={{ minHeight: '100vh' }}>
@@ -59,7 +56,8 @@ function App() {
               <Route path="/" element={<Home />} />
               
               {/* Dashboard */}
-              <Route
+              <Route 
+                
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
@@ -185,6 +183,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/password-reset/:token" element={<ResetPassword />} />
+            <Route path="/auth/callback" element={<AuthCallback />} /> 
             <Route path="/auth/callback" element={<AuthCallback />} />
           </Routes>
         </div>

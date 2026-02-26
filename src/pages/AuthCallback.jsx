@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -10,9 +11,17 @@ export default function AuthCallback() {
   useEffect(() => {
     const processAuth = async () => {
       const token = searchParams.get('token');
+      const user = JSON.parse(decodeURIComponent(searchParams.get("user")));
       const userParam = searchParams.get('user');
       const error = searchParams.get('error');
       const message = searchParams.get('message');
+
+      console.log("Token:", token);
+      console.log("User:", user);
+
+      localStorage.setItem("token", token);
+
+      window.location.href = "/dashboard";
 
       if (error) {
         console.error('Auth error:', error, message);

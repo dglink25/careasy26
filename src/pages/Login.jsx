@@ -42,7 +42,7 @@ export default function Login({ isModal = false, onClose }) {
     const baseUrl = apiUrl.endsWith('/auth') ? apiUrl.replace('/auth', '') : apiUrl;
     
     // Construire l'URL correcte
-    const googleAuthUrl = `${baseUrl}/api/auth/google`;
+    const googleAuthUrl = `${baseUrl}/auth/google`;
     console.log('Redirecting to Google auth:', googleAuthUrl);
     
     window.location.href = googleAuthUrl;
@@ -97,7 +97,7 @@ const handleRegisterClick = () => {
 
         {error && (
           <div style={styles.error}>
-            ⚠️ {error}
+             {error}
           </div>
         )}
 
@@ -176,7 +176,7 @@ const handleRegisterClick = () => {
           type="button"
         >
           <FaGoogle style={styles.googleIcon} />
-          <span>Se connecter avec Google</span>
+          <span>Continuer avec Google</span>
         </button>
 
         <div style={styles.footer}>

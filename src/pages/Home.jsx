@@ -1,10 +1,10 @@
-// careasy-frontend/src/pages/Home.jsx - VERSION FINALE COMPLÈTE
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ChatModal from '../components/Chat/ChatModal';
 import { publicApi } from './../api/publicApi';
 import theme from './../config/theme';
+
 import { 
   FaWrench, FaPaintBrush, FaCog, FaSnowflake, 
   FaCar, FaShieldAlt, FaGraduationCap, FaOilCan,
@@ -601,7 +601,7 @@ export default function Home() {
               
               <div style={styles.contactModalFooter}>
                 <p style={styles.contactModalNote}>
-                  💡 <strong>Recommandé :</strong>La messagerie permet de suivre vos conversations et de partager des photos/vidéos.
+                  <strong>Recommandé :</strong>La messagerie permet de suivre vos conversations et de partager des photos/vidéos.
                 </p>
               </div>
             </div>
