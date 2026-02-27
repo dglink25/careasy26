@@ -1,5 +1,5 @@
 // careasy-frontend/src/components/ItineraryModal.jsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   FiX,
   FiNavigation,
@@ -14,7 +14,8 @@ import {
   FiArrowRight,
   FiChevronDown,
   FiChevronUp,
-  FiSearch
+  FiSearch,
+  FiInfo
 } from 'react-icons/fi';
 import {
   MdOutlineDirectionsCar,
@@ -25,12 +26,11 @@ import {
   MdOutlineDirectionsBus,
   MdOutlineTraffic,
   MdOutlineRoute,
-  MdOutlineError
+  MdOutlineError,
+  MdOutlineWarning
 } from 'react-icons/md';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
-import 'leaflet-routing-machine';
 import axios from 'axios';
 
 // Correction des icônes Leaflet
@@ -41,22 +41,64 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// Service de routage avec fallback
+const ROUTING_SERVICES = [
+  {
+    name: 'OSRM',
+    url: 'https://router.project-osrm.org/route/v1',
+    enabled: true,
+    timeout: 5000
+  },
+  {
+    name: 'GraphHopper',
+    url: 'https://graphhopper.com/api/1/route',
+    enabled: true,
+    apiKey: 'your-graphhopper-key', // À remplacer par votre clé API
+    timeout: 5000
+  },
+  {
+    name: 'OpenRouteService',
+    url: 'https://api.openrouteservice.org/v2/directions',
+    enabled: true,
+    apiKey: 'your-openrouteservice-key', // À remplacer par votre clé API
+    timeout: 5000
+  }
+];
+
 // Création d'icônes personnalisées
-const createCustomIcon = (color, iconUrl) => {
+const createCustomIcon = (color, type = 'default') => {
+  const getIconSvg = () => {
+    switch(type) {
+      case 'start':
+        return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="8" fill="white" stroke="${color}" stroke-width="2"/>
+          <circle cx="12" cy="12" r="4" fill="${color}"/>
+        </svg>`;
+      case 'end':
+        return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${color}" stroke="white" stroke-width="2"/>
+          <circle cx="12" cy="9" r="3" fill="white"/>
+        </svg>`;
+      default:
+        return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="${color}" stroke="white" stroke-width="2"/>
+        </svg>`;
+    }
+  };
+
   return L.divIcon({
-    html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="white"/>
-      </svg>
+    html: `<div style="background-color: ${color}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+      ${getIconSvg()}
     </div>`,
     className: 'custom-marker',
-    iconSize: [24, 24],
-    iconAnchor: [12, 24],
-    popupAnchor: [0, -24]
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
   });
 };
 
 export default function ItineraryModal({ isOpen, onClose, destination }) {
+  // États
   const [loading, setLoading] = useState(false);
   const [geocodingLoading, setGeocodingLoading] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
@@ -68,11 +110,16 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
   const [expanded, setExpanded] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
   const [mapError, setMapError] = useState('');
+  const [routingService, setRoutingService] = useState('OSRM');
+  const [retryCount, setRetryCount] = useState(0);
+  const [offlineMode, setOfflineMode] = useState(false);
   
+  // Refs
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const routingControlRef = useRef(null);
+  const routeLayerRef = useRef(null);
   const markersRef = useRef([]);
+  const abortControllerRef = useRef(null);
 
   // Géocoder l'adresse de destination
   useEffect(() => {
@@ -81,28 +128,38 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
     }
   }, [isOpen, destination]);
 
-  // Initialisation de la carte quand les deux positions sont disponibles
+  // Initialisation de la carte
   useEffect(() => {
     if (isOpen && userLocation && destinationCoords && !mapInstanceRef.current) {
       initMap();
     }
     
     return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-      markersRef.current.forEach(marker => marker.remove());
-      markersRef.current = [];
+      cleanupMap();
     };
   }, [isOpen, userLocation, destinationCoords]);
 
-  // Recalculer l'itinéraire quand le mode de transport change
+  // Recalculer l'itinéraire
   useEffect(() => {
     if (userLocation && destinationCoords && mapInstanceRef.current) {
-      calculateRoute();
+      calculateRouteWithFallback();
     }
-  }, [travelMode, userLocation, destinationCoords]);
+  }, [travelMode, userLocation, destinationCoords, retryCount]);
+
+  const cleanupMap = () => {
+    if (routeLayerRef.current) {
+      mapInstanceRef.current?.removeLayer(routeLayerRef.current);
+    }
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
 
   const geocodeAddress = async (address) => {
     if (!address) {
@@ -114,40 +171,46 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
     setGeocodingError('');
 
     try {
-      // Utilisation de Nominatim (OpenStreetMap) pour le géocodage
+      // Tentative avec Nominatim
       const response = await axios.get('https://nominatim.openstreetmap.org/search', {
         params: {
-          q: address + ', Bénin', // Ajouter le pays pour plus de précision
+          q: `${address}, Bénin`,
           format: 'json',
-          limit: 1
+          limit: 5,
+          'accept-language': 'fr'
         },
         headers: {
           'User-Agent': 'Careasy/1.0'
-        }
+        },
+        timeout: 8000
       });
 
       if (response.data && response.data.length > 0) {
+        // Prendre le résultat le plus pertinent
         const result = response.data[0];
         setDestinationCoords({
           lat: parseFloat(result.lat),
-          lng: parseFloat(result.lon)
+          lng: parseFloat(result.lon),
+          displayName: result.display_name
         });
       } else {
-        // Si non trouvé, utiliser des coordonnées par défaut pour Cotonou
+        // Fallback sur les coordonnées de Cotonou
         console.warn('Adresse non trouvée, utilisation des coordonnées par défaut');
         setDestinationCoords({
           lat: 6.3667,
-          lng: 2.4167
+          lng: 2.4167,
+          displayName: 'Cotonou, Bénin (position approximative)'
         });
-        setGeocodingError('Adresse approximative (Cotonou centre)');
+        setGeocodingError('Position approximative');
       }
     } catch (error) {
       console.error('Erreur de géocodage:', error);
-      setGeocodingError('Impossible de localiser cette adresse');
+      setGeocodingError('Utilisation de la position approximative');
       // Fallback sur Cotonou
       setDestinationCoords({
         lat: 6.3667,
-        lng: 2.4167
+        lng: 2.4167,
+        displayName: 'Cotonou, Bénin'
       });
     } finally {
       setGeocodingLoading(false);
@@ -158,116 +221,320 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
     if (!mapRef.current || !userLocation || !destinationCoords) return;
 
     try {
-      // Créer la carte centrée entre les deux points
-      const center = {
-        lat: (userLocation.lat + destinationCoords.lat) / 2,
-        lng: (userLocation.lng + destinationCoords.lng) / 2
-      };
+      // Calculer les bounds pour centrer la carte
+      const bounds = L.latLngBounds([
+        [userLocation.lat, userLocation.lng],
+        [destinationCoords.lat, destinationCoords.lng]
+      ]);
 
-      const map = L.map(mapRef.current).setView([center.lat, center.lng], 12);
+      const map = L.map(mapRef.current, {
+        center: bounds.getCenter(),
+        zoom: 13,
+        zoomControl: true,
+        attributionControl: true
+      });
 
-      // Ajouter les tuiles OpenStreetMap
+      // Ajouter plusieurs tuiles pour le fallback
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
+        attribution: '© OpenStreetMap',
         maxZoom: 19,
       }).addTo(map);
 
+      // Ajouter une couche de tuiles de secours
+      L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap France',
+        maxZoom: 19
+      }).addTo(map);
+
       mapInstanceRef.current = map;
-
-      // Ajouter des marqueurs personnalisés
-      const startMarker = L.marker([userLocation.lat, userLocation.lng], {
-        icon: createCustomIcon('#228be6', 'start')
-      }).addTo(map).bindPopup('Votre position');
       
-      const endMarker = L.marker([destinationCoords.lat, destinationCoords.lng], {
-        icon: createCustomIcon('#fa5252', 'end')
-      }).addTo(map).bindPopup(destination.name);
+      // Ajuster la vue pour montrer tout l'itinéraire
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
 
-      markersRef.current = [startMarker, endMarker];
+      // Ajouter les marqueurs
+      addMarkers();
 
-      // Calculer l'itinéraire
-      calculateRoute();
     } catch (error) {
       console.error('Erreur d\'initialisation de la carte:', error);
       setMapError('Erreur lors du chargement de la carte');
     }
   };
 
-  const calculateRoute = async () => {
+  const addMarkers = () => {
     if (!mapInstanceRef.current || !userLocation || !destinationCoords) return;
+
+    // Nettoyer les anciens marqueurs
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+
+    // Marqueur de départ
+    const startMarker = L.marker([userLocation.lat, userLocation.lng], {
+      icon: createCustomIcon('#228be6', 'start'),
+      zIndexOffset: 1000
+    }).addTo(mapInstanceRef.current)
+      .bindPopup('Votre position', { permanent: false })
+      .openPopup();
+
+    // Marqueur d'arrivée
+    const endMarker = L.marker([destinationCoords.lat, destinationCoords.lng], {
+      icon: createCustomIcon('#fa5252', 'end'),
+      zIndexOffset: 1000
+    }).addTo(mapInstanceRef.current)
+      .bindPopup(destination.name, { permanent: false })
+      .openPopup();
+
+    markersRef.current = [startMarker, endMarker];
+  };
+
+  const calculateRouteWithFallback = async () => {
+    if (!userLocation || !destinationCoords) return;
 
     setLoading(true);
     setMapError('');
+    setOfflineMode(false);
+
+    // Essayer chaque service de routage jusqu'à ce qu'un fonctionne
+    for (const service of ROUTING_SERVICES) {
+      if (!service.enabled) continue;
+
+      try {
+        setRoutingService(service.name);
+        
+        let route;
+        switch(service.name) {
+          case 'OSRM':
+            route = await calculateOSRMRoute(service);
+            break;
+          case 'GraphHopper':
+            route = await calculateGraphHopperRoute(service);
+            break;
+          case 'OpenRouteService':
+            route = await calculateOpenRouteServiceRoute(service);
+            break;
+          default:
+            continue;
+        }
+
+        if (route) {
+          displayRoute(route);
+          setLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.warn(`Service ${service.name} échoué:`, error);
+        continue;
+      }
+    }
+
+    // Si tous les services échouent, utiliser le mode hors ligne
+    setOfflineMode(true);
+    calculateOfflineRoute();
+    setLoading(false);
+    setMapError('Mode hors ligne - itinéraire approximatif');
+  };
+
+  const calculateOSRMRoute = async (service) => {
+    const profile = travelMode === 'walking' ? 'foot' : 
+                   travelMode === 'cycling' ? 'bike' : 'driving';
+
+    const url = `${service.url}/${profile}/${userLocation.lng},${userLocation.lat};${destinationCoords.lng},${destinationCoords.lat}`;
+    
+    const response = await axios.get(url, {
+      params: {
+        alternatives: false,
+        steps: true,
+        geometries: 'geojson',
+        overview: 'full'
+      },
+      timeout: service.timeout
+    });
+
+    if (response.data?.routes?.[0]) {
+      const route = response.data.routes[0];
+      return {
+        coordinates: route.geometry.coordinates.map(coord => [coord[1], coord[0]]),
+        distance: route.distance,
+        duration: route.duration,
+        instructions: route.legs?.[0]?.steps || []
+      };
+    }
+    throw new Error('No route found');
+  };
+
+  const calculateGraphHopperRoute = async (service) => {
+    const url = service.url;
+    const response = await axios.get(url, {
+      params: {
+        key: service.apiKey,
+        point: [`${userLocation.lat},${userLocation.lng}`, `${destinationCoords.lat},${destinationCoords.lng}`],
+        vehicle: travelMode,
+        locale: 'fr',
+        instructions: true,
+        calc_points: true
+      },
+      timeout: service.timeout
+    });
+
+    if (response.data?.paths?.[0]) {
+      const path = response.data.paths[0];
+      return {
+        coordinates: path.points.coordinates.map(coord => [coord[1], coord[0]]),
+        distance: path.distance,
+        duration: path.time / 1000, // Convertir en secondes
+        instructions: path.instructions || []
+      };
+    }
+    throw new Error('No route found');
+  };
+
+  const calculateOpenRouteServiceRoute = async (service) => {
+    const profile = travelMode === 'walking' ? 'foot-walking' :
+                   travelMode === 'cycling' ? 'cycling-regular' : 'driving-car';
+
+    const url = `${service.url}/${profile}/geojson`;
+    
+    const response = await axios.post(url, {
+      coordinates: [
+        [userLocation.lng, userLocation.lat],
+        [destinationCoords.lng, destinationCoords.lat]
+      ],
+      instructions: true
+    }, {
+      headers: {
+        'Authorization': service.apiKey,
+        'Content-Type': 'application/json'
+      },
+      timeout: service.timeout
+    });
+
+    if (response.data?.features?.[0]) {
+      const feature = response.data.features[0];
+      const properties = feature.properties;
+      const segments = properties.segments?.[0];
+
+      return {
+        coordinates: feature.geometry.coordinates.map(coord => [coord[1], coord[0]]),
+        distance: segments?.distance || 0,
+        duration: segments?.duration || 0,
+        instructions: segments?.steps || []
+      };
+    }
+    throw new Error('No route found');
+  };
+
+  const calculateOfflineRoute = () => {
+    // Calcul d'une route en ligne droite avec étapes intermédiaires
+    const start = [userLocation.lat, userLocation.lng];
+    const end = [destinationCoords.lat, destinationCoords.lng];
+    
+    // Calculer la distance approximative (formule de Haversine)
+    const R = 6371; // Rayon de la Terre en km
+    const dLat = (end[0] - start[0]) * Math.PI / 180;
+    const dLon = (end[1] - start[1]) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(start[0] * Math.PI / 180) * Math.cos(end[0] * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+
+    // Créer une ligne avec des points intermédiaires
+    const coordinates = [];
+    const steps = 20;
+    for (let i = 0; i <= steps; i++) {
+      const lat = start[0] + (end[0] - start[0]) * i / steps;
+      const lng = start[1] + (end[1] - start[1]) * i / steps;
+      coordinates.push([lat, lng]);
+    }
+
+    // Vitesse moyenne selon le mode de transport (km/h)
+    const speeds = {
+      driving: 30,
+      walking: 5,
+      cycling: 15
+    };
+
+    const duration = (distance / speeds[travelMode]) * 3600; // en secondes
+
+    setRouteInfo({
+      distance: distance * 1000, // en mètres
+      duration: duration,
+      coordinates: coordinates,
+      instructions: [],
+      summary: {
+        totalDistance: distance * 1000,
+        totalTime: duration
+      }
+    });
+
+    displayRoute({
+      coordinates: coordinates,
+      distance: distance * 1000,
+      duration: duration
+    });
+  };
+
+  const displayRoute = (route) => {
+    if (!mapInstanceRef.current) return;
 
     try {
-      // Supprimer l'ancien contrôle d'itinéraire
-      if (routingControlRef.current) {
-        mapInstanceRef.current.removeControl(routingControlRef.current);
+      // Supprimer l'ancien tracé
+      if (routeLayerRef.current) {
+        mapInstanceRef.current.removeLayer(routeLayerRef.current);
       }
 
-      // Configurer le mode de transport pour OSRM
-      const profile = travelMode === 'walking' ? 'foot' : 
-                     travelMode === 'cycling' ? 'bike' : 'car';
-
-      // Créer le contrôle d'itinéraire avec OSRM
-      const routingControl = L.Routing.control({
-        waypoints: [
-          L.latLng(userLocation.lat, userLocation.lng),
-          L.latLng(destinationCoords.lat, destinationCoords.lng)
-        ],
-        router: L.Routing.osrmv1({
-          serviceUrl: `https://router.project-osrm.org/route/v1/${profile}`,
-          profile: profile
-        }),
-        lineOptions: {
-          styles: [{
-            color: travelMode === 'walking' ? '#10b981' :
-                   travelMode === 'cycling' ? '#f59e0b' : '#3b82f6',
-            weight: 6,
-            opacity: 0.8
-          }],
-          extendToWaypoints: true,
-          missingRouteTolerance: 10
-        },
-        showAlternatives: false,
-        autoRoute: true,
-        routeWhileDragging: false,
-        fitSelectedRoutes: true,
-        show: false // Cacher les instructions par défaut
+      // Créer le nouveau tracé
+      const routeLine = L.polyline(route.coordinates, {
+        color: getModeColor(travelMode),
+        weight: 6,
+        opacity: 0.8,
+        lineCap: 'round',
+        lineJoin: 'round',
+        smoothFactor: 1
       }).addTo(mapInstanceRef.current);
 
-      routingControlRef.current = routingControl;
+      routeLayerRef.current = routeLine;
 
-      // Écouter l'événement de routage réussi
-      routingControl.on('routesfound', (e) => {
-        const route = e.routes[0];
-        const distance = (route.summary.totalDistance / 1000).toFixed(1);
-        const duration = Math.round(route.summary.totalTime / 60);
+      // Ajouter des flèches directionnelles (optionnel)
+      if (route.coordinates.length > 1) {
+        const arrows = [];
+        for (let i = 0; i < route.coordinates.length - 1; i += Math.floor(route.coordinates.length / 10)) {
+          const point = route.coordinates[i];
+          const nextPoint = route.coordinates[i + 1];
+          const angle = Math.atan2(nextPoint[1] - point[1], nextPoint[0] - point[0]) * 180 / Math.PI;
+          
+          const arrow = L.marker([point[0], point[1]], {
+            icon: L.divIcon({
+              html: `<div style="transform: rotate(${angle}deg);">➤</div>`,
+              className: 'route-arrow',
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            })
+          }).addTo(mapInstanceRef.current);
+          arrows.push(arrow);
+        }
+      }
 
-        setRouteInfo({
-          distance,
-          duration,
-          coordinates: route.coordinates,
-          instructions: route.instructions,
-          summary: route.summary
-        });
-        setLoading(false);
+      // Mettre à jour les informations de route
+      setRouteInfo({
+        distance: (route.distance / 1000).toFixed(1),
+        duration: Math.round(route.duration / 60),
+        coordinates: route.coordinates,
+        instructions: route.instructions || [],
+        summary: route.summary || {}
       });
 
-      routingControl.on('routingerror', (e) => {
-        console.error('Erreur de routage:', e.error);
-        setMapError('Impossible de calculer l\'itinéraire');
-        setLoading(false);
-      });
+      // Ajuster la vue pour montrer tout l'itinéraire
+      const bounds = L.latLngBounds(route.coordinates);
+      mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
 
     } catch (error) {
-      console.error('Erreur lors du calcul de l\'itinéraire:', error);
-      setMapError('Erreur lors du calcul de l\'itinéraire');
-      setLoading(false);
+      console.error('Erreur affichage route:', error);
+      setMapError('Erreur lors de l\'affichage de l\'itinéraire');
     }
   };
 
-  const getUserLocation = () => {
+  const getUserLocation = useCallback(() => {
     setLoading(true);
     setLocationError('');
 
@@ -277,12 +544,21 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
       return;
     }
 
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    };
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setUserLocation({
           lat: position.coords.latitude,
-          lng: position.coords.longitude
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy
         });
+        setLocationError('');
+        setLoading(false);
       },
       (error) => {
         let message = 'Position non disponible';
@@ -291,7 +567,7 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
             message = 'Veuillez autoriser la géolocalisation';
             break;
           case error.POSITION_UNAVAILABLE:
-            message = 'Position temporairement indisponible';
+            message = 'Signal GPS indisponible';
             break;
           case error.TIMEOUT:
             message = 'Délai de recherche dépassé';
@@ -299,9 +575,17 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
         }
         setLocationError(message);
         setLoading(false);
-      }
+        
+        // Position par défaut (Cotonou)
+        setUserLocation({
+          lat: 6.3667,
+          lng: 2.4167,
+          isDefault: true
+        });
+      },
+      options
     );
-  };
+  }, []);
 
   const formatDuration = (minutes) => {
     if (minutes < 60) {
@@ -310,6 +594,13 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}min`;
+  };
+
+  const formatDistance = (meters) => {
+    if (meters < 1000) {
+      return `${Math.round(meters)} m`;
+    }
+    return `${(meters / 1000).toFixed(1)} km`;
   };
 
   const getModeIcon = (mode) => {
@@ -334,13 +625,26 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
     }
   };
 
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    setMapError('');
+    setOfflineMode(false);
+  };
+
   const handleCenterMap = () => {
     if (mapInstanceRef.current && userLocation && destinationCoords) {
       const bounds = L.latLngBounds([
         [userLocation.lat, userLocation.lng],
         [destinationCoords.lat, destinationCoords.lng]
       ]);
-      mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+      mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+    }
+  };
+
+  const handleOpenInMaps = () => {
+    if (userLocation && destinationCoords) {
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${destinationCoords.lat},${destinationCoords.lng}&travelmode=${travelMode}`;
+      window.open(url, '_blank');
     }
   };
 
@@ -388,8 +692,15 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
               <div style={styles.addressContent}>
                 <span style={styles.addressLabel}>Départ</span>
                 <p style={styles.addressText}>
-                  {userLocation ? 'Votre position' : 'Non définie'}
+                  {userLocation ? 
+                    (userLocation.isDefault ? 'Position approximative' : 'Votre position') 
+                    : 'Non définie'}
                 </p>
+                {userLocation?.accuracy && (
+                  <span style={styles.addressPrecision}>
+                    Précision: ±{Math.round(userLocation.accuracy)}m
+                  </span>
+                )}
               </div>
             </div>
             <div style={styles.addressConnector}>
@@ -405,6 +716,11 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
                 <p style={styles.addressText}>
                   {destination.siege || 'Adresse non disponible'}
                 </p>
+                {destinationCoords?.displayName && (
+                  <span style={styles.addressDetail}>
+                    {destinationCoords.displayName.substring(0, 50)}...
+                  </span>
+                )}
                 {geocodingError && (
                   <span style={styles.addressWarning}>{geocodingError}</span>
                 )}
@@ -415,9 +731,9 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
           {/* Modes de transport */}
           <div style={styles.modesContainer}>
             {[
-              { id: 'driving', label: 'Voiture' },
-              { id: 'walking', label: 'À pied' },
-              { id: 'cycling', label: 'Vélo' }
+              { id: 'driving', label: 'Voiture', icon: <MdOutlineDirectionsCar /> },
+              { id: 'walking', label: 'À pied', icon: <MdOutlineDirectionsWalk /> },
+              { id: 'cycling', label: 'Vélo', icon: <MdOutlineDirectionsBike /> }
             ].map((mode) => (
               <button
                 key={mode.id}
@@ -431,13 +747,15 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
                   })
                 }}
               >
-                {getModeIcon(mode.id)}
+                <span style={{...styles.modeIcon, color: travelMode === mode.id ? getModeColor(mode.id) : '#6c757d'}}>
+                  {mode.icon}
+                </span>
                 <span style={styles.modeLabel}>{mode.label}</span>
               </button>
             ))}
           </div>
 
-          {/* Messages d'erreur */}
+          {/* Messages d'information */}
           {locationError && (
             <div style={styles.errorCard}>
               <FiAlertCircle style={styles.errorIcon} />
@@ -458,10 +776,30 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
             </div>
           )}
 
-          {mapError && (
+          {offlineMode && (
+            <div style={styles.warningCard}>
+              <MdOutlineWarning style={styles.warningIcon} />
+              <div style={styles.warningContent}>
+                <p style={styles.warningText}>
+                  Mode hors ligne - Itinéraire approximatif
+                </p>
+                <span style={styles.warningSubtext}>
+                  Service de routage temporairement indisponible
+                </span>
+              </div>
+            </div>
+          )}
+
+          {mapError && !offlineMode && (
             <div style={styles.errorCard}>
               <MdOutlineError style={styles.errorIcon} />
-              <p style={styles.errorText}>{mapError}</p>
+              <div style={styles.errorContent}>
+                <p style={styles.errorText}>{mapError}</p>
+                <button onClick={handleRetry} style={styles.retryButton}>
+                  <FiRefreshCw style={styles.retryIcon} />
+                  Réessayer
+                </button>
+              </div>
             </div>
           )}
 
@@ -493,7 +831,9 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
             {loading && userLocation && destinationCoords && (
               <div style={styles.mapLoading}>
                 <div style={styles.spinner}></div>
-                <p style={styles.mapLoadingText}>Calcul de l'itinéraire...</p>
+                <p style={styles.mapLoadingText}>
+                  Calcul de l'itinéraire... ({routingService})
+                </p>
               </div>
             )}
             
@@ -514,7 +854,9 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
                   <FiTarget style={{...styles.summaryIcon, color: getModeColor(travelMode)}} />
                   <div style={styles.summaryContent}>
                     <span style={styles.summaryLabel}>Distance</span>
-                    <span style={styles.summaryValue}>{routeInfo.distance} km</span>
+                    <span style={styles.summaryValue}>
+                      {formatDistance(routeInfo.distance * 1000)}
+                    </span>
                   </div>
                 </div>
                 <div style={styles.summaryDivider}></div>
@@ -522,7 +864,9 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
                   <FiClock style={{...styles.summaryIcon, color: getModeColor(travelMode)}} />
                   <div style={styles.summaryContent}>
                     <span style={styles.summaryLabel}>Durée</span>
-                    <span style={styles.summaryValue}>{formatDuration(routeInfo.duration)}</span>
+                    <span style={styles.summaryValue}>
+                      {formatDuration(routeInfo.duration)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -552,16 +896,20 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
                           </div>
                           <div style={styles.instructionContent}>
                             <p style={styles.instructionText}>
-                              {instruction.text || instruction.instruction}
+                              {instruction.text || instruction.instruction || `Étape ${index + 1}`}
                             </p>
-                            <div style={styles.instructionMeta}>
-                              <span style={styles.instructionDistance}>
-                                {(instruction.distance / 1000).toFixed(1)} km
-                              </span>
-                              <span style={styles.instructionTime}>
-                                ({Math.round(instruction.time / 60)} min)
-                              </span>
-                            </div>
+                            {instruction.distance && (
+                              <div style={styles.instructionMeta}>
+                                <span style={styles.instructionDistance}>
+                                  {formatDistance(instruction.distance)}
+                                </span>
+                                {instruction.time && (
+                                  <span style={styles.instructionTime}>
+                                    ({formatDuration(Math.round(instruction.time / 60))})
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -577,15 +925,10 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
                   style={styles.centerButton}
                 >
                   <FiTarget style={styles.actionIcon} />
-                  Centrer la carte
+                  Centrer
                 </button>
                 <button 
-                  onClick={() => {
-                    if (userLocation && destinationCoords) {
-                      const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${destinationCoords.lat},${destinationCoords.lng}&travelmode=${travelMode}`;
-                      window.open(url, '_blank');
-                    }
-                  }}
+                  onClick={handleOpenInMaps}
                   style={styles.googleMapsButton}
                 >
                   <FiNavigation style={styles.actionIcon} />
@@ -599,8 +942,12 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
         {/* Footer */}
         <div style={styles.footer}>
           <div style={styles.footerNote}>
+            <FiInfo style={styles.footerIcon} />
             <span style={styles.footerNoteText}>
-              Itinéraire calculé avec OpenStreetMap • Données © contributeurs OpenStreetMap
+              {offlineMode 
+                ? 'Mode hors ligne • Itinéraire approximatif'
+                : `Itinéraire via ${routingService} • Données © contributeurs OpenStreetMap`
+              }
             </span>
           </div>
         </div>
@@ -631,6 +978,12 @@ export default function ItineraryModal({ isOpen, onClose, destination }) {
           background: transparent;
           border: none;
         }
+        
+        .route-arrow {
+          color: white;
+          font-size: 16px;
+          text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
       `}</style>
     </div>
   );
@@ -649,16 +1002,17 @@ const styles = {
     justifyContent: 'center',
     zIndex: 9999,
     padding: '1rem',
+    backdropFilter: 'blur(5px)',
   },
   modal: {
     backgroundColor: '#ffffff',
-    borderRadius: '20px',
+    borderRadius: '24px',
     width: '95%',
     maxWidth: '1000px',
     height: '90vh',
     display: 'flex',
     flexDirection: 'column',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
     animation: 'slideUp 0.3s ease-out',
     overflow: 'hidden',
   },
@@ -691,6 +1045,9 @@ const styles = {
     cursor: 'pointer',
     color: '#495057',
     transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#e9ecef',
+    }
   },
   backIcon: {
     fontSize: '1.25rem',
@@ -727,6 +1084,9 @@ const styles = {
     color: '#495057',
     transition: 'all 0.2s',
     fontSize: '1.25rem',
+    ':hover': {
+      backgroundColor: '#e9ecef',
+    }
   },
   body: {
     flex: 1,
@@ -743,7 +1103,7 @@ const styles = {
   },
   addressItem: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: '1rem',
   },
   addressIconDepart: {
@@ -755,6 +1115,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     color: '#228be6',
+    flexShrink: 0,
   },
   addressIconArrival: {
     width: '40px',
@@ -765,6 +1126,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     color: '#fa5252',
+    flexShrink: 0,
   },
   addressIconSvg: {
     fontSize: '1.25rem',
@@ -783,6 +1145,18 @@ const styles = {
     color: '#212529',
     fontWeight: '500',
     margin: '0.25rem 0 0 0',
+  },
+  addressDetail: {
+    fontSize: '0.75rem',
+    color: '#6c757d',
+    display: 'block',
+    marginTop: '0.25rem',
+  },
+  addressPrecision: {
+    fontSize: '0.7rem',
+    color: '#40c057',
+    display: 'block',
+    marginTop: '0.25rem',
   },
   addressWarning: {
     fontSize: '0.75rem',
@@ -823,6 +1197,10 @@ const styles = {
     borderRadius: '12px',
     cursor: 'pointer',
     transition: 'all 0.2s',
+    ':hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+    }
   },
   modeButtonActive: {
     borderWidth: '2px',
@@ -846,9 +1224,24 @@ const styles = {
     gap: '1rem',
     border: '1px solid #ffe3e3',
   },
+  warningCard: {
+    backgroundColor: '#fff9e6',
+    borderRadius: '12px',
+    padding: '1rem',
+    marginBottom: '1.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    border: '1px solid #ffecb3',
+  },
   errorIcon: {
     fontSize: '1.5rem',
     color: '#fa5252',
+    flexShrink: 0,
+  },
+  warningIcon: {
+    fontSize: '1.5rem',
+    color: '#f59e0b',
     flexShrink: 0,
   },
   errorContent: {
@@ -857,11 +1250,26 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '1rem',
+    flexWrap: 'wrap',
+  },
+  warningContent: {
+    flex: 1,
   },
   errorText: {
     fontSize: '0.875rem',
     color: '#c92a2a',
     margin: 0,
+  },
+  warningText: {
+    fontSize: '0.875rem',
+    color: '#b45a1c',
+    margin: 0,
+    fontWeight: '500',
+  },
+  warningSubtext: {
+    fontSize: '0.75rem',
+    color: '#b45a1c',
+    opacity: 0.8,
   },
   infoCard: {
     backgroundColor: '#e7f5ff',
@@ -896,13 +1304,17 @@ const styles = {
     color: '#495057',
     cursor: 'pointer',
     whiteSpace: 'nowrap',
+    transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#f8f9fa',
+    }
   },
   retryIcon: {
     fontSize: '0.875rem',
   },
   mapContainer: {
     position: 'relative',
-    height: '300px',
+    height: '350px',
     borderRadius: '16px',
     overflow: 'hidden',
     marginBottom: '1.5rem',
@@ -956,6 +1368,9 @@ const styles = {
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'background-color 0.2s',
+    ':hover': {
+      backgroundColor: '#1c7ed6',
+    }
   },
   mapLoading: {
     position: 'absolute',
@@ -1043,6 +1458,10 @@ const styles = {
     color: '#212529',
     fontSize: '0.95rem',
     fontWeight: '500',
+    transition: 'background-color 0.2s',
+    ':hover': {
+      backgroundColor: '#f1f3f5',
+    }
   },
   instructionsHeaderLeft: {
     display: 'flex',
@@ -1067,6 +1486,9 @@ const styles = {
     gap: '1rem',
     padding: '0.75rem',
     borderBottom: '1px solid #f1f3f5',
+    ':last-child': {
+      borderBottom: 'none',
+    }
   },
   instructionNumber: {
     width: '28px',
@@ -1122,6 +1544,9 @@ const styles = {
     color: '#495057',
     cursor: 'pointer',
     transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#e9ecef',
+    }
   },
   googleMapsButton: {
     display: 'flex',
@@ -1137,6 +1562,9 @@ const styles = {
     color: '#ffffff',
     cursor: 'pointer',
     transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#1c7ed6',
+    }
   },
   actionIcon: {
     fontSize: '1rem',
@@ -1152,6 +1580,10 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '0.5rem',
+  },
+  footerIcon: {
+    fontSize: '0.875rem',
+    color: '#868e96',
   },
   footerNoteText: {
     fontSize: '0.75rem',
