@@ -1,7 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { serviceApi } from '../../api/serviceApi';
-import { FiArrowLeft, FiSave, FiX, FiUpload, FiTrash2, FiClock, FiImage, FiDollarSign, FiFileText, FiWatch } from 'react-icons/fi';
+import { 
+  FiArrowLeft, 
+  FiSave, 
+  FiX, 
+  FiUpload, 
+  FiTrash2, 
+  FiClock, 
+  FiImage, 
+  FiDollarSign, 
+  FiFileText, 
+  FiWatch,
+  FiRotateCcw
+} from 'react-icons/fi';
 
 export default function ModifierService() {
   const { id } = useParams();
@@ -22,6 +34,7 @@ export default function ModifierService() {
   });
   
   const [existingMedias, setExistingMedias] = useState([]);
+  const [mediasToDelete, setMediasToDelete] = useState([]);
   const [newMedias, setNewMedias] = useState([]);
   const [service, setService] = useState(null);
 
@@ -71,6 +84,18 @@ export default function ModifierService() {
     setNewMedias(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Marquer une image existante pour suppression
+  const markMediaForDeletion = (mediaUrl) => {
+    setMediasToDelete(prev => [...prev, mediaUrl]);
+    setExistingMedias(prev => prev.filter(url => url !== mediaUrl));
+  };
+
+  // Restaurer une image marquée pour suppression
+  const restoreMedia = (mediaUrl) => {
+    setMediasToDelete(prev => prev.filter(url => url !== mediaUrl));
+    setExistingMedias(prev => [...prev, mediaUrl]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -87,9 +112,18 @@ export default function ModifierService() {
       if (formData.end_time) formDataToSend.append('end_time', formData.end_time);
       formDataToSend.append('is_open_24h', formData.is_open_24h ? '1' : '0');
       
+      // Ajouter les URLs des images à supprimer
+      mediasToDelete.forEach((mediaUrl, index) => {
+        formDataToSend.append(`deleted_medias[${index}]`, mediaUrl);
+      });
+      
+      // Ajouter les nouvelles images
       newMedias.forEach((file) => {
         formDataToSend.append('medias[]', file);
       });
+      
+      // Pour Laravel (méthode PUT avec FormData)
+      formDataToSend.append('_method', 'PUT');
       
       await serviceApi.updateService(id, formDataToSend);
       
@@ -97,7 +131,7 @@ export default function ModifierService() {
       
       setTimeout(() => {
         navigate('/mes-services'); 
-      }, 2000);
+      }, 10);
       
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la modification');
@@ -130,7 +164,6 @@ export default function ModifierService() {
             </div>
             <h3 style={styles.errorTitle}>Service non trouvé</h3>
             <p style={styles.errorMessage}>Le service que vous essayez de modifier n'existe pas ou a été supprimé.</p>
-            {/* ✅ CORRECTION : Route corrigée ici aussi */}
             <Link to="/mes-services" style={styles.errorButton}>
               <FiArrowLeft /> Retour à mes services
             </Link>
@@ -146,7 +179,6 @@ export default function ModifierService() {
       <div style={styles.header}>
         <div style={styles.headerContent}>
           <div style={styles.headerLeft}>
-            {/* ✅ CORRECTION : Route corrigée ici aussi */}
             <Link to="/mes-services" style={styles.backButton}>
               <FiArrowLeft size={20} />
               <span>Retour</span>
@@ -315,7 +347,7 @@ export default function ModifierService() {
                 )}
               </div>
 
-              {/* Images existantes */}
+              {/* Images existantes - BOUTONS TOUJOURS VISIBLES */}
               {existingMedias.length > 0 && (
                 <div style={styles.formSection}>
                   <div style={styles.sectionHeader}>
@@ -325,16 +357,62 @@ export default function ModifierService() {
                     {existingMedias.map((media, index) => (
                       <div key={index} style={styles.mediaCard}>
                         <img
-                          src={service.medias[index]}
+                          src={media}
                           alt={`Media ${index + 1}`}
                           style={styles.mediaImage}
                         />
+                        {/* Overlay toujours visible */}
                         <div style={styles.mediaOverlay}>
                           <span style={styles.mediaIndex}>Image {index + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => markMediaForDeletion(media)}
+                            style={styles.removeButton}
+                            title="Supprimer cette image"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Images marquées pour suppression */}
+              {mediasToDelete.length > 0 && (
+                <div style={styles.formSection}>
+                  <div style={styles.sectionHeader}>
+                    <h3 style={{...styles.sectionTitle, color: '#dc2626'}}>
+                      Images à supprimer
+                    </h3>
+                  </div>
+                  <div style={styles.mediaGrid}>
+                    {mediasToDelete.map((media, index) => (
+                      <div key={index} style={{...styles.mediaCard, opacity: 0.7}}>
+                        <img
+                          src={media}
+                          alt={`À supprimer ${index + 1}`}
+                          style={styles.mediaImage}
+                        />
+                        {/* Overlay toujours visible avec fond rouge */}
+                        <div style={{...styles.mediaOverlay, background: 'linear-gradient(transparent, rgba(220,38,38,0.9))'}}>
+                          <span style={styles.mediaIndex}>À supprimer</span>
+                          <button
+                            type="button"
+                            onClick={() => restoreMedia(media)}
+                            style={{...styles.removeButton, backgroundColor: '#10b981'}}
+                            title="Restaurer cette image"
+                          >
+                            <FiRotateCcw size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p style={styles.helperText}>
+                    Ces images seront supprimées définitivement lors de l'enregistrement
+                  </p>
                 </div>
               )}
 
@@ -373,15 +451,17 @@ export default function ModifierService() {
                             alt={`Nouveau ${index + 1}`}
                             style={styles.mediaImage}
                           />
+                          {/* Overlay toujours visible */}
                           <div style={styles.mediaOverlay}>
+                            <span style={styles.mediaName}>{file.name}</span>
                             <button
                               type="button"
                               onClick={() => removeNewMedia(index)}
                               style={styles.removeButton}
+                              title="Supprimer cette image"
                             >
                               <FiTrash2 size={16} />
                             </button>
-                            <span style={styles.mediaName}>{file.name}</span>
                           </div>
                         </div>
                       ))}
@@ -395,7 +475,7 @@ export default function ModifierService() {
             <div style={styles.formActions}>
               <button
                 type="button"
-                onClick={() => navigate('/mes-services')} // ✅ CORRECTION : Route corrigée
+                onClick={() => navigate('/mes-services')}
                 style={styles.cancelButton}
                 disabled={submitting}
               >
@@ -421,11 +501,22 @@ export default function ModifierService() {
           </form>
         </div>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      
+      <style>{`
+        @keyframes spin { 
+          to { transform: rotate(360deg); } 
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
 
+// Styles avec overlay TOUJOURS visible
 const styles = {
   container: { 
     minHeight: '100vh', 
@@ -492,7 +583,8 @@ const styles = {
     gap: '0.75rem',
     color: '#6b7280',
     fontSize: '0.875rem',
-    margin: 0
+    margin: 0,
+    flexWrap: 'wrap'
   },
   
   badge: {
@@ -603,7 +695,8 @@ const styles = {
     color: '#dc2626',
     padding: '1rem 1.25rem',
     borderRadius: '0.75rem',
-    marginBottom: '1.5rem'
+    marginBottom: '1.5rem',
+    animation: 'fadeIn 0.3s'
   },
   
   alertSuccess: {
@@ -615,7 +708,8 @@ const styles = {
     color: '#16a34a',
     padding: '1rem 1.25rem',
     borderRadius: '0.75rem',
-    marginBottom: '1.5rem'
+    marginBottom: '1.5rem',
+    animation: 'fadeIn 0.3s'
   },
   
   alertIcon: {
@@ -644,7 +738,8 @@ const styles = {
   },
   
   formSection: {
-    marginBottom: '2.5rem'
+    marginBottom: '2.5rem',
+    animation: 'fadeIn 0.3s'
   },
   
   sectionHeader: {
@@ -658,6 +753,13 @@ const styles = {
     fontWeight: '600',
     color: '#111827',
     margin: 0
+  },
+  
+  subSectionTitle: {
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#374151',
+    margin: '1rem 0 0.5rem 0'
   },
   
   formGroup: {
@@ -811,7 +913,7 @@ const styles = {
     gap: '1rem'
   },
   
-  // Media
+  // Media - BOUTONS TOUJOURS VISIBLES
   mediaGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
@@ -826,7 +928,7 @@ const styles = {
     overflow: 'hidden',
     border: '1px solid #e5e7eb',
     backgroundColor: '#f9fafb',
-    transition: 'transform 0.2s, box-shadow 0.2s',
+    transition: 'all 0.2s',
     ':hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
@@ -839,12 +941,13 @@ const styles = {
     objectFit: 'cover'
   },
   
+  // Overlay TOUJOURS visible (plus de transform)
   mediaOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+    background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
     padding: '0.75rem',
     display: 'flex',
     alignItems: 'center',
@@ -859,10 +962,11 @@ const styles = {
   
   mediaName: {
     color: '#ffffff',
-    fontSize: '0.75rem',
+    fontSize: '0.7rem',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap'
+    whiteSpace: 'nowrap',
+    maxWidth: '80px'
   },
   
   removeButton: {
@@ -876,9 +980,10 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    transition: 'background-color 0.2s',
+    transition: 'all 0.2s',
     ':hover': {
-      backgroundColor: '#dc2626'
+      backgroundColor: '#dc2626',
+      transform: 'rotate(90deg)'
     }
   },
   
@@ -910,7 +1015,11 @@ const styles = {
   },
   
   uploadIcon: {
-    color: '#9ca3af'
+    color: '#9ca3af',
+    transition: 'transform 0.2s',
+    ':hover': {
+      transform: 'translateY(-2px)'
+    }
   },
   
   uploadText: {
@@ -957,11 +1066,13 @@ const styles = {
     transition: 'all 0.2s',
     ':hover': {
       backgroundColor: '#f3f4f6',
-      borderColor: '#9ca3af'
+      borderColor: '#9ca3af',
+      transform: 'translateY(-1px)'
     },
     ':disabled': {
       opacity: 0.5,
-      cursor: 'not-allowed'
+      cursor: 'not-allowed',
+      transform: 'none'
     }
   },
   
@@ -979,11 +1090,14 @@ const styles = {
     cursor: 'pointer',
     transition: 'all 0.2s',
     ':hover': {
-      backgroundColor: '#dc2626'
+      backgroundColor: '#dc2626',
+      transform: 'translateY(-1px)',
+      boxShadow: '0 4px 12px rgba(239,68,68,0.2)'
     },
     ':disabled': {
       opacity: 0.5,
-      cursor: 'not-allowed'
+      cursor: 'not-allowed',
+      transform: 'none'
     }
   },
   
