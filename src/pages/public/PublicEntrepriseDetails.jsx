@@ -2,7 +2,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { publicApi } from '../../api/publicApi';
-import ChatButton from '../../components/Chat/ChatButton'; // 👈 IMPORT
+import ChatButton from '../../components/Chat/ChatButton';
+import ItineraryModal from '../../components/ItineraryModal'; // 👈 Import du nouveau composant
 import theme from '../../config/theme';
 
 // Import des icônes React Icons
@@ -57,6 +58,13 @@ export default function PublicEntrepriseDetails() {
   const [refreshing, setRefreshing] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeService, setActiveService] = useState(null);
+  const [imageError, setImageError] = useState(false);
+
+  // État pour l'itinéraire
+  const [itineraryModal, setItineraryModal] = useState({
+    isOpen: false,
+    entreprise: null
+  });
 
   useEffect(() => {
     fetchEntreprise();
@@ -141,6 +149,20 @@ export default function PublicEntrepriseDetails() {
     setActiveService(activeService?.id === service.id ? null : service);
   };
 
+  const handleOpenItinerary = () => {
+    setItineraryModal({
+      isOpen: true,
+      entreprise
+    });
+  };
+
+  const handleCloseItinerary = () => {
+    setItineraryModal({
+      isOpen: false,
+      entreprise: null
+    });
+  };
+
   const formatPrice = (price) => {
     if (!price) return 'Prix sur demande';
     return `${parseFloat(price).toLocaleString('fr-FR')} FCFA`;
@@ -217,15 +239,12 @@ export default function PublicEntrepriseDetails() {
                 <FiRefreshCw style={refreshing ? styles.refreshingIcon : styles.headerActionIcon} />
                 {refreshing ? 'Rafraîchissement...' : 'Rafraîchir'}
               </button>
-              {/* 👉 BOUTON CHAT - OPTION 1: Dans le header */}
-          <div style={styles.headerActions}>
-            <ChatButton
-              receiverId={entreprise.prestataire_id}
-              receiverName={entreprise.name}
-              buttonText="Discuter avec nous"
-              variant="primary"
-            />
-          </div>
+              <ChatButton
+                receiverId={entreprise.prestataire_id}
+                receiverName={entreprise.name}
+                buttonText="Discuter"
+                variant="primary"
+              />
               <button 
                 onClick={handleShare}
                 style={styles.headerActionButton}
@@ -241,15 +260,18 @@ export default function PublicEntrepriseDetails() {
           <div style={styles.heroSection}>
             {entreprise.image_boutique ? (
               <div style={styles.heroImage}>
-                <img 
-                  src={entreprise.image_boutique}
-                  alt={`Boutique ${entreprise.name}`}
-                  style={styles.heroImg}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI0MDAiIHZpZXdCb3g9IjAgMCAxMjAwIDQwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiNFQkVDRUYiLz48cGF0aCBkPSJNNjAwIDIwMEM2MzAuMzEzNyAyMDAgNjU2LjUgMjI2LjE4NjMgNjU2LjUgMjU2LjVDNjU2LjUgMjg2LjgxMzcgNjMwLjMxMzcgMzEzIDYwMCAzMTNDNTY5LjY4NjMgMzEzIDU0My41IDI4Ni44MTM3IDU0My41IDI1Ni41QzU0My41IDIyNi4xODYzIDU2OS42ODYzIDIwMCA2MDAgMjAwWiIgZmlsbD0iIzlDNUNBQiIvPjxwYXRoIGQ9Ik02ODAgMzQwSDUyMEM1MTAuODk1NCAzNDAgNTAwIDMzMC4xMDQ2IDUwMCAzMjBWMTgwQzUwMCAxNjguODk1NCA1MTAuODk1NCAxNjAgNTIwIDE2MEg2ODBDNjkxLjEwNDYgMTYwIDcwMCAxNjguODk1NCA3MDAgMTgwVjMyMEM3MDAgMzMwLjEwNDYgNjkxLjEwNDYgMzQwIDY4MCAzNDBaIiBmaWxsPSIjOUM1Q0FCIi8+PC9zdmc+';
-                  }}
-                />
+                {!imageError ? (
+                  <img 
+                    src={entreprise.image_boutique}
+                    alt={`Boutique ${entreprise.name}`}
+                    style={styles.heroImg}
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div style={styles.heroPlaceholder}>
+                    <MdBusiness style={styles.heroPlaceholderIcon} />
+                  </div>
+                )}
                 <div style={styles.heroOverlay}>
                   <div style={styles.heroContent}>
                     <h1 style={styles.heroTitle}>{entreprise.name}</h1>
@@ -304,12 +326,12 @@ export default function PublicEntrepriseDetails() {
             </button>
             
             <button 
-              onClick={() => handleContact('maps')}
+              onClick={handleOpenItinerary}
               style={styles.quickActionButton}
               title="Itinéraire"
             >
               <FiNavigation style={styles.quickActionIcon} />
-              Y aller
+              Itinéraire
             </button>
           </div>
         </div>
@@ -510,15 +532,15 @@ export default function PublicEntrepriseDetails() {
                       </div>
                     </button>
                     
-                    {/* 👉 BOUTON CHAT - OPTION 2: Dans la section contact */}
                     <div style={styles.contactButtonChat}>
-                        <ChatButton
-                          receiverId={entreprise.prestataire_id}
-                          receiverName={entreprise.name}
-                          buttonText="Envoyer un message"
-                          variant="secondary"
-                        />
-                      </div>
+                      <ChatButton
+                        receiverId={entreprise.prestataire_id}
+                        receiverName={entreprise.name}
+                        buttonText="Envoyer un message"
+                        variant="secondary"
+                      />
+                    </div>
+                    
                     <button 
                       onClick={() => handleContact('whatsapp')}
                       style={{...styles.contactButton, ...styles.contactWhatsappButton}}
@@ -544,13 +566,13 @@ export default function PublicEntrepriseDetails() {
                     </button>
                     
                     <button 
-                      onClick={() => handleContact('maps')}
+                      onClick={handleOpenItinerary}
                       style={styles.contactButton}
                     >
                       <FiNavigation style={styles.contactButtonIcon} />
                       <div style={styles.contactButtonContent}>
                         <div style={styles.contactButtonTitle}>Itinéraire</div>
-                        <div style={styles.contactButtonSubtitle}>Google Maps</div>
+                        <div style={styles.contactButtonSubtitle}>Voir le trajet</div>
                       </div>
                     </button>
                   </div>
@@ -614,35 +636,6 @@ export default function PublicEntrepriseDetails() {
                 </div>
               </div>
 
-              {/* Horaires d'ouverture 
-              <div style={styles.card}>
-                <div style={styles.cardHeader}>
-                  <FiClock style={styles.cardHeaderIcon} />
-                  <h2 style={styles.cardTitle}>Horaires d'ouverture</h2>
-                </div>
-                <div style={styles.cardBody}>
-                  <div style={styles.scheduleList}>
-                    <div style={styles.scheduleItem}>
-                      <span style={styles.scheduleDay}>Lundi - Vendredi</span>
-                      <span style={styles.scheduleHours}>8h - 18h</span>
-                    </div>
-                    <div style={styles.scheduleItem}>
-                      <span style={styles.scheduleDay}>Samedi</span>
-                      <span style={styles.scheduleHours}>9h - 15h</span>
-                    </div>
-                    <div style={styles.scheduleItem}>
-                      <span style={styles.scheduleDay}>Dimanche</span>
-                      <span style={styles.scheduleClosed}>Fermé</span>
-                    </div>
-                  </div>
-                  
-                  <div style={styles.scheduleNote}>
-                    <FiInfo style={styles.scheduleNoteIcon} />
-                    Horaires indicatifs, recommandé d'appeler avant de vous déplacer
-                  </div>
-                </div>
-              </div> */}
-
               {/* Actions supplémentaires */}
               <div style={styles.card}>
                 <div style={styles.cardHeader}>
@@ -680,17 +673,17 @@ export default function PublicEntrepriseDetails() {
                         <div style={styles.actionDescription}>Partagez avec vos contacts</div>
                       </div>
                     </button>
-                    {/*
+                    
                     <button 
-                      onClick={() => window.print()}
+                      onClick={handleOpenItinerary}
                       style={styles.actionButton}
                     >
-                      <FiExternalLink style={styles.actionIcon} />
+                      <FiNavigation style={styles.actionIcon} />
                       <div style={styles.actionContent}>
-                        <div style={styles.actionTitle}>Imprimer cette page</div>
-                        <div style={styles.actionDescription}>Version imprimable</div>
+                        <div style={styles.actionTitle}>Voir l'itinéraire</div>
+                        <div style={styles.actionDescription}>Calculer le trajet depuis votre position</div>
                       </div>
-                    </button> */}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -763,6 +756,13 @@ export default function PublicEntrepriseDetails() {
         </div>
       </div>
 
+      {/* Modal d'itinéraire */}
+      <ItineraryModal
+        isOpen={itineraryModal.isOpen}
+        onClose={handleCloseItinerary}
+        destination={itineraryModal.entreprise}
+      />
+
       {/* CSS Animations */}
       <style>{`
         @keyframes spin {
@@ -797,7 +797,7 @@ export default function PublicEntrepriseDetails() {
   );
 }
 
-// Styles
+// Styles (identique à ceux déjà définis dans le fichier existant)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -1061,7 +1061,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '0.75rem',
-  
     padding: '1.5rem',
     borderBottom: '1px solid #f1f5f9',
     backgroundColor: '#f8fafc',
@@ -1294,9 +1293,9 @@ const styles = {
   contactButtonContent: {
     flex: 1,
   },
- contactButtonChat: {
-  width: '100%',
-},
+  contactButtonChat: {
+    width: '100%',
+  },
   contactButtonTitle: {
     fontSize: '0.875rem',
     fontWeight: '600',
@@ -1342,47 +1341,6 @@ const styles = {
     borderRadius: theme.borderRadius.sm,
     fontFamily: 'monospace',
     fontSize: '0.75rem',
-  },
-  scheduleList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.75rem',
-  },
-  scheduleItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '0.75rem 0',
-    borderBottom: '1px solid #f1f5f9',
-  },
-  scheduleDay: {
-    fontSize: '0.875rem',
-    color: '#475569',
-  },
-  scheduleHours: {
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    color: '#059669',
-  },
-  scheduleClosed: {
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    color: '#ef4444',
-  },
-  scheduleNote: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '0.5rem',
-    marginTop: '1rem',
-    padding: '0.75rem',
-    backgroundColor: '#fef3c7',
-    borderRadius: theme.borderRadius.md,
-    fontSize: '0.75rem',
-    color: '#92400e',
-  },
-  scheduleNoteIcon: {
-    fontSize: '0.875rem',
-    flexShrink: 0,
   },
   actionsList: {
     display: 'flex',
@@ -1584,6 +1542,5 @@ const styles = {
     statItem: {
       justifyContent: 'center',
     },
-  
   },
 };

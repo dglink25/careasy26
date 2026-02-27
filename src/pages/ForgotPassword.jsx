@@ -46,13 +46,12 @@ export default function ForgotPassword() {
 
         {error && (
           <div style={styles.error}>
-            ⚠️ {error}
+            {error}
           </div>
         )}
 
         {success && (
           <div style={styles.success}>
-            <div style={styles.successIcon}>✅</div>
             <div>
               <p style={styles.successTitle}>Email envoyé !</p>
               <p style={styles.successText}>{success}</p>
@@ -92,7 +91,7 @@ export default function ForgotPassword() {
         </div>
 
         <div style={styles.helpBox}>
-          <p style={styles.helpTitle}>💡 Besoin d'aide ?</p>
+          <p style={styles.helpTitle}> Besoin d'aide ?</p>
           <p style={styles.helpText}>
             Si vous ne recevez pas l'email dans les 5 minutes, vérifiez vos spams ou contactez le support.
           </p>

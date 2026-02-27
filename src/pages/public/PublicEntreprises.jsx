@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { publicApi } from '../../api/publicApi';
+import ItineraryModal from '../../components/ItineraryModal'; // 👈 Nouveau composant
 import theme from '../../config/theme';
 
 // Version ULTRA-SIMPLIFIÉE - uniquement avec des icônes qui existent
@@ -58,6 +59,12 @@ export default function PublicEntreprises() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   
+  // États pour l'itinéraire
+  const [itineraryModal, setItineraryModal] = useState({
+    isOpen: false,
+    entreprise: null
+  });
+  
   // États initiaux depuis les paramètres d'URL
   const searchTerm = searchParams.get('search') || '';
   const selectedDomaine = searchParams.get('domaine') || 'all';
@@ -68,6 +75,7 @@ export default function PublicEntreprises() {
   const [refreshing, setRefreshing] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [favoriteEntreprises, setFavoriteEntreprises] = useState([]);
+  const [imageErrors, setImageErrors] = useState({});
 
   useEffect(() => {
     fetchData();
@@ -131,6 +139,28 @@ export default function PublicEntreprises() {
     setSearchParams({});
   };
 
+  const handleImageError = (entrepriseId) => {
+    setImageErrors(prev => ({
+      ...prev,
+      [entrepriseId]: true
+    }));
+  };
+
+  const handleOpenItinerary = (entreprise, e) => {
+    e.stopPropagation();
+    setItineraryModal({
+      isOpen: true,
+      entreprise
+    });
+  };
+
+  const handleCloseItinerary = () => {
+    setItineraryModal({
+      isOpen: false,
+      entreprise: null
+    });
+  };
+
   const getDomaineIcon = (domaineName) => {
     // Version simplifiée avec uniquement les icônes disponibles
     const iconMap = {
@@ -139,12 +169,12 @@ export default function PublicEntreprises() {
       'Électricité': <MdOutlineElectricalServices style={styles.domaineIcon} />,
       'Peinture': <MdOutlineDescription style={styles.domaineIcon} />,
       'Vidange': <FiSettings style={styles.domaineIcon} />,
-      'Pneumatique': <MdOutlineDirectionsCar style={styles.domaineIcon} />, // Alternative
+      'Pneumatique': <MdOutlineDirectionsCar style={styles.domaineIcon} />,
       'Lavage': <MdOutlineCleaningServices style={styles.domaineIcon} />,
       'Location': <MdOutlineCarRental style={styles.domaineIcon} />,
       'Moto': <MdOutlineDirectionsBike style={styles.domaineIcon} />,
       'Diagnostic': <FiBriefcase style={styles.domaineIcon} />,
-      'Carburant': <FiHome style={styles.domaineIcon} />, // Alternative
+      'Carburant': <FiHome style={styles.domaineIcon} />,
       'Batterie': <MdOutlineElectricalServices style={styles.domaineIcon} />,
       'Réparation': <MdOutlineCarRepair style={styles.domaineIcon} />,
       'Entretien': <FiSettings style={styles.domaineIcon} />,
@@ -482,7 +512,7 @@ export default function PublicEntreprises() {
               </div>
             </div>
 
-            {/* Grille des entreprises (mode simplifié) */}
+            {/* Grille des entreprises */}
             <div style={styles.grid}>
               {filteredEntreprises.map((entreprise) => (
                 <div 
@@ -494,19 +524,18 @@ export default function PublicEntreprises() {
                   {/* Header de la carte */}
                   <div style={styles.cardHeader}>
                     <div style={styles.cardImage}>
-                      {entreprise.logo ? (
+                      {entreprise.logo && !imageErrors[entreprise.id] ? (
                         <img 
                           src={entreprise.logo}
                           alt={entreprise.name}
                           style={styles.logo}
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.style.display = 'none';
-                            e.target.nextElementSibling.style.display = 'flex';
-                          }}
+                          onError={() => handleImageError(entreprise.id)}
                         />
                       ) : null}
-                      <div style={styles.logoPlaceholder}>
+                      <div style={{
+                        ...styles.logoPlaceholder,
+                        display: (entreprise.logo && !imageErrors[entreprise.id]) ? 'none' : 'flex'
+                      }}>
                         <MdBusiness style={styles.logoPlaceholderIcon} />
                       </div>
                     </div>
@@ -585,6 +614,17 @@ export default function PublicEntreprises() {
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
+                          handleOpenItinerary(entreprise, e);
+                        }}
+                        style={styles.itineraryButton}
+                        title="Voir l'itinéraire"
+                      >
+                        <FiNavigation style={styles.itineraryIcon} />
+                        Itinéraire
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
                           navigate(`/entreprises/${entreprise.id}`);
                         }}
                         style={styles.viewButton}
@@ -640,6 +680,13 @@ export default function PublicEntreprises() {
           </div>
         )}
       </div>
+
+      {/* Modal d'itinéraire */}
+      <ItineraryModal
+        isOpen={itineraryModal.isOpen}
+        onClose={handleCloseItinerary}
+        destination={itineraryModal.entreprise}
+      />
 
       {/* CSS Animations */}
       <style>{`
@@ -1184,7 +1231,7 @@ const styles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
     gap: '1.5rem',
     marginBottom: '2rem',
   },
@@ -1201,7 +1248,7 @@ const styles = {
     position: 'relative',
   },
   cardImage: {
-    height: '200px',
+    height: '180px',
     backgroundColor: '#f8fafc',
     position: 'relative',
     overflow: 'hidden',
@@ -1220,12 +1267,14 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e2e8f0',
-    color: '#94a3b8',
-    fontSize: '3rem',
+    backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: '#fff',
+    fontSize: '4rem',
   },
   logoPlaceholderIcon: {
-    fontSize: '3rem',
+    fontSize: '4rem',
+    color: '#fff',
+    opacity: 0.8,
   },
   favoriteButton: {
     position: 'absolute',
@@ -1241,6 +1290,7 @@ const styles = {
     justifyContent: 'center',
     cursor: 'pointer',
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+    zIndex: 2,
   },
   favoriteIcon: {
     fontSize: '1.25rem',
@@ -1260,7 +1310,7 @@ const styles = {
   },
   location: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: '0.5rem',
     color: '#64748b',
     fontSize: '0.875rem',
@@ -1268,9 +1318,12 @@ const styles = {
   locationIcon: {
     fontSize: '1rem',
     color: '#94a3b8',
+    flexShrink: 0,
+    marginTop: '2px',
   },
   locationText: {
     flex: 1,
+    lineHeight: '1.5',
   },
   cardDescription: {
     color: '#475569',
@@ -1336,21 +1389,42 @@ const styles = {
     borderTop: '1px solid #e2e8f0',
   },
   cardActions: {
-    display: 'flex',
-    justifyContent: 'center',
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '0.75rem',
   },
-  viewButton: {
+  itineraryButton: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: '0.5rem',
-    backgroundColor: '#ef4444',
-    color: '#fff',
-    border: 'none',
-    padding: '0.625rem 1.25rem',
+    backgroundColor: '#fff',
+    color: '#3b82f6',
+    border: '1px solid #3b82f6',
+    padding: '0.625rem',
     borderRadius: theme.borderRadius.md,
     fontSize: '0.875rem',
     fontWeight: '500',
     cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  itineraryIcon: {
+    fontSize: '1rem',
+  },
+  viewButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    backgroundColor: '#ef4444',
+    color: '#fff',
+    border: 'none',
+    padding: '0.625rem',
+    borderRadius: theme.borderRadius.md,
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
   },
   viewButtonIcon: {
     fontSize: '1rem',

@@ -1,3 +1,4 @@
+// careasy-frontend/src/pages/Home.jsx - VERSION CORRIGÉE
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -48,7 +49,7 @@ export default function Home() {
     {
       image: 'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=1600',
       title: 'Climatisation',
-      subtitle: 'Roulez au frais toute l\'annee',
+      subtitle: 'Roulez au frais toute l\'année',
       icon: <FaSnowflake />
     },
     {
@@ -478,130 +479,129 @@ export default function Home() {
       </div>
 
       {/* MODAL DE CONTACT PROFESSIONNEL AVEC 3 BOUTONS */}
-{showContactModal && selectedService && (
-  <div style={styles.contactModalOverlay} onClick={() => setShowContactModal(false)}>
-    <div style={styles.contactModal} onClick={(e) => e.stopPropagation()}>
-      <div style={styles.contactModalHeader}>
-        <div style={styles.contactModalAvatar}>
-          {selectedService.entreprise?.logo ? (
-            <img 
-              src={selectedService.entreprise.logo}
-              alt={selectedService.entreprise.name}
-              style={styles.contactModalLogo}
-            />
-          ) : (
-            <div style={styles.contactModalLogoPlaceholder}>
-              {selectedService.entreprise?.name?.charAt(0) || 'E'}
-            </div>
-          )}
-        </div>
-        <div style={styles.contactModalInfo}>
-          <h3 style={styles.contactModalTitle}>
-            {selectedService.entreprise?.name || 'Prestataire'}
-          </h3>
-          <p style={styles.contactModalService}>
-            {selectedService.name}
-          </p>
-        </div>
-        <button 
-          onClick={() => setShowContactModal(false)}
-          style={styles.contactModalClose}
-        >
-          <FaTimes />
-        </button>
-      </div>
-      
-      <div style={styles.contactModalBody}>
-        <p style={styles.contactModalInstruction}>
-          Choisissez votre méthode de contact préférée :
-        </p>
-        
-        <div style={styles.contactMethodsGrid}>
-          {/* Bouton Appeler - TOUJOURS AFFICHÉ */}
-          <button
-            onClick={() => {
-              if (selectedService.entreprise?.call_phone) {
-                window.open(`tel:${selectedService.entreprise.call_phone}`, '_blank');
-              } else {
-                alert('Numéro de téléphone non disponible');
-              }
-              setShowContactModal(false);
-            }}
-            style={styles.contactMethodButton}
-            className="contact-method-button"
-          >
-            <div style={styles.contactMethodIconCall}>
-              <FaPhone />
-            </div>
-            <div style={styles.contactMethodContent}>
-              <div style={styles.contactMethodTitle}>Appeler</div>
-              <div style={styles.contactMethodSubtitle}>
-                {selectedService.entreprise?.call_phone || 'Numéro non disponible'}
+      {showContactModal && selectedService && (
+        <div style={styles.contactModalOverlay} onClick={() => setShowContactModal(false)}>
+          <div style={styles.contactModal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.contactModalHeader}>
+              <div style={styles.contactModalAvatar}>
+                {selectedService.entreprise?.logo ? (
+                  <img 
+                    src={selectedService.entreprise.logo}
+                    alt={selectedService.entreprise.name}
+                    style={styles.contactModalLogo}
+                  />
+                ) : (
+                  <div style={styles.contactModalLogoPlaceholder}>
+                    {selectedService.entreprise?.name?.charAt(0) || 'E'}
+                  </div>
+                )}
               </div>
-            </div>
-            <div style={styles.contactMethodArrow}>→</div>
-          </button>
-          
-          {/* Bouton WhatsApp - TOUJOURS AFFICHÉ */}
-          <button
-            onClick={() => {
-              if (selectedService.entreprise?.whatsapp_phone) {
-                const message = encodeURIComponent(`Bonjour ${selectedService.entreprise.name}, je suis intéressé par votre service: ${selectedService.name}`);
-                window.open(`https://wa.me/${selectedService.entreprise.whatsapp_phone.replace(/\D/g, '')}?text=${message}`, '_blank');
-              } else {
-                alert('Numéro WhatsApp non disponible');
-              }
-              setShowContactModal(false);
-            }}
-            style={styles.contactMethodButton}
-            className="contact-method-button"
-          >
-            <div style={styles.contactMethodIconWhatsApp}>
-              <FaWhatsapp />
-            </div>
-            <div style={styles.contactMethodContent}>
-              <div style={styles.contactMethodTitle}>WhatsApp</div>
-              <div style={styles.contactMethodSubtitle}>
-                Message instantané
+              <div style={styles.contactModalInfo}>
+                <h3 style={styles.contactModalTitle}>
+                  {selectedService.entreprise?.name || 'Prestataire'}
+                </h3>
+                <p style={styles.contactModalService}>
+                  {selectedService.name}
+                </p>
               </div>
+              <button 
+                onClick={() => setShowContactModal(false)}
+                style={styles.contactModalClose}
+              >
+                <FaTimes />
+              </button>
             </div>
-            <div style={styles.contactMethodArrow}>→</div>
-          </button>
-          
-          {/* Bouton Message/Chat - TOUJOURS AFFICHÉ */}
+            
+            <div style={styles.contactModalBody}>
+              <p style={styles.contactModalInstruction}>
+                Choisissez votre méthode de contact préférée :
+              </p>
+              
+              <div style={styles.contactMethodsGrid}>
+                {/* Bouton Appeler */}
+                <button
+                  onClick={() => {
+                    if (selectedService.entreprise?.call_phone) {
+                      window.open(`tel:${selectedService.entreprise.call_phone}`, '_blank');
+                    } else {
+                      alert('Numéro de téléphone non disponible');
+                    }
+                    setShowContactModal(false);
+                  }}
+                  style={styles.contactMethodButton}
+                  className="contact-method-button"
+                >
+                  <div style={styles.contactMethodIconCall}>
+                    <FaPhone />
+                  </div>
+                  <div style={styles.contactMethodContent}>
+                    <div style={styles.contactMethodTitle}>Appeler</div>
+                    <div style={styles.contactMethodSubtitle}>
+                      {selectedService.entreprise?.call_phone || 'Numéro non disponible'}
+                    </div>
+                  </div>
+                  <div style={styles.contactMethodArrow}>→</div>
+                </button>
                 
-      <button
-        onClick={() => {
-          if (user) {
-            setShowContactModal(false);
-            setTimeout(() => {
-              setShowChatModal(true);
-            }, 300);
-          } else {
-            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-          }
-        }}
-        style={styles.contactMethodButton}
-        className="contact-method-button"
-      >
-        <div style={styles.contactMethodIconChat}>
-          <FaComments />
-        </div>
-        <div style={styles.contactMethodContent}>
-          <div style={styles.contactMethodTitle}>
-            {user ? 'Messagerie' : 'Messagerie'}
-          </div>
-          <div style={styles.contactMethodSubtitle}>
-            {user ? 'Discuter en direct' : 'Connectez-vous pour discuter'}
-          </div>
-        </div>
-        <div style={styles.contactMethodArrow}>→</div>
-      </button>
+                {/* Bouton WhatsApp */}
+                <button
+                  onClick={() => {
+                    if (selectedService.entreprise?.whatsapp_phone) {
+                      const message = encodeURIComponent(`Bonjour ${selectedService.entreprise.name}, je suis intéressé par votre service: ${selectedService.name}`);
+                      window.open(`https://wa.me/${selectedService.entreprise.whatsapp_phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+                    } else {
+                      alert('Numéro WhatsApp non disponible');
+                    }
+                    setShowContactModal(false);
+                  }}
+                  style={styles.contactMethodButton}
+                  className="contact-method-button"
+                >
+                  <div style={styles.contactMethodIconWhatsApp}>
+                    <FaWhatsapp />
+                  </div>
+                  <div style={styles.contactMethodContent}>
+                    <div style={styles.contactMethodTitle}>WhatsApp</div>
+                    <div style={styles.contactMethodSubtitle}>
+                      Message instantané
+                    </div>
+                  </div>
+                  <div style={styles.contactMethodArrow}>→</div>
+                </button>
+                
+                {/* Bouton Message/Chat */}
+                <button
+                  onClick={() => {
+                    if (user) {
+                      setShowContactModal(false);
+                      setTimeout(() => {
+                        setShowChatModal(true);
+                      }, 300);
+                    } else {
+                      window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                    }
+                  }}
+                  style={styles.contactMethodButton}
+                  className="contact-method-button"
+                >
+                  <div style={styles.contactMethodIconChat}>
+                    <FaComments />
+                  </div>
+                  <div style={styles.contactMethodContent}>
+                    <div style={styles.contactMethodTitle}>
+                      {user ? 'Messagerie' : 'Messagerie'}
+                    </div>
+                    <div style={styles.contactMethodSubtitle}>
+                      {user ? 'Discuter en direct' : 'Connectez-vous pour discuter'}
+                    </div>
+                  </div>
+                  <div style={styles.contactMethodArrow}>→</div>
+                </button>
               </div>
               
               <div style={styles.contactModalFooter}>
                 <p style={styles.contactModalNote}>
-                  <strong>Recommandé :</strong>La messagerie permet de suivre vos conversations et de partager des photos/vidéos.
+                  <strong>Recommandé :</strong> La messagerie permet de suivre vos conversations et de partager des photos/vidéos.
                 </p>
               </div>
             </div>
@@ -621,7 +621,6 @@ export default function Home() {
         />
       )}
 
-      {/* CSS Animations */}
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
@@ -713,6 +712,20 @@ export default function Home() {
           color: ${theme.colors.primaryDark || '#dc2626'};
           transform: translateX(3px);
         }
+
+        @media (max-width: 768px) {
+          .servicesGrid {
+            grid-template-columns: 1fr !important;
+          }
+          
+          .domainesGrid {
+            grid-template-columns: 1fr !important;
+          }
+          
+          .heroButtons {
+            flex-direction: column;
+          }
+        }
       `}</style>
     </div>
   );
@@ -721,6 +734,7 @@ export default function Home() {
 const styles = {
   container: {
     backgroundColor: theme.colors.background,
+    minHeight: '100vh',
   },
   
   // Hero avec vraies images
