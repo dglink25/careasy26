@@ -428,16 +428,6 @@ export default function MesEntreprises() {
                           <div style={styles.infoValue}>{entreprise.siege}</div>
                         </div>
                       </div>
-                      
-                      <div style={styles.infoItem}>
-                        <MdOutlineWork style={styles.infoIcon} />
-                        <div>
-                          <div style={styles.infoLabel}>Services</div>
-                          <div style={styles.infoValue}>
-                            {entreprise.services_count || 0} service{entreprise.services_count !== 1 ? 's' : ''}
-                          </div>
-                        </div>
-                      </div>
                     </div>
 
                     {/* Domaines */}
@@ -488,13 +478,6 @@ export default function MesEntreprises() {
                         <FiEdit style={styles.editButtonIcon} />
                         Modifier
                       </Link>
-                      <button 
-                        onClick={() => handleDeleteEntreprise(entreprise.id, entreprise.name)}
-                        style={styles.deleteButton}
-                      >
-                        <FiTrash2 style={styles.deleteButtonIcon} />
-                        Supprimer
-                      </button>
                     </div>
                   </div>
                 </div>

@@ -141,7 +141,7 @@ export default function DetailsEntreprise() {
           <div style={styles.leftColumn}>
             {/* Carte Logo & Images */}
             <div style={styles.card}>
-              <h2 style={styles.cardTitle}>🖼️ Médias</h2>
+              <h2 style={styles.cardTitle}> Médias</h2>
               
               <div style={styles.mediaGrid}>
                 {entreprise.logo ? (

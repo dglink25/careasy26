@@ -141,7 +141,6 @@ export default function DetailsService() {
               </div>
             ) : (
               <div style={styles.noImageCard}>
-                <div style={styles.noImageIcon}>📸</div>
                 <p style={styles.noImageText}>Aucune image disponible</p>
               </div>
             )}
@@ -149,7 +148,7 @@ export default function DetailsService() {
             {/* Carte Entreprise */}
             {service.entreprise && (
               <div style={styles.card}>
-                <h2 style={styles.cardTitle}>🏢 Entreprise</h2>
+                <h2 style={styles.cardTitle}> Entreprise</h2>
                 <Link 
                   to={`/entreprises/${service.entreprise.id}`}
                   style={styles.entrepriseLink}
@@ -162,14 +161,15 @@ export default function DetailsService() {
                         style={styles.entrepriseLogo}
                       />
                     ) : (
-                      <div style={styles.entrepriseLogoPlaceholder}>🏢</div>
+
+                      <div style={styles.entrepriseLogoPlaceholder}></div>
                     )}
                     <div>
                       <div style={styles.entrepriseName}>
                         {service.entreprise.name}
                       </div>
                       <div style={styles.entrepriseDetails}>
-                        📍 {service.entreprise.siege || 'Localisation non renseignée'}
+                       {service.entreprise.siege || 'Localisation non renseignée'}
                       </div>
                     </div>
                   </div>
@@ -187,13 +187,13 @@ export default function DetailsService() {
               
               {service.domaine && (
                 <div style={styles.domaineTag}>
-                  🏷️ {service.domaine.name}
+                  {service.domaine.name}
                 </div>
               )}
 
               {service.descriptions && (
                 <div style={styles.descriptionSection}>
-                  <h3 style={styles.sectionSubtitle}>📋 Description</h3>
+                  <h3 style={styles.sectionSubtitle}>Description</h3>
                   <p style={styles.description}>{service.descriptions}</p>
                 </div>
               )}
@@ -201,11 +201,11 @@ export default function DetailsService() {
 
             {/* Carte Prix & Horaires */}
             <div style={styles.card}>
-              <h2 style={styles.cardTitle}>💰 Tarification & Horaires</h2>
+              <h2 style={styles.cardTitle}>Tarification & Horaires</h2>
               
               <div style={styles.infoList}>
                 <div style={styles.infoItem}>
-                  <span style={styles.infoLabel}>💵 Prix</span>
+                  <span style={styles.infoLabel}>Prix</span>
                   <span style={styles.priceValue}>
                     {service.price 
                       ? `${service.price.toLocaleString()} FCFA`
@@ -215,7 +215,7 @@ export default function DetailsService() {
                 </div>
 
                 <div style={styles.infoItem}>
-                  <span style={styles.infoLabel}>🕐 Horaires</span>
+                  <span style={styles.infoLabel}>Horaires</span>
                   <span style={styles.infoValue}>
                     {service.is_open_24h 
                       ? '24h/24 - 7j/7'
@@ -228,28 +228,8 @@ export default function DetailsService() {
               </div>
             </div>
 
-            {/* Carte Actions */}
-            <div style={styles.actionsCard}>
-              <h3 style={styles.actionsTitle}>Actions rapides</h3>
-              <div style={styles.actionsGrid}>
-                <button style={styles.actionButton}>
-                  📞 Contacter
-                </button>
-                <button style={styles.actionButton}>
-                  📅 Réserver
-                </button>
-                <button style={styles.actionButton}>
-                  ⭐ Ajouter aux favoris
-                </button>
-                <button style={styles.actionButton}>
-                  📤 Partager
-                </button>
-              </div>
-            </div>
-
             {/* Info box */}
             <div style={styles.infoBox}>
-              <div style={styles.infoBoxIcon}>💡</div>
               <div>
                 <h4 style={styles.infoBoxTitle}>Besoin de modifications ?</h4>
                 <p style={styles.infoBoxText}>

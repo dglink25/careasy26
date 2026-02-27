@@ -95,9 +95,8 @@ export default function ModifierService() {
       
       setSuccess('Service modifié avec succès !');
       
-      // ✅ CORRECTION : Redirection vers la bonne route après 2 secondes
       setTimeout(() => {
-        navigate('/mes-services'); // ✅ Correction : /mes-services au lieu de /services/mes-services
+        navigate('/mes-services'); 
       }, 2000);
       
     } catch (err) {
@@ -326,7 +325,7 @@ export default function ModifierService() {
                     {existingMedias.map((media, index) => (
                       <div key={index} style={styles.mediaCard}>
                         <img
-                          src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${media?.replace(/^\/?storage\//, '')}`}
+                          src={service.medias[index]}
                           alt={`Media ${index + 1}`}
                           style={styles.mediaImage}
                         />

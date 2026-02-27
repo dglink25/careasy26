@@ -64,7 +64,7 @@ export default function Dashboard() {
   // ✅ CORRECTION : Rediriger les admins vers leur dashboard
   useEffect(() => {
     if (user && user.role === 'admin') {
-      console.log('🔴 Admin détecté - Redirection vers /admin/dashboard');
+      console.log('Admin détecté - Redirection vers /admin/dashboard');
       navigate('/admin/dashboard', { replace: true });
     }
   }, [user, navigate]);
@@ -329,17 +329,6 @@ export default function Dashboard() {
                   <FiChevronRight style={styles.actionArrow} />
                 </Link>
 
-                <button style={styles.actionCard}>
-                  <div style={styles.actionIcon}>
-                    <FiDownload />
-                  </div>
-                  <div style={styles.actionContent}>
-                    <div style={styles.actionTitle}>Exporter les données</div>
-                    <div style={styles.actionDescription}>Télécharger un rapport</div>
-                  </div>
-                  <FiChevronRight style={styles.actionArrow} />
-                </button>
-
                   <Link to="/settings" style={styles.actionCard}>
                     <div style={styles.actionIcon}>
                       <FiSettings />
@@ -375,7 +364,7 @@ export default function Dashboard() {
                     <div style={styles.entrepriseInfo}>
                       {entreprise.logo ? (
                         <img 
-                          src={`${import.meta.env.VITE_API_URL}/storage/${entreprise.logo}`}
+                          src={entreprise.logo}
                           alt={entreprise.name}
                           style={styles.entrepriseLogo}
                         />

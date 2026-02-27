@@ -133,7 +133,7 @@ export default function PublicEntrepriseDetails() {
         window.open(`mailto:${entreprise.email || ''}`, '_blank');
         break;
       case 'whatsapp':
-        const message = encodeURIComponent(`Bonjour, je suis intéressé(e) par vos services (${entreprise.name})`);
+        const message = encodeURIComponent(`Bonjour, je suis intéressé(e) par vôtre service (${entreprise.name})`);
         window.open(`https://wa.me/${entreprise.phone?.replace(/\D/g, '') || ''}?text=${message}`, '_blank');
         break;
       case 'maps':
@@ -262,7 +262,7 @@ export default function PublicEntrepriseDetails() {
               <div style={styles.heroImage}>
                 {!imageError ? (
                   <img 
-                    src={entreprise.image_boutique}
+                    src={entreprise.logo}
                     alt={`Boutique ${entreprise.name}`}
                     style={styles.heroImg}
                     onError={() => setImageError(true)}
@@ -294,18 +294,6 @@ export default function PublicEntrepriseDetails() {
 
           {/* Actions rapides */}
           <div style={styles.quickActions}>
-            <button 
-              onClick={toggleFavorite}
-              style={styles.quickActionButton}
-              title={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-            >
-              <FiHeart style={{
-                ...styles.quickActionIcon,
-                color: isFavorite ? '#ef4444' : '#64748b',
-                fill: isFavorite ? '#ef4444' : 'none'
-              }} />
-              {isFavorite ? 'Favori' : 'Favoris'}
-            </button>
             
             <button 
               onClick={() => handleContact('phone')}
@@ -575,148 +563,6 @@ export default function PublicEntrepriseDetails() {
                         <div style={styles.contactButtonSubtitle}>Voir le trajet</div>
                       </div>
                     </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Informations légales */}
-              <div style={styles.card}>
-                <div style={styles.cardHeader}>
-                  <MdVerified style={styles.cardHeaderIcon} />
-                  <h2 style={styles.cardTitle}>Informations légales</h2>
-                </div>
-                <div style={styles.cardBody}>
-                  <div style={styles.infoList}>
-                    {entreprise.pdg_full_name && (
-                      <div style={styles.infoItem}>
-                        <div style={styles.infoItemLabel}>
-                          <MdOutlinePerson style={styles.infoItemIcon} />
-                          Dirigeant
-                        </div>
-                        <div style={styles.infoItemValue}>{entreprise.pdg_full_name}</div>
-                      </div>
-                    )}
-                    
-                    {entreprise.ifu_number && (
-                      <div style={styles.infoItem}>
-                        <div style={styles.infoItemLabel}>
-                          <FiShield style={styles.infoItemIcon} />
-                          Numéro IFU
-                        </div>
-                        <div style={styles.infoItemValue}>
-                          <code style={styles.code}>{entreprise.ifu_number}</code>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {entreprise.rccm_number && (
-                      <div style={styles.infoItem}>
-                        <div style={styles.infoItemLabel}>
-                          <MdBusiness style={styles.infoItemIcon} />
-                          RCCM
-                        </div>
-                        <div style={styles.infoItemValue}>
-                          <code style={styles.code}>{entreprise.rccm_number}</code>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {entreprise.certificate_number && (
-                      <div style={styles.infoItem}>
-                        <div style={styles.infoItemLabel}>
-                          <FiCheck style={styles.infoItemIcon} />
-                          Certificat
-                        </div>
-                        <div style={styles.infoItemValue}>
-                          <code style={styles.code}>{entreprise.certificate_number}</code>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions supplémentaires */}
-              <div style={styles.card}>
-                <div style={styles.cardHeader}>
-                  <FiCornerUpRight style={styles.cardHeaderIcon} />
-                  <h2 style={styles.cardTitle}>Actions</h2>
-                </div>
-                <div style={styles.cardBody}>
-                  <div style={styles.actionsList}>
-                    <button 
-                      onClick={toggleFavorite}
-                      style={styles.actionButton}
-                    >
-                      <FiHeart style={{
-                        ...styles.actionIcon,
-                        color: isFavorite ? '#ef4444' : '#64748b',
-                        fill: isFavorite ? '#ef4444' : 'none'
-                      }} />
-                      <div style={styles.actionContent}>
-                        <div style={styles.actionTitle}>
-                          {isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                        </div>
-                        <div style={styles.actionDescription}>
-                          {isFavorite ? 'Retirer de votre liste' : 'Sauvegarder pour plus tard'}
-                        </div>
-                      </div>
-                    </button>
-                    
-                    <button 
-                      onClick={handleShare}
-                      style={styles.actionButton}
-                    >
-                      <FiShare2 style={styles.actionIcon} />
-                      <div style={styles.actionContent}>
-                        <div style={styles.actionTitle}>Partager cette entreprise</div>
-                        <div style={styles.actionDescription}>Partagez avec vos contacts</div>
-                      </div>
-                    </button>
-                    
-                    <button 
-                      onClick={handleOpenItinerary}
-                      style={styles.actionButton}
-                    >
-                      <FiNavigation style={styles.actionIcon} />
-                      <div style={styles.actionContent}>
-                        <div style={styles.actionTitle}>Voir l'itinéraire</div>
-                        <div style={styles.actionDescription}>Calculer le trajet depuis votre position</div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Statistiques rapides */}
-              <div style={styles.statsCard}>
-                <div style={styles.statsGrid}>
-                  <div style={styles.statItem}>
-                    <div style={styles.statIcon}>
-                      <MdOutlineStar />
-                    </div>
-                    <div style={styles.statContent}>
-                      <div style={styles.statNumber}>4.8</div>
-                      <div style={styles.statLabel}>Note</div>
-                    </div>
-                  </div>
-                  <div style={styles.statItem}>
-                    <div style={styles.statIcon}>
-                      <FiUsers />
-                    </div>
-                    <div style={styles.statContent}>
-                      <div style={styles.statNumber}>124</div>
-                      <div style={styles.statLabel}>Clients</div>
-                    </div>
-                  </div>
-                  <div style={styles.statItem}>
-                    <div style={styles.statIcon}>
-                      <FiCalendar />
-                    </div>
-                    <div style={styles.statContent}>
-                      <div style={styles.statNumber}>5+</div>
-                      <div style={styles.statLabel}>Ans exp.</div>
-                    </div>
                   </div>
                 </div>
               </div>
