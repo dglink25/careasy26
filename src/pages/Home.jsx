@@ -9,7 +9,7 @@ import theme from './../config/theme';
 import { 
   FaWrench, FaPaintBrush, FaCog, FaSnowflake, 
   FaCar, FaShieldAlt, FaGraduationCap, FaOilCan,
-  FaArrowRight, FaComments, FaTimes, FaPaperPlane,
+  FaArrowRight, FaComments, FaTimes,
   FaMapMarkerAlt, FaPhone, FaEnvelope, FaStar,
   FaClock, FaWhatsapp, FaUserCircle
 } from 'react-icons/fa';
@@ -19,8 +19,7 @@ export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [services, setServices] = useState([]);
   const [partners, setPartners] = useState([]);
-  const [showChatbot, setShowChatbot] = useState(false);
-  const [chatMessage, setChatMessage] = useState('');
+  // showChatbot supprimé — remplacé par AIChatWidget global dans App.jsx
   const sectionsRef = useRef([]);
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
@@ -162,11 +161,6 @@ export default function Home() {
 
     return () => observer.disconnect();
   }, []);
-
-  const handleChatSend = () => {
-    alert(`Message envoyé : ${chatMessage}\n\n(L'IA sera disponible bientôt)`);
-    setChatMessage('');
-  };
 
   // Fonction pour ouvrir le popup de contact
   const openContactPopup = (service) => {
@@ -429,54 +423,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Chatbot Flottant */}
-      <div style={styles.chatbotContainer}>
-        {showChatbot && (
-          <div style={styles.chatbotModal}>
-            <div style={styles.chatbotHeader}>
-              <div style={styles.chatbotTitle}>
-                <FaComments style={{marginRight: '0.5rem'}} />
-                Assistant IA CarEasy
-              </div>
-              <button 
-                onClick={() => setShowChatbot(false)}
-                style={styles.chatbotClose}
-              >
-                <FaTimes />
-              </button>
-            </div>
-            <div style={styles.chatbotBody}>
-              <div style={styles.chatbotMessage}>
-                Bonjour ! Je suis l'assistant IA de CarEasy. Comment puis-je vous aider aujourd'hui ?
-              </div>
-              <p style={styles.chatbotInfo}>
-                (L'IA sera bientôt disponible - En développement)
-              </p>
-            </div>
-            <div style={styles.chatbotFooter}>
-              <input
-                type="text"
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                placeholder="Posez votre question..."
-                style={styles.chatbotInput}
-                onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
-              />
-              <button onClick={handleChatSend} style={styles.chatbotSend}>
-                <FaPaperPlane />
-              </button>
-            </div>
-          </div>
-        )}
-        
-        <button 
-          onClick={() => setShowChatbot(!showChatbot)}
-          style={styles.chatbotButton}
-          className="chatbot-pulse"
-        >
-          <FaComments style={{fontSize: '1.75rem'}} />
-        </button>
-      </div>
+      {/* ℹ️ Le bouton CarAI flottant est géré par AIChatWidget dans App.jsx */}
 
       {/* MODAL DE CONTACT PROFESSIONNEL AVEC 3 BOUTONS */}
       {showContactModal && selectedService && (
@@ -702,10 +649,6 @@ export default function Home() {
         
         .partners-scroll:hover {
           animation-play-state: paused;
-        }
-        
-        .chatbot-pulse {
-          animation: pulse 2s ease-in-out infinite;
         }
         
         .seeMoreLink:hover {
@@ -1156,119 +1099,6 @@ const styles = {
     boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
   },
   
-  // Chatbot
-  chatbotContainer: {
-    position: 'fixed',
-    bottom: '30px',
-    right: '30px',
-    zIndex: 1000,
-  },
-  chatbotModal: {
-    position: 'absolute',
-    bottom: '80px',
-    right: 0,
-    width: '350px',
-    backgroundColor: theme.colors.secondary,
-    borderRadius: theme.borderRadius.xl,
-    boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-    border: `2px solid ${theme.colors.primaryLight}`,
-    overflow: 'hidden',
-  },
-  chatbotHeader: {
-    backgroundColor: theme.colors.primary,
-    color: '#fff',
-    padding: '1rem 1.5rem',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  chatbotTitle: {
-    fontWeight: '600',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  chatbotClose: {
-    background: 'none',
-    border: 'none',
-    color: '#fff',
-    fontSize: '1.25rem',
-    cursor: 'pointer',
-  },
-  chatbotBody: {
-    padding: '1.5rem',
-    minHeight: '200px',
-  },
-  chatbotMessage: {
-    backgroundColor: theme.colors.background,
-    padding: '1rem',
-    borderRadius: theme.borderRadius.md,
-    marginBottom: '1rem',
-  },
-  chatbotInfo: {
-    color: theme.colors.text.secondary,
-    fontSize: '0.85rem',
-    textAlign: 'center',
-    marginTop: '1rem',
-    fontStyle: 'italic',
-    padding: '0.5rem',
-    background: 'rgba(0, 0, 0, 0.05)',
-    borderRadius: theme.borderRadius.md,
-    border: `1px solid ${theme.colors.primaryLight}20`,
-  },
-  chatbotFooter: {
-    padding: '1.25rem',
-    borderTop: `2px solid ${theme.colors.primaryLight}`,
-    display: 'flex',
-    gap: '0.75rem',
-    alignItems: 'center',
-    background: theme.colors.background,
-  },
-  chatbotInput: {
-    flex: 1,
-    padding: '1rem 1.5rem',
-    borderRadius: theme.borderRadius.lg,
-    border: `2px solid ${theme.colors.primaryLight}`,
-    fontSize: '1rem',
-    fontFamily: 'inherit',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    background: theme.colors.secondary,
-    color: theme.colors.text.primary,
-    minHeight: '52px',
-  },
-  chatbotSend: {
-    background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.primaryDark || '#991b1b'})`,
-    color: '#fff',
-    border: 'none',
-    borderRadius: theme.borderRadius.lg,
-    width: '52px',
-    height: '52px',
-    minWidth: '52px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    fontSize: '1.25rem',
-    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
-  },
-  chatbotButton: {
-    background: `linear-gradient(135deg, ${theme.colors.primary}, #991b1b)`,
-    color: '#fff',
-    border: `2px solid rgba(255, 255, 255, 0.2)`,
-    borderRadius: '50%',
-    width: '70px',
-    height: '70px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 10px 35px rgba(0, 0, 0, 0.3)',
-    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-    fontSize: '1.75rem',
-    position: 'relative',
-    overflow: 'hidden',
-    zIndex: 1001,
-  },
 
   // Modal de Contact PROFESSIONNEL
   contactModalOverlay: {

@@ -1,4 +1,3 @@
-// careasy-frontend/src/pages/services/MesServices.jsx
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { serviceApi } from '../../api/serviceApi';
@@ -24,7 +23,10 @@ import {
   FiTrash2,
   FiFilter,
   FiDownload,
-  FiPrinter
+  FiPrinter,
+  FiX,
+  FiCheck,
+  FiAlertTriangle
 } from 'react-icons/fi';
 import {
   MdBusiness,
@@ -49,6 +51,15 @@ export default function MesServices() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  
+  // États pour la suppression
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    serviceId: null,
+    serviceName: '',
+    isDeleting: false
+  });
+  const [deleteSuccess, setDeleteSuccess] = useState('');
 
   useEffect(() => {
     fetchServices();
@@ -72,6 +83,59 @@ export default function MesServices() {
   const handleRefresh = () => {
     setRefreshing(true);
     fetchServices();
+  };
+
+  // Fonction pour ouvrir la modale de confirmation
+  const openDeleteModal = (serviceId, serviceName) => {
+    setDeleteModal({
+      isOpen: true,
+      serviceId,
+      serviceName,
+      isDeleting: false
+    });
+  };
+
+  // Fonction pour fermer la modale
+  const closeDeleteModal = () => {
+    setDeleteModal({
+      isOpen: false,
+      serviceId: null,
+      serviceName: '',
+      isDeleting: false
+    });
+  };
+
+  // Fonction pour supprimer le service
+  const handleDeleteService = async () => {
+    if (!deleteModal.serviceId) return;
+
+    setDeleteModal(prev => ({ ...prev, isDeleting: true }));
+
+    try {
+      await serviceApi.deleteService(deleteModal.serviceId);
+      
+      // Mettre à jour la liste des services
+      setServices(prevServices => 
+        prevServices.filter(service => service.id !== deleteModal.serviceId)
+      );
+
+      // Afficher le message de succès
+      setDeleteSuccess('Service supprimé avec succès !');
+      
+      // Fermer la modale
+      closeDeleteModal();
+
+      // Masquer le message après 3 secondes
+      setTimeout(() => {
+        setDeleteSuccess('');
+      }, 3000);
+
+    } 
+    catch (err) {
+      console.error('Erreur lors de la suppression:', err);
+      setError('Erreur lors de la suppression du service', err);
+      closeDeleteModal();
+    }
   };
 
   // Filtrer services par recherche
@@ -148,6 +212,14 @@ export default function MesServices() {
           </div>
         </div>
 
+        {/* Message de succès de suppression */}
+        {deleteSuccess && (
+          <div style={styles.successMessage}>
+            <FiCheck style={styles.successIcon} />
+            <span>{deleteSuccess}</span>
+          </div>
+        )}
+
         {/* Statistiques améliorées */}
         <div style={styles.statsGrid}>
           <div style={styles.statCard}>
@@ -199,8 +271,6 @@ export default function MesServices() {
               <div style={styles.statLabel}>Disponible 24h/24</div>
             </div>
           </div>
-
-          
         </div>
 
         {/* Barre de recherche et filtres */}
@@ -369,8 +439,12 @@ export default function MesServices() {
                         <div style={styles.serviceHeader}>
                           <h3 style={styles.serviceName}>{service.name}</h3>
                           <div style={styles.serviceActionsMenu}>
-                            <button style={styles.serviceActionButton}>
-                              <MdOutlineMoreVert />
+                            <button 
+                              style={styles.serviceActionButton}
+                              onClick={() => openDeleteModal(service.id, service.name)}
+                              title="Supprimer ce service"
+                            >
+                              <FiTrash2 style={styles.deleteIcon} />
                             </button>
                           </div>
                         </div>
@@ -443,6 +517,65 @@ export default function MesServices() {
         )}
       </div>
 
+      {/* MODALE DE CONFIRMATION DE SUPPRESSION */}
+      {deleteModal.isOpen && (
+        <div style={styles.modalOverlay} onClick={closeDeleteModal}>
+          <div 
+            style={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.modalHeader}>
+              <div style={styles.modalIconContainer}>
+                <FiAlertTriangle style={styles.modalIcon} />
+              </div>
+              <button 
+                onClick={closeDeleteModal}
+                style={styles.modalCloseButton}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <h3 style={styles.modalTitle}>Confirmer la suppression</h3>
+            
+            <p style={styles.modalText}>
+              Êtes-vous sûr de vouloir supprimer le service <strong>"{deleteModal.serviceName}"</strong> ?
+            </p>
+            
+            <p style={styles.modalWarning}>
+              Cette action est irréversible. Toutes les données associées à ce service seront définitivement supprimées.
+            </p>
+
+            <div style={styles.modalActions}>
+              <button
+                onClick={closeDeleteModal}
+                style={styles.modalCancelButton}
+                disabled={deleteModal.isDeleting}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDeleteService}
+                style={styles.modalConfirmButton}
+                disabled={deleteModal.isDeleting}
+              >
+                {deleteModal.isDeleting ? (
+                  <>
+                    <div style={styles.buttonSpinner}></div>
+                    Suppression...
+                  </>
+                ) : (
+                  <>
+                    <FiTrash2 style={styles.modalConfirmIcon} />
+                    Supprimer
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CSS pour animations */}
       <style>{`
         @keyframes spin {
@@ -452,6 +585,16 @@ export default function MesServices() {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(-50px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
         }
         
         .service-card {
@@ -467,12 +610,20 @@ export default function MesServices() {
         .refreshing {
           animation: spin 1s linear infinite;
         }
+        
+        .modal-content {
+          animation: scaleIn 0.3s ease-out;
+        }
+        
+        .success-message {
+          animation: slideIn 0.3s ease-out;
+        }
       `}</style>
     </div>
   );
 }
 
-// Styles
+// Styles (avec ajouts pour la modale et le bouton de suppression)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -508,6 +659,25 @@ const styles = {
     color: '#94a3b8',
     fontSize: '0.875rem',
   },
+  
+  // Message de succès
+  successMessage: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+    color: '#16a34a',
+    padding: '1rem 1.5rem',
+    borderRadius: '0.75rem',
+    marginBottom: '1.5rem',
+    animation: 'fadeIn 0.3s ease-out',
+  },
+  successIcon: {
+    fontSize: '1.25rem',
+  },
+
+  // Header
   header: {
     marginBottom: '2rem',
   },
@@ -554,6 +724,14 @@ const styles = {
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#f1f5f9',
+      transform: 'translateY(-1px)',
+    },
+    ':disabled': {
+      opacity: 0.6,
+      cursor: 'not-allowed',
+    },
   },
   headerActionIcon: {
     fontSize: '1rem',
@@ -574,10 +752,17 @@ const styles = {
     fontWeight: '600',
     boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
     transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#dc2626',
+      transform: 'translateY(-2px)',
+      boxShadow: '0 10px 15px -3px rgba(239, 68, 68, 0.3)',
+    },
   },
   createButtonIcon: {
     fontSize: '1.125rem',
   },
+
+  // Stats
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
@@ -593,6 +778,10 @@ const styles = {
     alignItems: 'center',
     gap: '1rem',
     transition: 'all 0.3s',
+    ':hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.1)',
+    },
   },
   statIconContainer: {
     display: 'flex',
@@ -621,6 +810,8 @@ const styles = {
     color: '#64748b',
     fontWeight: '500',
   },
+
+  // Search
   searchSection: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -651,6 +842,10 @@ const styles = {
     outline: 'none',
     transition: 'all 0.3s',
     backgroundColor: '#fff',
+    ':focus': {
+      borderColor: '#ef4444',
+      boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.1)',
+    },
   },
   clearSearchButton: {
     position: 'absolute',
@@ -663,6 +858,11 @@ const styles = {
     fontSize: '1.25rem',
     cursor: 'pointer',
     padding: '0',
+    transition: 'all 0.2s',
+    ':hover': {
+      color: '#ef4444',
+      transform: 'translateY(-50%) scale(1.2)',
+    },
   },
   filterActions: {
     display: 'flex',
@@ -681,10 +881,16 @@ const styles = {
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#f1f5f9',
+      transform: 'translateY(-1px)',
+    },
   },
   filterIcon: {
     fontSize: '1rem',
   },
+
+  // Error
   error: {
     display: 'flex',
     alignItems: 'center',
@@ -694,6 +900,7 @@ const styles = {
     padding: '1rem',
     borderRadius: '0.75rem',
     marginBottom: '2rem',
+    animation: 'fadeIn 0.3s ease-out',
   },
   errorIcon: {
     fontSize: '1.5rem',
@@ -720,13 +927,20 @@ const styles = {
     fontSize: '0.875rem',
     fontWeight: '500',
     cursor: 'pointer',
+    transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#b91c1c',
+    },
   },
+
+  // Empty State
   emptyState: {
     backgroundColor: '#fff',
     padding: '4rem 2rem',
     borderRadius: '1.5rem',
     textAlign: 'center',
     border: '2px dashed #e2e8f0',
+    animation: 'fadeIn 0.3s ease-out',
   },
   emptyIconContainer: {
     display: 'inline-flex',
@@ -737,6 +951,10 @@ const styles = {
     backgroundColor: '#dbeafe',
     borderRadius: '50%',
     marginBottom: '1.5rem',
+    transition: 'all 0.3s',
+    ':hover': {
+      transform: 'scale(1.1)',
+    },
   },
   emptyIcon: {
     fontSize: '2.5rem',
@@ -767,10 +985,18 @@ const styles = {
     textDecoration: 'none',
     fontWeight: '600',
     boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
+    transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#dc2626',
+      transform: 'translateY(-2px)',
+      boxShadow: '0 10px 15px -3px rgba(239, 68, 68, 0.3)',
+    },
   },
   emptyButtonIcon: {
     fontSize: '1.125rem',
   },
+
+  // Services Container
   servicesContainer: {
     display: 'flex',
     flexDirection: 'column',
@@ -782,6 +1008,7 @@ const styles = {
     borderRadius: '1.5rem',
     border: '1px solid #e2e8f0',
     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+    animation: 'fadeIn 0.3s ease-out',
   },
   entrepriseHeader: {
     display: 'flex',
@@ -851,10 +1078,16 @@ const styles = {
     textDecoration: 'none',
     fontWeight: '600',
     fontSize: '0.875rem',
+    transition: 'all 0.2s',
+    ':hover': {
+      gap: '0.75rem',
+    },
   },
   viewEntrepriseIcon: {
     fontSize: '1rem',
   },
+
+  // Services Grid
   servicesGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
@@ -925,6 +1158,8 @@ const styles = {
   },
   serviceActionsMenu: {
     marginLeft: '0.5rem',
+    display: 'flex',
+    gap: '0.25rem',
   },
   serviceActionButton: {
     backgroundColor: 'transparent',
@@ -935,6 +1170,14 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    transition: 'all 0.2s',
+    ':hover': {
+      color: '#ef4444',
+      transform: 'scale(1.2)',
+    },
+  },
+  deleteIcon: {
+    fontSize: '1.2rem',
   },
   domaineTag: {
     display: 'inline-flex',
@@ -1006,6 +1249,11 @@ const styles = {
     fontWeight: '500',
     flex: 1,
     justifyContent: 'center',
+    transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#dc2626',
+      transform: 'translateY(-2px)',
+    },
   },
   viewButtonIcon: {
     fontSize: '0.875rem',
@@ -1019,18 +1267,166 @@ const styles = {
     border: '1px solid #e2e8f0',
     padding: '0.5rem 1rem',
     borderRadius: '0.5rem',
-    fontSize: '0.875',
+    fontSize: '0.875rem',
     fontWeight: '500',
     cursor: 'pointer',
     flex: 1,
     justifyContent: 'center',
     textDecoration: 'none',
+    transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#e2e8f0',
+      transform: 'translateY(-2px)',
+    },
   },
   editButtonIcon: {
     fontSize: '0.875rem',
   },
 
-  // Styles responsives
+  // MODALE DE SUPPRESSION
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+    animation: 'fadeIn 0.3s ease-out',
+    backdropFilter: 'blur(5px)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: '1.5rem',
+    padding: '2rem',
+    maxWidth: '500px',
+    width: '90%',
+    maxHeight: '90vh',
+    overflow: 'auto',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    animation: 'scaleIn 0.3s ease-out',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '1.5rem',
+  },
+  modalIconContainer: {
+    width: '64px',
+    height: '64px',
+    borderRadius: '50%',
+    backgroundColor: '#fee2e2',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalIcon: {
+    fontSize: '2.5rem',
+    color: '#ef4444',
+  },
+  modalCloseButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#9ca3af',
+    fontSize: '1.5rem',
+    cursor: 'pointer',
+    padding: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s',
+    ':hover': {
+      color: '#ef4444',
+      transform: 'rotate(90deg)',
+    },
+  },
+  modalTitle: {
+    fontSize: '1.5rem',
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: '1rem',
+  },
+  modalText: {
+    fontSize: '1rem',
+    color: '#4b5563',
+    marginBottom: '1rem',
+    lineHeight: '1.6',
+  },
+  modalWarning: {
+    fontSize: '0.875rem',
+    color: '#ef4444',
+    backgroundColor: '#fee2e2',
+    padding: '0.75rem 1rem',
+    borderRadius: '0.5rem',
+    marginBottom: '2rem',
+    border: '1px solid #fecaca',
+  },
+  modalActions: {
+    display: 'flex',
+    gap: '1rem',
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+    color: '#4b5563',
+    border: '1px solid #e5e7eb',
+    padding: '0.875rem',
+    borderRadius: '0.75rem',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#e5e7eb',
+      transform: 'translateY(-1px)',
+    },
+    ':disabled': {
+      opacity: 0.6,
+      cursor: 'not-allowed',
+    },
+  },
+  modalConfirmButton: {
+    flex: 1,
+    backgroundColor: '#ef4444',
+    color: '#fff',
+    border: 'none',
+    padding: '0.875rem',
+    borderRadius: '0.75rem',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#dc2626',
+      transform: 'translateY(-1px)',
+      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+    },
+    ':disabled': {
+      opacity: 0.6,
+      cursor: 'not-allowed',
+    },
+  },
+  modalConfirmIcon: {
+    fontSize: '1rem',
+  },
+  buttonSpinner: {
+    width: '16px',
+    height: '16px',
+    border: '2px solid rgba(255,255,255,0.3)',
+    borderTop: '2px solid #fff',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+
+  // Responsive
   '@media (max-width: 1024px)': {
     statsGrid: {
       gridTemplateColumns: 'repeat(3, 1fr)',

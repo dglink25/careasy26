@@ -36,16 +36,29 @@ getServiceById: async (id) => {
   return response.data;
 },
 
-// Méthode pour mettre à jour un service
 updateService: async (id, formData) => {
   const response = await api.post(`/services/${id}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
     params: {
-      _method: 'PUT' // Laravel requiert ceci pour les formulaires multipart
+      _method: 'PUT'
     }
   });
   return response.data;
 },
+
+deleteService: async (id) => {
+    try {
+      const response = await api.delete(`/services/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erreur deleteService:', error);
+      throw error;
+    }
+  },
 };

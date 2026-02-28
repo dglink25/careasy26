@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Router } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -11,8 +11,9 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import AuthCallback from './pages/AuthCallback'; 
 import { ModalProvider } from './contexts/ModalContext';
-import AppRoutes from './AppRoutes';
-import FAQ from './pages/FAQ'
+import FAQ from './pages/FAQ';
+
+import AIChatWidget from './components/Chat/AIChatWidget';
 
 // Entreprises (Prestataire)
 import MesEntreprises from './pages/entreprises/MesEntreprises';
@@ -26,9 +27,10 @@ import CreerService from './pages/services/CreerService';
 import DetailsService from './pages/services/DetailsService';
 import ModifierService from './pages/services/ModifierService';
 
-// 👉 MESSAGERIE - NOUVEAU
+// Messagerie
 import MessagesPage from './pages/messages/MessagesPage';
 import Settings from './pages/Settings';
+
 // Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminEntreprises from './pages/admin/AdminEntreprises';
@@ -45,148 +47,149 @@ import Partners from './pages/Partners';
 function App() {
   return (
     <BrowserRouter>
-    
       <AuthProvider>
         <ModalProvider>
-        <div style={{ minHeight: '100vh' }}>
-          <Routes>
-            
-            {/* Routes avec Navbar (utilisant Layout) */}
-            <Route element={<Layout />}>
-              <Route path="/" element={<Home />} />
+          <div style={{ minHeight: '100vh' }}>
+            <Routes>
               
-              {/* Dashboard */}
-              <Route 
+              {/* Routes avec Navbar (utilisant Layout) */}
+              <Route element={<Layout />}>
+                <Route path="/" element={<Home />} />
                 
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Dashboard */}
+                <Route 
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Entreprises (Prestataire) */}
-              <Route
-                path="/mes-entreprises"
-                element={
+                {/* Entreprises (Prestataire) */}
+                <Route
+                  path="/mes-entreprises"
+                  element={
+                    <ProtectedRoute>
+                      <MesEntreprises />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/entreprises/creer"
+                  element={
+                    <ProtectedRoute>
+                      <CreerEntreprise />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/entreprises/:id/edit"
+                 element={
                   <ProtectedRoute>
-                    <MesEntreprises />
+                   <EditEntreprise />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/entreprises/creer"
-                element={
-                  <ProtectedRoute>
-                    <CreerEntreprise />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/entreprises/:id/edit"
-               element={
-                <ProtectedRoute>
-                 <EditEntreprise />
-                </ProtectedRoute>
-               } />
+                 } />
 
-              {/* Services (Prestataire) */}
-              <Route
-                path="/mes-services"
-                element={
-                  <ProtectedRoute>
-                    <MesServices />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/services/creer"
-                element={
-                  <ProtectedRoute>
-                    <CreerService />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/services/:id"
-                element={
-                  <ProtectedRoute>
-                    <DetailsService />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Services (Prestataire) */}
+                <Route
+                  path="/mes-services"
+                  element={
+                    <ProtectedRoute>
+                      <MesServices />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/services/creer"
+                  element={
+                    <ProtectedRoute>
+                      <CreerService />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/services/:id"
+                  element={
+                    <ProtectedRoute>
+                      <DetailsService />
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-               path="/services/modifier/:id" 
-               element={
-                <ProtectedRoute>
-                  <ModifierService />
-                </ProtectedRoute>
-               } 
-               />
-
-              {/* 👉 MESSAGERIE - NOUVEAU */}
-              <Route
-                path="/messages"
-                element={
+                <Route
+                 path="/services/modifier/:id" 
+                 element={
                   <ProtectedRoute>
-                    <MessagesPage />
+                    <ModifierService />
                   </ProtectedRoute>
-                }
-              />
+                 } 
+                 />
 
-             <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Admin */}
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/entreprises"
-                element={
-                  <AdminRoute>
-                    <AdminEntreprises />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/entreprises/:id"
-                element={
-                  <AdminRoute>
-                    <AdminEntrepriseDetails />
-                  </AdminRoute>
-                }
-              />
+                {/* Messagerie */}
+                <Route
+                  path="/messages"
+                  element={
+                    <ProtectedRoute>
+                      <MessagesPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Pages Publiques */}
-              <Route path="/entreprises" element={<PublicEntreprises />} />
-              <Route path="/entreprises/:id" element={<PublicEntrepriseDetails />} />
-              <Route path="/services" element={<PublicServices />} />
-              <Route path="/service/:id" element={<PublicServiceDetails />} /> 
-              <Route path="/partenaires" element={<Partners />} />
-              <Route path="/faq" element={<FAQ />} />
-            </Route>
-            
-            {/* Routes sans Navbar */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/password-reset/:token" element={<ResetPassword />} />
-            <Route path="/auth/callback" element={<AuthCallback />} /> 
-            <Route path="/auth/callback" element={<AuthCallback />} />
-          </Routes>
-        </div>
+               <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Admin */}
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <AdminRoute>
+                      <AdminDashboard />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/entreprises"
+                  element={
+                    <AdminRoute>
+                      <AdminEntreprises />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/entreprises/:id"
+                  element={
+                    <AdminRoute>
+                      <AdminEntrepriseDetails />
+                    </AdminRoute>
+                  }
+                />
+
+                {/* Pages Publiques */}
+                <Route path="/entreprises" element={<PublicEntreprises />} />
+                <Route path="/entreprises/:id" element={<PublicEntrepriseDetails />} />
+                <Route path="/services" element={<PublicServices />} />
+                <Route path="/service/:id" element={<PublicServiceDetails />} /> 
+                <Route path="/partenaires" element={<Partners />} />
+                <Route path="/faq" element={<FAQ />} />
+              </Route>
+              
+              {/* Routes sans Navbar */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/password-reset/:token" element={<ResetPassword />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+            </Routes>
+
+            {/* Widget IA flottant — visible sur toutes les pages sauf Home */}
+            <AIChatWidget />
+          </div>
         </ModalProvider>
       </AuthProvider>
     </BrowserRouter>
