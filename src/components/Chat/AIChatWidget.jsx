@@ -99,10 +99,10 @@ function MessageBubble({ msg, isNew, onDeleteMedia, userLocation }) {
   };
 
   const urgencyBadges = {
-    critical: '🚨 URGENT',
-    important: '⚠️ ATTENTION',
-    minor: '✅ OK',
-    unknown: 'ℹ️ INFO'
+    critical: 'URGENT',
+    important: 'ATTENTION',
+    minor: 'OK',
+    unknown: 'ℹINFO'
   };
 
   return (
