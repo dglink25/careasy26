@@ -192,3 +192,54 @@ input:focus {
 .google-button:hover .google-icon {
   transform: scale(1.1);
 }
+
+/* Dans votre fichier CSS global */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.media-message {
+  animation: slideIn 0.3s ease;
+}
+
+/* Styles pour le modal d'image */
+.image-modal-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.image-modal-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: all 0.3s ease;
+}
+
+.image-modal-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.image-modal-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: all 0.3s ease;
+}
+
+/* Support tactile */
+@media (hover: none) and (pointer: coarse) {
+  .media-overlay {
+    opacity: 1 !important;
+    background-color: rgba(0,0,0,0.2);
+  }
+  
+  .media-overlay-text {
+    background-color: rgba(0,0,0,0.8);
+  }
+}

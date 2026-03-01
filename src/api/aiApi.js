@@ -1,108 +1,128 @@
-// src/api/aiApi.js — Client pour l'API Flask CareEasy AI
-// Communique avec le backend Flask sur le port 5000
+// src/api/aiApi.js — CareEasy AI API v3 CORRIGÉE
+// Gère: texte, photo, audio entrant, réponse audio sortante
 
-const AI_BASE_URL = import.meta.env.VITE_AI_URL || 'http://localhost:5000';
+const AI_BASE = import.meta.env.VITE_AI_URL || 'http://localhost:5000';
 
-/**
- * Envoie un message texte à l'IA et retourne la réponse.
- * Supporte : texte, localisation GPS, historique multi-tours, image.
- */
 export const aiApi = {
-  /**
-   * Chat principal — texte ou image
-   * @param {Object} params
-   * @param {string}  params.message        - Message texte
-   * @param {Array}   params.history        - Historique [{role, content}]
-   * @param {number}  params.lat            - Latitude GPS (optionnel)
-   * @param {number}  params.lng            - Longitude GPS (optionnel)
-   * @param {string}  params.location_text  - Localité texte ex: "Cotonou"
-   * @param {File}    params.imageFile      - Fichier image (optionnel)
-   * @param {string}  params.vehicle_make   - Marque véhicule
-   * @param {string}  params.vehicle_model  - Modèle véhicule
-   * @param {string}  params.lang           - Langue (fr|en|fon)
-   * @param {number}  params.conversation_id
-   * @returns {Promise<{answer: string, intent: string, urgency: string, services: Array}>}
-   */
-  chat: async ({
-    message = '',
-    history = [],
-    lat = 0,
-    lng = 0,
-    location_text = '',
-    imageFile = null,
-    vehicle_make = '',
-    vehicle_model = '',
-    lang = 'fr',
-    conversation_id = null,
-  } = {}) => {
+
+  // Vérification statut serveur - CORRIGÉ
+  checkStatus: async () => {
     try {
-      let body;
-      let headers = {};
-
-      if (imageFile) {
-        // FormData si image jointe
-        body = new FormData();
-        body.append('message', message);
-        body.append('file', imageFile);
-        body.append('lang', lang);
-        if (lat) body.append('lat', lat);
-        if (lng) body.append('lng', lng);
-        if (location_text) body.append('location_text', location_text);
-        if (vehicle_make) body.append('vehicle_make', vehicle_make);
-        if (vehicle_model) body.append('vehicle_model', vehicle_model);
-        if (conversation_id) body.append('conversation_id', conversation_id);
-        body.append('history', JSON.stringify(history));
-      } else {
-        // JSON pour texte seul
-        headers['Content-Type'] = 'application/json';
-        body = JSON.stringify({
-          message,
-          history,
-          lang,
-          ...(lat && { lat }),
-          ...(lng && { lng }),
-          ...(location_text && { location_text }),
-          ...(vehicle_make && { vehicle_make }),
-          ...(vehicle_model && { vehicle_model }),
-          ...(conversation_id && { conversation_id }),
-        });
-      }
-
-      const response = await fetch(`${AI_BASE_URL}/api/v1/chat`, {
-        method: 'POST',
-        headers,
-        body,
+      // Utiliser la bonne route /api/v1/status au lieu de /health
+      const r = await fetch(`${AI_BASE}/status`, { 
+        method: 'GET',
+        signal: AbortSignal.timeout(300)
       });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.message || `Erreur HTTP ${response.status}`);
+      
+      if (r.ok) {
+        const data = await r.json();
+        // Vérifier que Ollama est aussi opérationnel
+        return data.ollama?.ok === true;
       }
-
-      const data = await response.json();
-      return {
-        answer: data.answer_fr || data.answer || '',
-        intent: data.intent || 'general',
-        urgency: data.urgency || 'unknown',
-        services: data.services_proches || [],
-        lang: data.lang_detected || lang,
-        sources: data.sources || [],
-      };
-    } catch (error) {
-      console.error('aiApi.chat error:', error);
-      throw error;
+      return false;
+    } 
+    catch (error) {
+      console.error('Erreur vérification statut AI:', error);
+      return false;
     }
   },
 
-  checkStatus: async () => {
-    try {
-      const response = await fetch(`${AI_BASE_URL}/api/v1/status`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(4000),
+  // Transcription audio uniquement
+  transcribe: async (audioBlob) => {
+    const fd = new FormData();
+    fd.append('file', new File([audioBlob], 'audio.webm', { type:'audio/webm' }));
+    const r = await fetch(`${AI_BASE}/audio/transcribe`, { method:'POST', body:fd });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  },
+
+  // Upload vidéo
+  uploadVideo: async (videoFile, message = '', history = []) => {
+    const fd = new FormData();
+    fd.append('file', videoFile);
+    fd.append('message', message);
+    fd.append('history', JSON.stringify(history));
+    fd.append('media_type', 'video');
+    
+    const response = await fetch(`${AI_BASE}/chat`, {
+      method: 'POST',
+      body: fd,
+    });
+    
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  },
+
+  // Méthode chat améliorée avec meilleure gestion des médias
+  chat: async ({ 
+    message, 
+    history = [], 
+    lat = 0, 
+    lng = 0, 
+    imageFile = null,
+    audioFile = null,
+    videoFile = null,
+    returnAudio = false,
+    mediaType = null
+  }) => {
+    let response;
+
+    if (imageFile || audioFile || videoFile) {
+      const fd = new FormData();
+      if (message) fd.append('message', message);
+      if (lat) fd.append('lat', String(lat));
+      if (lng) fd.append('lng', String(lng));
+      if (returnAudio) fd.append('return_audio', 'true');
+      if (history.length) fd.append('history', JSON.stringify(history));
+      
+      if (imageFile) {
+        fd.append('file', imageFile);
+        fd.append('media_type', 'image');
+      }
+      if (audioFile) {
+        const audioF = new File([audioFile], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+        fd.append('file', audioF);
+        fd.append('media_type', 'audio');
+      }
+      if (videoFile) {
+        fd.append('file', videoFile);
+        fd.append('media_type', 'video');
+      }
+      
+      response = await fetch(`${AI_BASE}/chat`, { 
+        method: 'POST', 
+        body: fd
       });
-      return response.ok;
-    } catch {
-      return false;
+    } else {
+      response = await fetch(`${AI_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          history,
+          lat: lat || 0,
+          lng: lng || 0,
+          return_audio: returnAudio,
+        }),
+      });
     }
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    return {
+      answer: data.answer_fr || data.answer || '',
+      urgency: data.urgency || 'unknown',
+      services_proches: data.services_proches || [],
+      intent: data.intent || '',
+      audio_url: data.audio_url || null,
+      video_url: data.video_url || null,
+      image_url: data.image_url || null,
+      file_url: data.file_url || null,
+      file_name: data.file_name || null,
+      file_size: data.file_size || null,
+      lang: data.lang || 'fr',
+      media_analysis: data.media_analysis || null,
+    };
   },
 };

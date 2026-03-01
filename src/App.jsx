@@ -186,8 +186,6 @@ function App() {
               <Route path="/password-reset/:token" element={<ResetPassword />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
             </Routes>
-
-            {/* Widget IA flottant — visible sur toutes les pages sauf Home */}
             <AIChatWidget />
           </div>
         </ModalProvider>
