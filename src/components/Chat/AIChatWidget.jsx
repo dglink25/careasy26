@@ -613,8 +613,7 @@ export default function AIChatWidget() {
     setInput('');
     setWelcomeShown(false);
   };
-
-  // Suggestions
+  
   const SUGGESTIONS = [
     { emoji: '', text: 'Panne moteur', query: 'Mon moteur fait un bruit bizarre' },
     { emoji: '', text: 'Garage proche', query: 'Trouver un garage près de chez moi' },
