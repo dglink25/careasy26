@@ -100,11 +100,11 @@ export default function MessagesPage() {
   };
 
   const handleStartConversation = (provider) => {
-    console.log('🔍 Démarrage conversation avec:', provider);
+    console.log(' Démarrage conversation avec:', provider);
     
     // Vérifier que le provider a un ID valide
     if (!provider.id) {
-      console.error('❌ ERREUR: Provider ID manquant!', provider);
+      console.error(' ERREUR: Provider ID manquant!', provider);
       alert('Erreur: Impossible d\'identifier le prestataire. Veuillez réessayer.');
       return;
     }

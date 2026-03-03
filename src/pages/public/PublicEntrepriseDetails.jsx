@@ -123,27 +123,47 @@ export default function PublicEntrepriseDetails() {
   };
 
   const handleContact = (method) => {
-    if (!entreprise) return;
+  if (!entreprise) return;
 
-    switch(method) {
-      case 'phone':
-        window.open(`tel:${entreprise.phone || ''}`, '_blank');
-        break;
-      case 'email':
-        window.open(`mailto:${entreprise.email || ''}`, '_blank');
-        break;
-      case 'whatsapp':
-        const message = encodeURIComponent(`Bonjour, je suis intéressé(e) par vôtre service (${entreprise.name})`);
-        window.open(`https://wa.me/${entreprise.phone?.replace(/\D/g, '') || ''}?text=${message}`, '_blank');
-        break;
-      case 'maps':
-        if (entreprise.siege) {
-          const address = encodeURIComponent(entreprise.siege);
-          window.open(`https://www.google.com/maps/search/?api=1&query=${address}`, '_blank');
-        }
-        break;
-    }
-  };
+  switch(method) {
+    case 'phone':
+      const phoneNumber = entreprise.call_phone || entreprise.phone;
+      if (phoneNumber) {
+        window.open(`tel:${phoneNumber}`, '_blank');
+      } else {
+        alert('Numéro de téléphone non disponible');
+      }
+      break;
+      
+    case 'email':
+      if (entreprise.email) {
+        window.open(`mailto:${entreprise.email}`, '_blank');
+      } else {
+        alert('Adresse email non disponible');
+      }
+      break;
+      
+    case 'whatsapp':
+      const whatsappNumber = entreprise.call_phone || entreprise.phone;
+      if (whatsappNumber) {
+        const message = encodeURIComponent(`Bonjour, je suis intéressé(e) par vos services (${entreprise.name})`);
+        window.open(`https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${message}`, '_blank');
+      } else {
+        alert('Numéro WhatsApp non disponible');
+      }
+      break;
+      
+    case 'maps':
+      if (entreprise.siege) {
+        const address = encodeURIComponent(entreprise.siege);
+        window.open(`https://www.google.com/maps/search/?api=1&query=${address}`, '_blank');
+      }
+      break;
+      
+    default:
+      break;
+  }
+};
 
   const handleServiceClick = (service) => {
     setActiveService(activeService?.id === service.id ? null : service);
@@ -363,143 +383,155 @@ export default function PublicEntrepriseDetails() {
               )}
 
               {/* Services */}
-              <div style={styles.card}>
-                <div style={styles.cardHeader}>
-                  <MdOutlineWork style={styles.cardHeaderIcon} />
-                  <h2 style={styles.cardTitle}>Nos Services</h2>
-                  {entreprise.services && (
-                    <span style={styles.servicesCount}>
-                      {entreprise.services.length} service{entreprise.services.length > 1 ? 's' : ''}
-                    </span>
-                  )}
-                </div>
-                <div style={styles.cardBody}>
-                  {entreprise.services && entreprise.services.length > 0 ? (
-                    <div style={styles.servicesList}>
-                      {entreprise.services.map((service) => (
-                        <div 
-                          key={service.id}
-                          style={{
-                            ...styles.serviceCard,
-                            ...(activeService?.id === service.id && styles.serviceCardActive)
-                          }}
-                          onClick={() => handleServiceClick(service)}
-                          className="service-card"
-                        >
-                          <div style={styles.serviceHeader}>
-                            {service.medias && service.medias.length > 0 && (
-                              <div style={styles.serviceImageContainer}>
-                                <img 
-                                  src={service.medias[0]}
-                                  alt={service.name}
-                                  style={styles.serviceImage}
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.style.display = 'none';
-                                    e.target.nextElementSibling.style.display = 'flex';
-                                  }}
-                                />
-                                <div style={styles.serviceImagePlaceholder}>
-                                  <MdOutlineWork />
+                  <div style={styles.card}>
+                    <div style={styles.cardHeader}>
+                      <MdOutlineWork style={styles.cardHeaderIcon} />
+                      <h2 style={styles.cardTitle}>Nos Services</h2>
+                      {entreprise.services && (
+                        <span style={styles.servicesCount}>
+                          {entreprise.services.length} service{entreprise.services.length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                    <div style={styles.cardBody}>
+                      {entreprise.services && entreprise.services.length > 0 ? (
+                        <div style={styles.servicesList}>
+                          {entreprise.services.map((service) => (
+                            <div 
+                              key={service.id}
+                              style={{
+                                ...styles.serviceCard,
+                                ...(activeService?.id === service.id && styles.serviceCardActive)
+                              }}
+                              onClick={() => handleServiceClick(service)}
+                              className="service-card"
+                            >
+                              <div style={styles.serviceHeader}>
+                                {/* Service Image Container - Toujours présent avec fallback */}
+                                <div style={styles.serviceImageContainer}>
+                                  {service.medias && service.medias.length > 0 ? (
+                                    <img 
+                                      src={service.medias[0]}
+                                      alt={service.name}
+                                      style={styles.serviceImage}
+                                      onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.style.display = 'none';
+                                        // Afficher le placeholder
+                                        const placeholder = e.target.parentElement.querySelector('.service-image-placeholder');
+                                        if (placeholder) placeholder.style.display = 'flex';
+                                      }}
+                                    />
+                                  ) : null}
+                                  
+                                  {/* Placeholder - Toujours présent mais caché si image existe */}
+                                  <div 
+                                    className="service-image-placeholder"
+                                    style={{
+                                      ...styles.serviceImagePlaceholder,
+                                      display: (!service.medias || service.medias.length === 0) ? 'flex' : 'none'
+                                    }}
+                                  >
+                                    <MdOutlineWork style={styles.servicePlaceholderIcon} />
+                                  </div>
                                 </div>
+                                
+                                <div style={styles.serviceInfo}>
+                                  <h3 style={styles.serviceName}>{service.name}</h3>
+                                  <div style={styles.servicePrice}>
+                                    <FiDollarSign style={styles.servicePriceIcon} />
+                                    {formatPrice(service.price)}
+                                  </div>
+                                </div>
+                                <button style={styles.serviceToggle}>
+                                  <FiChevronRight style={{
+                                    transform: activeService?.id === service.id ? 'rotate(90deg)' : 'none',
+                                    transition: 'transform 0.3s'
+                                  }} />
+                                </button>
                               </div>
-                            )}
-                            <div style={styles.serviceInfo}>
-                              <h3 style={styles.serviceName}>{service.name}</h3>
-                              <div style={styles.servicePrice}>
-                                <FiDollarSign style={styles.servicePriceIcon} />
-                                {formatPrice(service.price)}
-                              </div>
-                            </div>
-                            <button style={styles.serviceToggle}>
-                              <FiChevronRight style={{
-                                transform: activeService?.id === service.id ? 'rotate(90deg)' : 'none',
-                                transition: 'transform 0.3s'
-                              }} />
-                            </button>
-                          </div>
-                          
-                          {/* Détails du service */}
-                          {activeService?.id === service.id && (
-                            <div style={styles.serviceDetails}>
-                              {service.descriptions && (
-                                <p style={styles.serviceDescription}>
-                                  {service.descriptions}
-                                </p>
+                              
+                              {/* Détails du service */}
+                              {activeService?.id === service.id && (
+                                <div style={styles.serviceDetails}>
+                                  {service.descriptions && (
+                                    <p style={styles.serviceDescription}>
+                                      {service.descriptions}
+                                    </p>
+                                  )}
+                                  
+                                  <div style={styles.serviceMeta}>
+                                    {service.is_open_24h ? (
+                                      <div style={styles.serviceMetaItem}>
+                                        <FiClock style={styles.serviceMetaIcon} />
+                                        <span style={styles.serviceMetaText}>Disponible 24h/24</span>
+                                      </div>
+                                    ) : service.start_time && service.end_time && (
+                                      <div style={styles.serviceMetaItem}>
+                                        <FiClock style={styles.serviceMetaIcon} />
+                                        <span style={styles.serviceMetaText}>
+                                          {service.start_time} - {service.end_time}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {service.duration && (
+                                      <div style={styles.serviceMetaItem}>
+                                        <MdOutlineAccessTime style={styles.serviceMetaIcon} />
+                                        <span style={styles.serviceMetaText}>Durée: {service.duration}</span>
+                                      </div>
+                                    )}
+                                    
+                                    {service.warranty && (
+                                      <div style={styles.serviceMetaItem}>
+                                        <FiShield style={styles.serviceMetaIcon} />
+                                        <span style={styles.serviceMetaText}>Garantie: {service.warranty}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  <div style={styles.serviceActions}>
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleContact('phone');
+                                      }}
+                                      style={styles.serviceActionButton}
+                                    >
+                                      <FiPhone style={styles.serviceActionIcon} />
+                                      Réserver
+                                    </button>
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleContact('whatsapp');
+                                      }}
+                                      style={{...styles.serviceActionButton, ...styles.serviceWhatsappButton}}
+                                    >
+                                      <MdOutlineWhatsapp style={styles.serviceActionIcon} />
+                                      Demander un devis
+                                    </button>
+                                  </div>
+                                </div>
                               )}
-                              
-                              <div style={styles.serviceMeta}>
-                                {service.is_open_24h ? (
-                                  <div style={styles.serviceMetaItem}>
-                                    <FiClock style={styles.serviceMetaIcon} />
-                                    <span style={styles.serviceMetaText}>Disponible 24h/24</span>
-                                  </div>
-                                ) : service.start_time && service.end_time && (
-                                  <div style={styles.serviceMetaItem}>
-                                    <FiClock style={styles.serviceMetaIcon} />
-                                    <span style={styles.serviceMetaText}>
-                                      {service.start_time} - {service.end_time}
-                                    </span>
-                                  </div>
-                                )}
-                                
-                                {service.duration && (
-                                  <div style={styles.serviceMetaItem}>
-                                    <MdOutlineAccessTime style={styles.serviceMetaIcon} />
-                                    <span style={styles.serviceMetaText}>Durée: {service.duration}</span>
-                                  </div>
-                                )}
-                                
-                                {service.warranty && (
-                                  <div style={styles.serviceMetaItem}>
-                                    <FiShield style={styles.serviceMetaIcon} />
-                                    <span style={styles.serviceMetaText}>Garantie: {service.warranty}</span>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <div style={styles.serviceActions}>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleContact('phone');
-                                  }}
-                                  style={styles.serviceActionButton}
-                                >
-                                  <FiPhone style={styles.serviceActionIcon} />
-                                  Réserver
-                                </button>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleContact('whatsapp');
-                                  }}
-                                  style={{...styles.serviceActionButton, ...styles.serviceWhatsappButton}}
-                                >
-                                  <MdOutlineWhatsapp style={styles.serviceActionIcon} />
-                                  Demander un devis
-                                </button>
-                              </div>
                             </div>
-                          )}
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        <div style={styles.noServices}>
+                          <FiInfo style={styles.noServicesIcon} />
+                          <p style={styles.noServicesText}>
+                            Aucun service disponible pour le moment
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div style={styles.noServices}>
-                      <FiInfo style={styles.noServicesIcon} />
-                      <p style={styles.noServicesText}>
-                        Aucun service disponible pour le moment
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </div>
             </div>
 
             {/* Colonne droite - Informations et contact */}
             <div style={styles.rightColumn}>
-              {/* Carte de contact */}
+             {/* Carte de contact */}
               <div style={styles.card}>
                 <div style={styles.cardHeader}>
                   <FiPhone style={styles.cardHeaderIcon} />
@@ -507,15 +539,23 @@ export default function PublicEntrepriseDetails() {
                 </div>
                 <div style={styles.cardBody}>
                   <div style={styles.contactButtons}>
+                    {/* Bouton Appeler - Version corrigée */}
                     <button 
-                      onClick={() => handleContact('phone')}
+                      onClick={() => {
+                        const phoneNumber = entreprise.call_phone || entreprise.phone;
+                        if (phoneNumber) {
+                          window.open(`tel:${phoneNumber}`, '_blank');
+                        } else {
+                          alert('Numéro de téléphone non disponible');
+                        }
+                      }}
                       style={styles.contactButton}
                     >
                       <MdOutlinePhone style={styles.contactButtonIcon} />
                       <div style={styles.contactButtonContent}>
                         <div style={styles.contactButtonTitle}>Appeler</div>
                         <div style={styles.contactButtonSubtitle}>
-                          {entreprise.phone || 'Numéro non disponible'}
+                          {entreprise.call_phone || entreprise.phone || 'Numéro non disponible'}
                         </div>
                       </div>
                     </button>
@@ -529,8 +569,17 @@ export default function PublicEntrepriseDetails() {
                       />
                     </div>
                     
+                    {/* Bouton WhatsApp - Version corrigée */}
                     <button 
-                      onClick={() => handleContact('whatsapp')}
+                      onClick={() => {
+                        const phoneNumber = entreprise.call_phone || entreprise.phone;
+                        if (phoneNumber) {
+                          const message = encodeURIComponent(`Bonjour, je suis intéressé(e) par vos services (${entreprise.name})`);
+                          window.open(`https://wa.me/${phoneNumber.replace(/\D/g, '')}?text=${message}`, '_blank');
+                        } else {
+                          alert('Numéro WhatsApp non disponible');
+                        }
+                      }}
                       style={{...styles.contactButton, ...styles.contactWhatsappButton}}
                     >
                       <MdOutlineWhatsapp style={styles.contactButtonIcon} />
@@ -540,8 +589,15 @@ export default function PublicEntrepriseDetails() {
                       </div>
                     </button>
                     
+                    {/* Bouton Email */}
                     <button 
-                      onClick={() => handleContact('email')}
+                      onClick={() => {
+                        if (entreprise.email) {
+                          window.open(`mailto:${entreprise.email}`, '_blank');
+                        } else {
+                          alert('Email non disponible');
+                        }
+                      }}
                       style={styles.contactButton}
                     >
                       <MdOutlineEmail style={styles.contactButtonIcon} />
@@ -553,6 +609,7 @@ export default function PublicEntrepriseDetails() {
                       </div>
                     </button>
                     
+                    {/* Bouton Itinéraire */}
                     <button 
                       onClick={handleOpenItinerary}
                       style={styles.contactButton}
@@ -696,6 +753,44 @@ const styles = {
     fontWeight: '700',
     color: '#1e293b',
   },
+  // Dans votre objet styles, mettez à jour/modifiez ces propriétés :
+
+serviceImageContainer: {
+  position: 'relative', // Important pour le positionnement du placeholder
+  width: '60px',
+  height: '60px',
+  borderRadius: theme.borderRadius.md,
+  overflow: 'hidden',
+  backgroundColor: '#f1f5f9',
+  flexShrink: 0,
+},
+
+serviceImage: {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  position: 'relative',
+  zIndex: 1,
+},
+
+serviceImagePlaceholder: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#f1f5f9',
+  color: '#94a3b8',
+  zIndex: 0,
+},
+
+servicePlaceholderIcon: {
+  fontSize: '1.75rem',
+  color: '#94a3b8',
+},
   errorText: {
     color: '#64748b',
     fontSize: '1.125rem',

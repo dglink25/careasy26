@@ -1,4 +1,3 @@
-// careasy-frontend/src/api/entrepriseApi.js
 import api from './axios';
 
 export const entrepriseApi = {

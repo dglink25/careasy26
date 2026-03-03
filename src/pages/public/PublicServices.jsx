@@ -97,7 +97,7 @@ export default function PublicServices() {
       <div style={styles.content}>
         {/* Hero */}
         <div style={styles.hero}>
-          <h1 style={styles.heroTitle}>🛠️ Services Automobiles</h1>
+          <h1 style={styles.heroTitle}>Services Automobiles</h1>
           <p style={styles.heroSubtitle}>
             Découvrez {stats.total} services professionnels répartis dans {stats.domaines} domaines
           </p>

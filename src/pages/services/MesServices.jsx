@@ -406,34 +406,39 @@ export default function MesServices() {
                       style={styles.serviceCard}
                       className="service-card"
                     >
-                      {/* Images du service */}
-                      {service.medias && service.medias.length > 0 ? (
-                        <div style={styles.serviceImageContainer}>
-                          <img 
-                            src={service.medias[0]}
-                            alt={service.name}
-                            style={styles.serviceImage}
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.style.display = 'none';
-                              e.target.nextElementSibling.style.display = 'flex';
-                            }}
-                          />
-                          <div style={styles.serviceImagePlaceholder}>
-                            <MdOutlineWork style={styles.serviceImageIcon} />
-                          </div>
-                          {service.medias.length > 1 && (
-                            <div style={styles.imageBadge}>
-                              +{service.medias.length - 1}
+                      {/* Images du service - Version améliorée avec fallback */}
+                          <div style={styles.serviceImageContainer}>
+                            {service.medias && service.medias.length > 0 ? (
+                              <img 
+                                src={service.medias[0]}
+                                alt={service.name}
+                                style={styles.serviceImage}
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.style.display = 'none';
+                                  // Afficher le placeholder
+                                  const placeholder = e.target.parentElement.querySelector('.service-image-placeholder');
+                                  if (placeholder) placeholder.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            
+                            <div 
+                              className="service-image-placeholder"
+                              style={{
+                                ...styles.serviceImagePlaceholder,
+                                display: (!service.medias || service.medias.length === 0) ? 'flex' : 'none'
+                              }}
+                            >
+                              <MdOutlineWork style={styles.serviceImageIcon} />
                             </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div style={styles.serviceImagePlaceholder}>
-                          <MdOutlineWork style={styles.serviceImageIcon} />
-                        </div>
-                      )}
-
+                            
+                            {service.medias && service.medias.length > 1 && (
+                              <div style={styles.imageBadge}>
+                                +{service.medias.length - 1}
+                              </div>
+                            )}
+                          </div>
                       {/* Infos service */}
                       <div style={styles.serviceBody}>
                         <div style={styles.serviceHeader}>

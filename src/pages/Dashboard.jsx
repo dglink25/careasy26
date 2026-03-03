@@ -189,9 +189,11 @@ export default function Dashboard() {
                 <FiBell style={styles.headerActionIcon} />
                 <span style={styles.notificationBadge}>3</span>
               </button>
-              <button style={styles.headerActionButton}>
-                <FiSettings style={styles.headerActionIcon} />
-              </button>
+              <Link to="/settings" style={{ textDecoration: 'none' }}>
+                <button style={styles.headerActionButton}>
+                  <FiSettings style={styles.headerActionIcon} />
+                </button>
+              </Link>
               <button style={styles.headerActionButton}>
                 <FiHelpCircle style={styles.headerActionIcon} />
               </button>
@@ -390,7 +392,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div style={styles.entrepriseServices}>
-                      {entreprise.services_count || 0} service{entreprise.services_count !== 1 ? 's' : ''}
+                      {stats.totalServices || 0} service{stats.totalServices !== 1 ? 's' : ''}
                     </div>
                   </div>
                 ))}
@@ -407,46 +409,72 @@ export default function Dashboard() {
             </div>
 
             {/* Services récents */}
-            <div style={styles.sectionCard}>
-              <div style={styles.sectionHeader}>
-                <h3 style={styles.sectionTitle}>
-                  <MdOutlineInventory style={styles.sectionIcon} />
-                  Services récents
-                </h3>
-                <Link to="/mes-services" style={styles.viewAllLink}>
-                  Voir tous
-                </Link>
-              </div>
-              <div style={styles.servicesList}>
-                {services.slice(0, 3).map((service) => (
-                  <div key={service.id} style={styles.serviceItem}>
-                    <div style={styles.serviceIcon}>
-                      <MdOutlineWork />
-                    </div>
-                    <div style={styles.serviceInfo}>
-                      <div style={styles.serviceName}>{service.name}</div>
-                      <div style={styles.serviceDetails}>
-                        <span style={styles.servicePrice}>
-                          {service.price ? formatPrice(service.price) : 'Sur devis'}
-                        </span>
-                        {service.is_open_24h && (
-                          <span style={styles.service24h}>24h/24</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {services.length === 0 && (
-                  <div style={styles.emptyState}>
-                    <MdOutlineWork style={styles.emptyStateIcon} />
-                    <p style={styles.emptyStateText}>Aucun service créé</p>
-                    <Link to="/services/creer" style={styles.emptyStateButton}>
-                      Créer un service
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
+<div style={styles.sectionCard}>
+  <div style={styles.sectionHeader}>
+    <h3 style={styles.sectionTitle}>
+      <MdOutlineInventory style={styles.sectionIcon} />
+      Services récents
+    </h3>
+    <Link to="/mes-services" style={styles.viewAllLink}>
+      Voir tous
+    </Link>
+  </div>
+  <div style={styles.servicesList}>
+    {services.slice(0, 3).map((service) => (
+      <div key={service.id} style={styles.serviceItem}>
+        {/* Service Icon Container - Toujours présent avec fallback */}
+        <div style={styles.serviceIconContainer}>
+          {service.medias && service.medias.length > 0 ? (
+            <img 
+              src={service.medias[0]}
+              alt={service.name}
+              style={styles.serviceIconImage}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.style.display = 'none';
+                // Afficher le placeholder
+                const placeholder = e.target.parentElement.querySelector('.service-icon-placeholder');
+                if (placeholder) placeholder.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          
+          {/* Placeholder - Toujours présent mais caché si image existe */}
+          <div 
+            className="service-icon-placeholder"
+            style={{
+              ...styles.serviceIconPlaceholder,
+              display: (!service.medias || service.medias.length === 0) ? 'flex' : 'none'
+            }}
+          >
+            <MdOutlineWork style={styles.serviceIconSvg} />
+          </div>
+        </div>
+        
+        <div style={styles.serviceInfo}>
+          <div style={styles.serviceName}>{service.name}</div>
+          <div style={styles.serviceDetails}>
+            <span style={styles.servicePrice}>
+              {service.price ? formatPrice(service.price) : 'Sur devis'}
+            </span>
+            {service.is_open_24h && (
+              <span style={styles.service24h}>24h/24</span>
+            )}
+          </div>
+        </div>
+      </div>
+    ))}
+    {services.length === 0 && (
+      <div style={styles.emptyState}>
+        <MdOutlineWork style={styles.emptyStateIcon} />
+        <p style={styles.emptyStateText}>Aucun service créé</p>
+        <Link to="/services/creer" style={styles.emptyStateButton}>
+          Créer un service
+        </Link>
+      </div>
+    )}
+  </div>
+</div>
 
             
           </div>
@@ -664,6 +692,39 @@ const styles = {
     color: '#1e293b',
     marginBottom: '0.75rem',
   },
+  // Styles à ajouter dans votre objet styles
+serviceIconContainer: {
+  position: 'relative',
+  width: '40px',
+  height: '40px',
+  borderRadius: '8px',
+  overflow: 'hidden',
+  flexShrink: 0
+},
+serviceIconImage: {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  position: 'relative',
+  zIndex: 1
+},
+serviceIconPlaceholder: {
+  width: '40px',
+  height: '40px',
+  borderRadius: '8px',
+  backgroundColor: '#f3f4f6',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  zIndex: 0
+},
+serviceIconSvg: {
+  fontSize: '24px',
+  color: '#9ca3af'
+},
   userDetails: {
     display: 'flex',
     flexDirection: 'column',
@@ -1172,6 +1233,39 @@ const styles = {
       alignItems: 'flex-start',
       gap: '1rem',
     },
+    // Assurez-vous d'avoir ces styles dans votre objet styles
+serviceIconContainer: {
+  position: 'relative',
+  width: '40px',
+  height: '40px',
+  borderRadius: '8px',
+  overflow: 'hidden',
+  backgroundColor: '#f3f4f6',
+  flexShrink: 0
+},
+serviceIconImage: {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  position: 'relative',
+  zIndex: 1
+},
+serviceIconPlaceholder: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#f3f4f6',
+  zIndex: 0
+},
+serviceIconSvg: {
+  fontSize: '20px',
+  color: '#9ca3af'
+},
     headerActions: {
       alignSelf: 'flex-end',
     },

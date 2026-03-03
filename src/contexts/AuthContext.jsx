@@ -84,9 +84,9 @@ export const AuthProvider = ({ children }) => {
       // Mettre à jour le localStorage
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
-      console.log('✅ Utilisateur mis à jour dans le contexte:', updatedUser);
+      console.log(' Utilisateur mis à jour dans le contexte:', updatedUser);
     } catch (error) {
-      console.error('❌ Erreur mise à jour utilisateur:', error);
+      console.error(' Erreur mise à jour utilisateur:', error);
       throw error;
     }
   };
@@ -97,11 +97,9 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     } finally {
-      // Nettoyer le localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setUser(null);
-      // navigate('/login'); 
       window.location.href = '/'; 
     }
   };
@@ -113,7 +111,7 @@ export const AuthProvider = ({ children }) => {
       register, 
       logout, 
       loading,
-      updateUser // 👈 Ajouter la fonction au contexte
+      updateUser 
     }}>
       {children}
     </AuthContext.Provider>
