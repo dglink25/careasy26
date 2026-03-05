@@ -1,10 +1,9 @@
-// careasy-frontend/src/pages/services/CreerService.jsx - VERSION FINALE CORRIGÉE
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { serviceApi } from '../../api/serviceApi';
 import { entrepriseApi } from '../../api/entrepriseApi';
+import ScheduleManager from '../../components/ScheduleManager.jsx';
 
-// Import des icônes React Icons
 import {
   FiArrowLeft,
   FiPlus,
@@ -65,19 +64,24 @@ export default function CreerService() {
   const [loadingEntreprises, setLoadingEntreprises] = useState(true);
   const [selectedEntreprise, setSelectedEntreprise] = useState(null);
   const [activeSection, setActiveSection] = useState('entreprise');
-  const [isSubmitting, setIsSubmitting] = useState(false); // ✅ Flag pour bloquer les soumissions multiples
+  const [isSubmitting, setIsSubmitting] = useState(false); 
 
-  const [formData, setFormData] = useState({
-    entreprise_id: entrepriseIdParam || '',
-    domaine_id: '',
-    name: '',
-    price: '',
-    descriptions: '',
-    start_time: '',
-    end_time: '',
-    is_open_24h: false,
-    medias: [],
-  });
+const [formData, setFormData] = useState({
+  entreprise_id: entrepriseIdParam || '',
+  domaine_id: '',
+  name: '',
+  price: '',
+  price_promo: '',
+  is_price_on_request: false,
+  has_promo: false,
+  promo_start_date: '',
+  promo_end_date: '',
+  descriptions: '',
+  start_time: '',
+  end_time: '',
+  is_open_24h: false,
+  medias: [],
+});
 
   const [previews, setPreviews] = useState([]);
 
@@ -119,8 +123,9 @@ export default function CreerService() {
       [name]: type === 'checkbox' ? checked : value
     }));
   };
+  const [schedule, setSchedule] = useState({});
+  const [isAlwaysOpen, setIsAlwaysOpen] = useState(false);
 
-  // ✅ CORRECTION CRITIQUE : Gestion correcte des fichiers
   const handleFilesChange = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -201,7 +206,7 @@ export default function CreerService() {
     }
   };
 
-  // ✅ Fonction pour supprimer une image
+  // Fonction pour supprimer une image
   const removeImage = (index) => {
     console.log(`🗑️ Suppression de l'image ${index + 1}`);
     
@@ -214,111 +219,139 @@ export default function CreerService() {
     setPreviews(newPreviews);
   };
 
-  // ✅ CORRECTION CRITIQUE : Validation et soumission du formulaire
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    console.log('🚀 Tentative de soumission du formulaire');
-    
-    // ✅ Bloquer les soumissions multiples
-    if (isSubmitting) {
-      console.log('⚠️ Soumission déjà en cours, abandon');
-      return;
-    }
-    
-    setError('');
-    setSuccess('');
+ // Dans CreerService.jsx, remplacez la fonction handleSubmit par ceci :
 
-    // Validation
-    if (!formData.entreprise_id) {
-      setError('Veuillez sélectionner une entreprise');
-      setActiveSection('entreprise');
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  console.log('🚀 Tentative de soumission du formulaire');
+  
+  if (isSubmitting) {
+    console.log('⚠️ Soumission déjà en cours, abandon');
+    return;
+  }
+  
+  setError('');
+  setSuccess('');
+
+  // Validation
+  if (!formData.entreprise_id) {
+    setError('Veuillez sélectionner une entreprise');
+    setActiveSection('entreprise');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  if (!formData.domaine_id) {
+    setError('Veuillez sélectionner un domaine');
+    setActiveSection('domaine');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  if (!formData.name || formData.name.trim().length < 3) {
+    setError('Le nom du service doit contenir au moins 3 caractères');
+    setActiveSection('details');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
+  // Validation des horaires
+  if (!isAlwaysOpen) {
+    const hasOpenDay = Object.values(schedule).some(day => day && day.is_open);
+    if (!hasOpenDay) {
+      setError('Veuillez définir au moins un jour d\'ouverture');
+      setActiveSection('horaires');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    if (!formData.domaine_id) {
-      setError('Veuillez sélectionner un domaine');
-      setActiveSection('domaine');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+  }
+
+  setLoading(true);
+  setIsSubmitting(true);
+
+  try {
+    const submitData = new FormData();
+    
+    // Champs simples
+    submitData.append('entreprise_id', formData.entreprise_id);
+    submitData.append('domaine_id', formData.domaine_id);
+    submitData.append('name', formData.name.trim());
+    
+    if (formData.price) {
+      submitData.append('price', formData.price);
     }
-    if (!formData.name || formData.name.trim().length < 3) {
-      setError('Le nom du service doit contenir au moins 3 caractères');
-      setActiveSection('details');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+    
+    if (formData.descriptions) {
+      submitData.append('descriptions', formData.descriptions.trim());
     }
-
-    // Validation des horaires si non 24h
-    if (!formData.is_open_24h) {
-      if (!formData.start_time || !formData.end_time) {
-        setError('Veuillez définir les horaires ou cocher "Disponible 24h/24"');
-        setActiveSection('horaires');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-    }
-
-    setLoading(true);
-    setIsSubmitting(true); // ✅ Bloquer les nouvelles soumissions
-
-    try {
-      const submitData = new FormData();
-      
-      // Ajouter tous les champs
-      submitData.append('entreprise_id', formData.entreprise_id);
-      submitData.append('domaine_id', formData.domaine_id);
-      submitData.append('name', formData.name.trim());
-      
-      if (formData.price) {
-        submitData.append('price', formData.price);
-      }
-      
-      if (formData.descriptions) {
-        submitData.append('descriptions', formData.descriptions.trim());
-      }
-      
-      submitData.append('is_open_24h', formData.is_open_24h ? '1' : '0');
-      
-      if (!formData.is_open_24h) {
-        if (formData.start_time) submitData.append('start_time', formData.start_time);
-        if (formData.end_time) submitData.append('end_time', formData.end_time);
-      }
-
-      // Ajouter les fichiers
-      formData.medias.forEach((file, index) => {
-        submitData.append('medias[]', file);
-        console.log(`📤 Fichier ${index + 1}:`, file.name, file.type, file.size);
+    
+    // Gestion des horaires - FORMAT CORRECT pour Laravel
+    submitData.append('is_always_open', isAlwaysOpen ? '1' : '0');
+    
+    if (!isAlwaysOpen && Object.keys(schedule).length > 0) {
+      // Pour chaque jour, envoyer les champs individuels
+      Object.entries(schedule).forEach(([day, data]) => {
+        if (data && data.is_open) {
+          submitData.append(`schedule[${day}][is_open]`, '1');
+          if (data.start) {
+            submitData.append(`schedule[${day}][start]`, data.start);
+          }
+          if (data.end) {
+            submitData.append(`schedule[${day}][end]`, data.end);
+          }
+        } else {
+          submitData.append(`schedule[${day}][is_open]`, '0');
+        }
       });
+    }
 
-      console.log('📤 Soumission du service avec', formData.medias.length, 'fichier(s)');
+    // Ajouter les fichiers
+    if (formData.medias && formData.medias.length > 0) {
+      formData.medias.forEach((file) => {
+        submitData.append('medias[]', file);
+      });
+    }
 
-      const response = await serviceApi.createService(submitData);
-      
-      console.log('✅ Service créé avec succès:', response);
-      setSuccess('✅ Service créé avec succès ! Redirection en cours...');
-      
-      setTimeout(() => {
-        navigate('/mes-services');
-      }, 2000);
-      
-    } catch (err) {
-      console.error('❌ Erreur création:', err);
+    // Log des données pour déboguer
+    console.log('📤 Données envoyées:');
+    for (let pair of submitData.entries()) {
+      console.log(pair[0] + ':', pair[1]);
+    }
+
+    const response = await serviceApi.createService(submitData);
+    
+    console.log('✅ Service créé avec succès:', response);
+    setSuccess('✅ Service créé avec succès ! Redirection en cours...');
+    
+    setTimeout(() => {
+      navigate('/mes-services');
+    }, 2000);
+    
+  } catch (err) {
+    console.error('❌ Erreur création:', err);
+    
+    // Afficher les erreurs de validation détaillées
+    if (err.response?.data?.errors) {
+      const errorMessages = Object.entries(err.response.data.errors)
+        .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+        .join('\n');
+      setError(errorMessages);
+      console.error('Détails validation:', err.response.data.errors);
+    } else {
       setError(
         err.response?.data?.message || 
-        err.response?.data?.errors ? 
-          Object.values(err.response.data.errors).flat().join(', ') :
         'Erreur lors de la création du service'
       );
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      setIsSubmitting(false); // ✅ Débloquer en cas d'erreur
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsSubmitting(false);
+  } finally {
+    setLoading(false);
+  }
+};
 
-  if (loadingEntreprises) {
+    if (loadingEntreprises) {
     return (
       <div style={styles.container}>
         <div style={styles.loadingContainer}>
@@ -562,21 +595,6 @@ export default function CreerService() {
                 <p style={styles.hint}>
                   Choisissez parmi les domaines de votre entreprise
                 </p>
-                <select
-                  name="domaine_id"
-                  value={formData.domaine_id}
-                  onChange={handleChange}
-                  required
-                  style={styles.select}
-                  className="form-select"
-                >
-                  <option value="">-- Sélectionnez un domaine --</option>
-                  {selectedEntreprise.domaines?.map(domaine => (
-                    <option key={domaine.id} value={domaine.id}>
-                      {domaine.name}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               {selectedEntreprise.domaines && selectedEntreprise.domaines.length > 0 && (
@@ -606,7 +624,6 @@ export default function CreerService() {
             </div>
           )}
 
-          {/* Section 3: Détails */}
           {activeSection === 'details' && (
             <div style={styles.section}>
               <div style={styles.sectionHeader}>
@@ -657,33 +674,186 @@ export default function CreerService() {
                 />
               </div>
 
+              {/* ✅ NOUVEAU: Option Sur devis */}
               <div style={styles.formGroup}>
-                <label style={styles.label}>
-                  <MdOutlineAttachMoney style={styles.labelIcon} />
-                  Tarif (FCFA)
-                </label>
-                <p style={styles.hint}>
-                  Laissez vide pour "Prix sur demande" ou indiquez un tarif fixe
-                </p>
-                <div style={styles.priceInputContainer}>
-                  <FiDollarSign style={styles.priceIcon} />
+                <div style={styles.checkboxCard}>
                   <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleChange}
-                    style={styles.priceInput}
-                    placeholder="Ex: 25000"
-                    min="0"
-                    className="form-input"
+                    type="checkbox"
+                    name="is_price_on_request"
+                    checked={formData.is_price_on_request || false}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setFormData(prev => ({
+                        ...prev,
+                        is_price_on_request: checked,
+                        // Si "sur devis" est coché, on vide les prix
+                        price: checked ? '' : prev.price,
+                        price_promo: checked ? '' : prev.price_promo,
+                        has_promo: checked ? false : prev.has_promo
+                      }));
+                    }}
+                    style={styles.checkbox}
+                    id="price_on_request"
                   />
-                  <span style={styles.currency}>FCFA</span>
+                  <label htmlFor="price_on_request" style={styles.checkboxLabel}>
+                    <div style={styles.checkboxIcon}>
+                      <MdOutlineInfo />
+                    </div>
+                    <div>
+                      <div style={styles.checkboxTitle}>Prix sur devis</div>
+                      <div style={styles.checkboxDescription}>
+                        Le prix sera communiqué après discussion avec le client
+                      </div>
+                    </div>
+                  </label>
                 </div>
               </div>
+
+              {/* ✅ Champs de prix (cachés si "sur devis" est coché) */}
+              {!formData.is_price_on_request && (
+                <>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
+                      <MdOutlineAttachMoney style={styles.labelIcon} />
+                      Prix normal (FCFA)
+                    </label>
+                    <p style={styles.hint}>
+                      Indiquez le prix normal de votre service
+                    </p>
+                    <div style={styles.priceInputContainer}>
+                      <FiDollarSign style={styles.priceIcon} />
+                      <input
+                        type="number"
+                        name="price"
+                        value={formData.price}
+                        onChange={handleChange}
+                        style={styles.priceInput}
+                        placeholder="Ex: 25000"
+                        min="0"
+                        className="form-input"
+                      />
+                      <span style={styles.currency}>FCFA</span>
+                    </div>
+                  </div>
+
+                  {/* ✅ NOUVEAU: Option promotion */}
+                  <div style={styles.formGroup}>
+                    <div style={styles.checkboxCard}>
+                      <input
+                        type="checkbox"
+                        name="has_promo"
+                        checked={formData.has_promo || false}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormData(prev => ({
+                            ...prev,
+                            has_promo: checked,
+                            // Si on décoche la promo, on vide le prix promo
+                            price_promo: checked ? prev.price_promo : ''
+                          }));
+                        }}
+                        style={styles.checkbox}
+                        id="has_promo"
+                        disabled={!formData.price} // Désactivé si pas de prix normal
+                      />
+                      <label htmlFor="has_promo" style={styles.checkboxLabel}>
+                        <div style={styles.checkboxIcon}>
+                          <MdOutlineStar />
+                        </div>
+                        <div>
+                          <div style={styles.checkboxTitle}>Prix promotionnel</div>
+                          <div style={styles.checkboxDescription}>
+                            {formData.price 
+                              ? "Proposez un prix en promotion" 
+                              : "Définissez d'abord un prix normal"}
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* ✅ Prix promotionnel */}
+                  {formData.has_promo && (
+                    <>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>
+                          <MdOutlineAttachMoney style={{...styles.labelIcon, color: '#e67e22'}} />
+                          Prix promotionnel (FCFA) <span style={styles.required}>*</span>
+                        </label>
+                        <div style={styles.priceInputContainer}>
+                          <FiDollarSign style={styles.priceIcon} />
+                          <input
+                            type="number"
+                            name="price_promo"
+                            value={formData.price_promo}
+                            onChange={handleChange}
+                            style={{...styles.priceInput, borderColor: '#f39c12'}}
+                            placeholder={`Max: ${formData.price} FCFA`}
+                            min="0"
+                            max={formData.price}
+                            className="form-input"
+                          />
+                          <span style={styles.currency}>FCFA</span>
+                        </div>
+                        {formData.price && formData.price_promo && (
+                          <div style={styles.promoInfo}>
+                            {parseFloat(formData.price_promo) < parseFloat(formData.price) ? (
+                              <span style={styles.promoSuccess}>
+                                Réduction de {Math.round(((formData.price - formData.price_promo) / formData.price) * 100)}%
+                              </span>
+                            ) : formData.price_promo && (
+                              <span style={styles.promoError}>
+                                Le prix promo doit être inférieur au prix normal
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ✅ Dates de validité de la promo */}
+                      <div style={styles.formRow}>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>
+                            <FiCalendar style={styles.labelIcon} />
+                            Début de la promo
+                          </label>
+                          <input
+                            type="datetime-local"
+                            name="promo_start_date"
+                            value={formData.promo_start_date || ''}
+                            onChange={handleChange}
+                            style={styles.input}
+                          />
+                          <p style={styles.hintSmall}>
+                            Laissez vide pour commencer immédiatement
+                          </p>
+                        </div>
+
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>
+                            <FiCalendar style={styles.labelIcon} />
+                            Fin de la promo
+                          </label>
+                          <input
+                            type="datetime-local"
+                            name="promo_end_date"
+                            value={formData.promo_end_date || ''}
+                            onChange={handleChange}
+                            min={formData.promo_start_date}
+                            style={styles.input}
+                          />
+                          <p style={styles.hintSmall}>
+                            Laissez vide pour une durée illimitée
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
             </div>
           )}
 
-          {/* Section 4: Horaires */}
           {activeSection === 'horaires' && (
             <div style={styles.section}>
               <div style={styles.sectionHeader}>
@@ -702,65 +872,41 @@ export default function CreerService() {
                 <div style={styles.checkboxCard}>
                   <input
                     type="checkbox"
-                    name="is_open_24h"
-                    checked={formData.is_open_24h}
-                    onChange={handleChange}
+                    checked={isAlwaysOpen}
+                    onChange={(e) => {
+                      setIsAlwaysOpen(e.target.checked);
+                      if (e.target.checked) {
+                        setSchedule({});
+                      }
+                    }}
                     style={styles.checkbox}
-                    id="24h_checkbox"
+                    id="always_open"
                   />
-                  <label htmlFor="24h_checkbox" style={styles.checkboxLabel}>
+                  <label htmlFor="always_open" style={styles.checkboxLabel}>
                     <div style={styles.checkboxIcon}>
                       <MdOutlineSchedule />
                     </div>
                     <div>
-                      <div style={styles.checkboxTitle}>Service disponible 24h/24</div>
+                      <div style={styles.checkboxTitle}>Toujours disponible</div>
                       <div style={styles.checkboxDescription}>
-                        Votre service est accessible à tout moment, même la nuit
+                        Service disponible 7j/7 et 24h/24
                       </div>
                     </div>
                   </label>
                 </div>
               </div>
 
-              {!formData.is_open_24h && (
+              {!isAlwaysOpen && (
                 <div style={styles.scheduleSection}>
-                  <h3 style={styles.scheduleTitle}>Horaires spécifiques</h3>
-                  <div style={styles.scheduleGrid}>
-                    <div style={styles.scheduleItem}>
-                      <label style={styles.scheduleLabel}>
-                        <MdOutlineAccessTime style={styles.scheduleIcon} />
-                        Heure d'ouverture
-                      </label>
-                      <input
-                        type="time"
-                        name="start_time"
-                        value={formData.start_time}
-                        onChange={handleChange}
-                        style={styles.scheduleInput}
-                        className="form-input"
-                      />
-                    </div>
-                    <div style={styles.scheduleItem}>
-                      <label style={styles.scheduleLabel}>
-                        <MdOutlineAccessTime style={styles.scheduleIcon} />
-                        Heure de fermeture
-                      </label>
-                      <input
-                        type="time"
-                        name="end_time"
-                        value={formData.end_time}
-                        onChange={handleChange}
-                        style={styles.scheduleInput}
-                        className="form-input"
-                      />
-                    </div>
-                  </div>
+                  <ScheduleManager 
+                    value={schedule}
+                    onChange={setSchedule}
+                  />
                 </div>
               )}
             </div>
           )}
 
-          {/* ✅ Section 5: Médias - VERSION TOTALEMENT CORRIGÉE */}
           {activeSection === 'medias' && (
             <div style={styles.section}>
               <div style={styles.sectionHeader}>
@@ -1024,8 +1170,38 @@ export default function CreerService() {
   );
 }
 
-// Styles (suite dans le prochain message car trop long...)
+
 const styles = {
+
+  promoInfo: {
+    marginTop: '0.5rem',
+    fontSize: '0.875rem',
+  },
+  promoSuccess: {
+    color: '#10b981',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem',
+  },
+  promoError: {
+    color: '#ef4444',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem',
+  },
+  formRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '1rem',
+    marginBottom: '1rem',
+  },
+  hintSmall: {
+    color: '#64748b',
+    fontSize: '0.75rem',
+    marginTop: '0.25rem',
+    fontStyle: 'italic',
+  },
+
   container: {
     minHeight: '100vh',
     backgroundColor: '#f8fafc',
@@ -1851,6 +2027,10 @@ const styles = {
   '@media (max-width: 768px)': {
     content: {
       padding: '0 1rem',
+    },
+    formRow: {
+      gridTemplateColumns: '1fr',
+      gap: '0.5rem',
     },
     title: {
       fontSize: '1.75rem',

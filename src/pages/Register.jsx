@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useModal } from '../contexts/ModalContext'; // AJOUTER
+import { useModal } from '../contexts/ModalContext';
 import Logo from '../components/Logo';
 import theme from '../config/theme';
-import { FaEye, FaEyeSlash, FaGoogle, FaTimes } from 'react-icons/fa'; // AJOUTER FaGoogle, FaTimes
+import { FaEye, FaEyeSlash, FaGoogle, FaTimes } from 'react-icons/fa';
 
-export default function Register({ isModal = false, onClose }) { // AJOUTER props modal
+export default function Register({ isModal = false, onClose }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -21,7 +21,8 @@ export default function Register({ isModal = false, onClose }) { // AJOUTER prop
   
   const { register } = useAuth();
   const navigate = useNavigate();
-  const { openModal } = useModal(); // AJOUTER
+  const location = useLocation(); // AJOUTÉ
+  const { openModal } = useModal();
 
   const handleChange = (e) => {
     setFormData({
@@ -56,7 +57,21 @@ export default function Register({ isModal = false, onClose }) { // AJOUTER prop
       if (isModal && onClose) {
         onClose();
       }
-      navigate('/dashboard');
+      
+      // Récupérer l'état de navigation
+      const from = location.state?.from || '/dashboard';
+      const openContactModal = location.state?.openContactModal;
+      const selectedService = location.state?.selectedService;
+      
+      console.log('Redirection après inscription vers:', from, { openContactModal, selectedService });
+      
+      // Naviguer vers la page d'origine avec l'état
+      navigate(from, { 
+        state: { 
+          openContactModal, 
+          selectedService 
+        } 
+      });
     } else {
       setError(result.message);
     }
@@ -65,6 +80,19 @@ export default function Register({ isModal = false, onClose }) { // AJOUTER prop
   };
 
   const handleGoogleLogin = () => {
+    // Stocker l'état avant redirection Google
+    const from = location.state?.from || '/';
+    const openContactModal = location.state?.openContactModal;
+    const selectedService = location.state?.selectedService;
+    
+    if (openContactModal && selectedService) {
+      sessionStorage.setItem('redirectAfterGoogle', JSON.stringify({
+        from,
+        openContactModal,
+        selectedService
+      }));
+    }
+    
     const apiUrl = import.meta.env.VITE_APP_URL || 'http://localhost:8000';
     const baseUrl = apiUrl.endsWith('/auth') ? apiUrl.replace('/auth', '') : apiUrl;
     const googleAuthUrl = `${baseUrl}/auth/google`;
@@ -72,13 +100,17 @@ export default function Register({ isModal = false, onClose }) { // AJOUTER prop
     window.location.href = googleAuthUrl;
   };
 
-  // Modifier la fonction handleLoginClick
   const handleLoginClick = () => {
     if (isModal && onClose) {
-      const { openModal } = useModal();
       setTimeout(() => openModal('login'), 50);
     } else {
-      navigate('/login');
+      navigate('/login', { 
+        state: { 
+          from: location.state?.from,
+          openContactModal: location.state?.openContactModal,
+          selectedService: location.state?.selectedService
+        } 
+      });
     }
   };
 

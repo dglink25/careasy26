@@ -1,6 +1,5 @@
-// careasy-frontend/src/pages/Home.jsx - VERSION CORRIGÉE
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate , useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ChatModal from '../components/Chat/ChatModal';
 import { publicApi } from './../api/publicApi';
@@ -16,10 +15,11 @@ import {
 
 export default function Home() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation(); 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [services, setServices] = useState([]);
   const [partners, setPartners] = useState([]);
-  // showChatbot supprimé — remplacé par AIChatWidget global dans App.jsx
   const sectionsRef = useRef([]);
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
@@ -162,10 +162,24 @@ export default function Home() {
     return () => observer.disconnect();
   }, []);
 
-  // Fonction pour ouvrir le popup de contact
+  // FONCTION MODIFIÉE: Vérifier la connexion avant d'ouvrir le modal
   const openContactPopup = (service) => {
     setSelectedService(service);
-    setShowContactModal(true);
+    
+    // Vérifier si l'utilisateur est connecté
+    if (!user) {
+      // Rediriger vers la page de connexion avec l'état pour rouvrir le modal après connexion
+      navigate('/login', { 
+        state: { 
+          from: window.location.pathname,
+          openContactModal: true,
+          selectedService: service
+        }
+      });
+    } else {
+      // Utilisateur connecté, ouvrir le modal normalement
+      setShowContactModal(true);
+    }
   };
 
   // Fonction pour ouvrir le chat
@@ -174,6 +188,21 @@ export default function Home() {
     setShowContactModal(false);
     setShowChatModal(true);
   };
+
+  useEffect(() => {
+    const locationState = window.history.state?.usr;
+    
+    if (user && locationState?.openContactModal && locationState?.selectedService) {
+      console.log('Ouverture du modal après redirection:', locationState.selectedService);
+      setSelectedService(locationState.selectedService);
+      setShowContactModal(true);
+      navigate(location.pathname, { replace: true, state: {} });
+
+      
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [user, location.state, navigate, location.pathname]);
+    
 
   return (
     <div style={styles.container}>
@@ -264,7 +293,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Section Services Récents - AVEC 3 LIGNES ET POPUP DE CONTACT */}
+      {/* Section Services Récents */}
       <div 
         ref={el => sectionsRef.current[1] = el}
         className="animate-section"
@@ -293,7 +322,7 @@ export default function Home() {
                 </div>
               )}
               
-              {/* CONTENU - 3 LIGNES CORRIGÉES */}
+              {/* CONTENU */}
               <div style={styles.serviceContent}>
                 {/* Ligne 1: Nom du service + Prix sur la même ligne */}
                 <div style={styles.serviceHeader}>
@@ -357,15 +386,14 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* Bouton Contacter avec popup (TOUJOURS visible) */}
               <button
-                  onClick={() => openContactPopup(service)}
-                  style={styles.contactButton}
-                  className="contact-button"
-                >
-                  <FaComments style={{marginRight: '0.5rem'}} />
-                  Contacter
-                </button>
+                onClick={() => openContactPopup(service)}
+                style={styles.contactButton}
+                className="contact-button"
+              >
+                <FaComments style={{marginRight: '0.5rem'}} />
+                Contacter
+              </button>
             </div>
           ))}
         </div>
@@ -423,10 +451,8 @@ export default function Home() {
         )}
       </div>
 
-      {/* ℹ️ Le bouton CarAI flottant est géré par AIChatWidget dans App.jsx */}
-
-      {/* MODAL DE CONTACT PROFESSIONNEL AVEC 3 BOUTONS */}
-      {showContactModal && selectedService && (
+      {/* MODAL DE CONTACT PROFESSIONNEL - visible uniquement si connecté */}
+      {user && showContactModal && selectedService && (
         <div style={styles.contactModalOverlay} onClick={() => setShowContactModal(false)}>
           <div style={styles.contactModal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.contactModalHeader}>
@@ -470,7 +496,8 @@ export default function Home() {
                   onClick={() => {
                     if (selectedService.entreprise?.call_phone) {
                       window.open(`tel:${selectedService.entreprise.call_phone}`, '_blank');
-                    } else {
+                    } 
+                    else {
                       alert('Numéro de téléphone non disponible');
                     }
                     setShowContactModal(false);
@@ -519,14 +546,10 @@ export default function Home() {
                 {/* Bouton Message/Chat */}
                 <button
                   onClick={() => {
-                    if (user) {
-                      setShowContactModal(false);
-                      setTimeout(() => {
-                        setShowChatModal(true);
-                      }, 300);
-                    } else {
-                      window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-                    }
+                    setShowContactModal(false);
+                    setTimeout(() => {
+                      setShowChatModal(true);
+                    }, 300);
                   }}
                   style={styles.contactMethodButton}
                   className="contact-method-button"
@@ -536,10 +559,10 @@ export default function Home() {
                   </div>
                   <div style={styles.contactMethodContent}>
                     <div style={styles.contactMethodTitle}>
-                      {user ? 'Messagerie' : 'Messagerie'}
+                      Messagerie
                     </div>
                     <div style={styles.contactMethodSubtitle}>
-                      {user ? 'Discuter en direct' : 'Connectez-vous pour discuter'}
+                      Discuter en direct
                     </div>
                   </div>
                   <div style={styles.contactMethodArrow}>→</div>
@@ -866,7 +889,7 @@ const styles = {
     transition: 'all 0.3s',
   },
   
-  // Services - NOUVEAUX STYLES
+  // Services
   servicesGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',

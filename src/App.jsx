@@ -15,6 +15,7 @@ import ResetPassword from './pages/ResetPassword';
 import AuthCallback from './pages/AuthCallback';
 import { ModalProvider } from './contexts/ModalContext';
 import FAQ from './pages/FAQ';
+import GoogleCallback from './pages/GoogleCallback';
 
 import AIChatWidget from './components/Chat/AIChatWidget';
 
@@ -94,6 +95,7 @@ function App() {
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/password-reset/:token" element={<ResetPassword />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/auth/google/callback" element={<GoogleCallback />} />
                 </Routes>
                 <AIChatWidget />
               </div>

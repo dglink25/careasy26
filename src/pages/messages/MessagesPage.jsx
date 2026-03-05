@@ -264,7 +264,6 @@ export default function MessagesPage() {
         {/* Liste des conversations */}
         {filteredConversations.length === 0 ? (
           <div style={styles.emptyState}>
-            <div style={styles.emptyIcon}>💬</div>
             <h3 style={styles.emptyTitle}>
               {conversations.length === 0 
                 ? "Aucune conversation"
@@ -350,7 +349,7 @@ export default function MessagesPage() {
         {/* Info */}
         <div style={styles.infoBox}>
           <p style={styles.infoText}>
-            💡 <strong>Astuce :</strong> Toutes les conversations sont automatiquement sauvegardées 
+            <strong>Astuce :</strong> Toutes les conversations sont automatiquement sauvegardées 
             et accessibles ici. Vous pouvez échanger avec vos contacts en toute sécurité.
           </p>
         </div>

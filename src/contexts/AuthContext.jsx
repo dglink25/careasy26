@@ -1,4 +1,3 @@
-// src/contexts/AuthContext.jsx
 import { createContext, useState, useContext, useEffect } from 'react';
 import api from '../api/axios';
 
@@ -85,7 +84,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
       console.log(' Utilisateur mis à jour dans le contexte:', updatedUser);
-    } catch (error) {
+    } 
+    catch (error) {
       console.error(' Erreur mise à jour utilisateur:', error);
       throw error;
     }

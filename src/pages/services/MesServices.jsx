@@ -42,8 +42,54 @@ import {
   MdOutlineAttachMoney,
   MdOutlineSchedule,
   MdOutlineVisibility,
-  MdOutlineMoreVert
+  MdOutlineMoreVert,
+  MdOutlineLocalOffer,
+  MdOutlineDiscount
 } from 'react-icons/md';
+
+// Fonction pour formater le prix
+const formatPrice = (price) => {
+  if (!price) return null;
+  return `${price.toLocaleString('fr-FR')} FCFA`;
+};
+
+// Fonction pour vérifier si une promo est active
+const isPromoActive = (service) => {
+  if (!service.has_promo || !service.price_promo) return false;
+  
+  const now = new Date();
+  
+  // Si pas de dates définies, la promo est toujours active
+  if (!service.promo_start_date && !service.promo_end_date) {
+    return true;
+  }
+  
+  // Vérifier les dates
+  if (service.promo_start_date && service.promo_end_date) {
+    const start = new Date(service.promo_start_date);
+    const end = new Date(service.promo_end_date);
+    return now >= start && now <= end;
+  }
+  
+  if (service.promo_start_date) {
+    return now >= new Date(service.promo_start_date);
+  }
+  
+  if (service.promo_end_date) {
+    return now <= new Date(service.promo_end_date);
+  }
+  
+  return false;
+};
+
+// Fonction pour calculer le pourcentage de réduction
+const calculateDiscount = (service) => {
+  if (!service.has_promo || !service.price_promo || !service.price || service.price === 0) {
+    return null;
+  }
+  const discount = ((service.price - service.price_promo) / service.price) * 100;
+  return Math.round(discount);
+};
 
 export default function MesServices() {
   const [services, setServices] = useState([]);
@@ -133,7 +179,7 @@ export default function MesServices() {
     } 
     catch (err) {
       console.error('Erreur lors de la suppression:', err);
-      setError('Erreur lors de la suppression du service', err);
+      setError('Erreur lors de la suppression du service');
       closeDeleteModal();
     }
   };
@@ -158,14 +204,16 @@ export default function MesServices() {
     return acc;
   }, {});
 
-  // Statistiques
+  // Statistiques améliorées avec prise en compte des promos
   const stats = {
     totalServices: services.length,
     entreprises: Object.keys(servicesByEntreprise).length,
     domaines: new Set(services.map(s => s.domaine?.id)).size,
-    withPrice: services.filter(s => s.price).length,
+    withPrice: services.filter(s => s.price && !s.is_price_on_request).length,
+    onRequest: services.filter(s => s.is_price_on_request).length,
+    withPromo: services.filter(s => s.has_promo && s.price_promo).length,
+    activePromos: services.filter(s => isPromoActive(s)).length,
     active24h: services.filter(s => s.is_open_24h).length,
-    averagePrice: services.filter(s => s.price).reduce((acc, s) => acc + s.price, 0) / services.filter(s => s.price).length || 0
   };
 
   if (loading) {
@@ -259,6 +307,16 @@ export default function MesServices() {
             <div style={styles.statContent}>
               <div style={styles.statNumber}>{stats.withPrice}</div>
               <div style={styles.statLabel}>Avec tarif</div>
+            </div>
+          </div>
+
+          <div style={styles.statCard}>
+            <div style={styles.statIconContainer}>
+              <MdOutlineDiscount style={styles.statIcon} />
+            </div>
+            <div style={styles.statContent}>
+              <div style={styles.statNumber}>{stats.activePromos}</div>
+              <div style={styles.statLabel}>Promos actives</div>
             </div>
           </div>
 
@@ -400,121 +458,160 @@ export default function MesServices() {
 
                 {/* Grid des services */}
                 <div style={styles.servicesGrid}>
-                  {data.services.map((service) => (
-                    <div 
-                      key={service.id} 
-                      style={styles.serviceCard}
-                      className="service-card"
-                    >
-                      {/* Images du service - Version améliorée avec fallback */}
-                          <div style={styles.serviceImageContainer}>
-                            {service.medias && service.medias.length > 0 ? (
-                              <img 
-                                src={service.medias[0]}
-                                alt={service.name}
-                                style={styles.serviceImage}
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.style.display = 'none';
-                                  // Afficher le placeholder
-                                  const placeholder = e.target.parentElement.querySelector('.service-image-placeholder');
-                                  if (placeholder) placeholder.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            
-                            <div 
-                              className="service-image-placeholder"
-                              style={{
-                                ...styles.serviceImagePlaceholder,
-                                display: (!service.medias || service.medias.length === 0) ? 'flex' : 'none'
+                  {data.services.map((service) => {
+                    const promoActive = isPromoActive(service);
+                    const discount = calculateDiscount(service);
+                    
+                    return (
+                      <div 
+                        key={service.id} 
+                        style={styles.serviceCard}
+                        className="service-card"
+                      >
+                        {/* Badge promo si actif */}
+                        {promoActive && (
+                          <div style={styles.promoBadge}>
+                            <MdOutlineLocalOffer />
+                            <span>-{discount}%</span>
+                          </div>
+                        )}
+
+                        {/* Images du service - Version améliorée avec fallback */}
+                        <div style={styles.serviceImageContainer}>
+                          {service.medias && service.medias.length > 0 ? (
+                            <img 
+                              src={service.medias[0]}
+                              alt={service.name}
+                              style={styles.serviceImage}
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.style.display = 'none';
+                                // Afficher le placeholder
+                                const placeholder = e.target.parentElement.querySelector('.service-image-placeholder');
+                                if (placeholder) placeholder.style.display = 'flex';
                               }}
-                            >
-                              <MdOutlineWork style={styles.serviceImageIcon} />
-                            </div>
-                            
-                            {service.medias && service.medias.length > 1 && (
-                              <div style={styles.imageBadge}>
-                                +{service.medias.length - 1}
-                              </div>
-                            )}
-                          </div>
-                      {/* Infos service */}
-                      <div style={styles.serviceBody}>
-                        <div style={styles.serviceHeader}>
-                          <h3 style={styles.serviceName}>{service.name}</h3>
-                          <div style={styles.serviceActionsMenu}>
-                            <button 
-                              style={styles.serviceActionButton}
-                              onClick={() => openDeleteModal(service.id, service.name)}
-                              title="Supprimer ce service"
-                            >
-                              <FiTrash2 style={styles.deleteIcon} />
-                            </button>
-                          </div>
-                        </div>
-                        
-                        {service.domaine && (
-                          <div style={styles.domaineTag}>
-                            <FiTag style={styles.domaineTagIcon} />
-                            <span>{service.domaine.name}</span>
-                          </div>
-                        )}
-
-                        {service.descriptions && (
-                          <p style={styles.serviceDescription}>
-                            {service.descriptions.length > 120
-                              ? service.descriptions.substring(0, 120) + '...'
-                              : service.descriptions
-                            }
-                          </p>
-                        )}
-
-                        {/* Prix et horaires */}
-                        <div style={styles.serviceDetails}>
-                          <div style={styles.servicePrice}>
-                            <FiDollarSign style={styles.servicePriceIcon} />
-                            {service.price 
-                              ? `${service.price.toLocaleString('fr-FR')} FCFA`
-                              : 'Prix sur demande'
-                            }
+                            />
+                          ) : null}
+                          
+                          <div 
+                            className="service-image-placeholder"
+                            style={{
+                              ...styles.serviceImagePlaceholder,
+                              display: (!service.medias || service.medias.length === 0) ? 'flex' : 'none'
+                            }}
+                          >
+                            <MdOutlineWork style={styles.serviceImageIcon} />
                           </div>
                           
-                          {service.is_open_24h ? (
-                            <div style={styles.serviceHours}>
-                              <FiClock style={styles.serviceHoursIcon} />
-                              Disponible 24h/24
+                          {service.medias && service.medias.length > 1 && (
+                            <div style={styles.imageBadge}>
+                              +{service.medias.length - 1}
                             </div>
-                          ) : service.start_time && service.end_time ? (
-                            <div style={styles.serviceHours}>
-                              <MdOutlineAccessTime style={styles.serviceHoursIcon} />
-                              {service.start_time} - {service.end_time}
-                            </div>
-                          ) : null}
+                          )}
                         </div>
-                      </div>
 
-                      {/* Footer */}
-                      <div style={styles.serviceFooter}>
-                        <div style={styles.serviceFooterActions}>
-                          <Link 
-                            to={`/services/${service.id}`}
-                            style={styles.viewButton}
-                          >
-                            <FiEye style={styles.viewButtonIcon} />
-                            Voir détails
-                          </Link>
-                          <Link 
-                            to={`/services/modifier/${service.id}`}
-                            style={styles.editButton}
-                          >
-                            <FiEdit style={styles.editButtonIcon} />
-                            Modifier
-                          </Link>
+                        {/* Infos service */}
+                        <div style={styles.serviceBody}>
+                          <div style={styles.serviceHeader}>
+                            <h3 style={styles.serviceName}>{service.name}</h3>
+                            <div style={styles.serviceActionsMenu}>
+                              <button 
+                                style={styles.serviceActionButton}
+                                onClick={() => openDeleteModal(service.id, service.name)}
+                                title="Supprimer ce service"
+                              >
+                                <FiTrash2 style={styles.deleteIcon} />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {service.domaine && (
+                            <div style={styles.domaineTag}>
+                              <FiTag style={styles.domaineTagIcon} />
+                              <span>{service.domaine.name}</span>
+                            </div>
+                          )}
+
+                          {service.descriptions && (
+                            <p style={styles.serviceDescription}>
+                              {service.descriptions.length > 100
+                                ? service.descriptions.substring(0, 100) + '...'
+                                : service.descriptions
+                              }
+                            </p>
+                          )}
+
+                          {/* Prix et horaires - Version améliorée avec promo */}
+                          <div style={styles.serviceDetails}>
+                            {/* Affichage du prix */}
+                            {service.is_price_on_request ? (
+                              <div style={styles.servicePriceOnRequest}>
+                                <MdOutlineAttachMoney style={styles.servicePriceIcon} />
+                                Sur devis
+                              </div>
+                            ) : promoActive ? (
+                              <div style={styles.servicePricePromo}>
+                                <div style={styles.pricePromoContainer}>
+                                  <span style={styles.priceOld}>
+                                    {formatPrice(service.price)}
+                                  </span>
+                                  <span style={styles.priceNew}>
+                                    {formatPrice(service.price_promo)}
+                                  </span>
+                                </div>
+                                {discount && (
+                                  <span style={styles.discountBadge}>
+                                    -{discount}%
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={styles.servicePrice}>
+                                <FiDollarSign style={styles.servicePriceIcon} />
+                                {service.price 
+                                  ? formatPrice(service.price)
+                                  : 'Prix non défini'
+                                }
+                              </div>
+                            )}
+                            
+                            {/* Horaires */}
+                            {service.is_open_24h ? (
+                              <div style={styles.serviceHours}>
+                                <FiClock style={styles.serviceHoursIcon} />
+                                Disponible 24h/24
+                              </div>
+                            ) : service.start_time && service.end_time ? (
+                              <div style={styles.serviceHours}>
+                                <MdOutlineAccessTime style={styles.serviceHoursIcon} />
+                                {service.start_time} - {service.end_time}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        {/* Footer avec actions */}
+                        <div style={styles.serviceFooter}>
+                          <div style={styles.serviceFooterActions}>
+                            <Link 
+                              to={`/services/${service.id}`}
+                              style={styles.viewButton}
+                            >
+                              <FiEye style={styles.viewButtonIcon} />
+                              Détails
+                            </Link>
+                            <Link 
+                              to={`/services/modifier/${service.id}`}
+                              style={styles.editButton}
+                            >
+                              <FiEdit style={styles.editButtonIcon} />
+                              Modifier
+                            </Link>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -602,14 +699,25 @@ export default function MesServices() {
           to { opacity: 1; transform: scale(1); }
         }
         
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+        
         .service-card {
           animation: fadeIn 0.3s ease-out;
           transition: all 0.3s ease;
+          position: relative;
         }
         
         .service-card:hover {
           transform: translateY(-8px);
           box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .service-card:hover .promo-badge {
+          animation: pulse 1s infinite;
         }
         
         .refreshing {
@@ -628,7 +736,7 @@ export default function MesServices() {
   );
 }
 
-// Styles (avec ajouts pour la modale et le bouton de suppression)
+// Styles (avec ajouts pour les éléments de promo)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -652,7 +760,7 @@ const styles = {
     width: '50px',
     height: '50px',
     border: `4px solid #dbeafe`,
-    borderTop: `4px solid #3b82f6`,
+    borderTop: `4px solid #ef4444`,
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
@@ -755,7 +863,7 @@ const styles = {
     borderRadius: '0.75rem',
     textDecoration: 'none',
     fontWeight: '600',
-    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
+    boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)',
     transition: 'all 0.2s',
     ':hover': {
       backgroundColor: '#dc2626',
@@ -770,7 +878,7 @@ const styles = {
   // Stats
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
     gap: '1.25rem',
     marginBottom: '2rem',
   },
@@ -794,7 +902,7 @@ const styles = {
     justifyContent: 'center',
     width: '48px',
     height: '48px',
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#fee2e2',
     borderRadius: '0.75rem',
   },
   statIcon: {
@@ -953,7 +1061,7 @@ const styles = {
     justifyContent: 'center',
     width: '80px',
     height: '80px',
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#fee2e2',
     borderRadius: '50%',
     marginBottom: '1.5rem',
     transition: 'all 0.3s',
@@ -989,7 +1097,7 @@ const styles = {
     borderRadius: '0.75rem',
     textDecoration: 'none',
     fontWeight: '600',
-    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
+    boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)',
     transition: 'all 0.2s',
     ':hover': {
       backgroundColor: '#dc2626',
@@ -1041,7 +1149,7 @@ const styles = {
     width: '64px',
     height: '64px',
     borderRadius: '0.75rem',
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#fee2e2',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1098,6 +1206,8 @@ const styles = {
     gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
     gap: '1.5rem',
   },
+  
+  // Service Card
   serviceCard: {
     backgroundColor: '#fff',
     borderRadius: '1rem',
@@ -1106,7 +1216,28 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     transition: 'all 0.3s',
+    position: 'relative',
   },
+  
+  // Promo Badge
+  promoBadge: {
+    position: 'absolute',
+    top: '1rem',
+    right: '1rem',
+    zIndex: 10,
+    backgroundColor: '#ef4444',
+    color: '#fff',
+    padding: '0.5rem 1rem',
+    borderRadius: '2rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.375rem',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.3)',
+    animation: 'pulse 2s infinite',
+  },
+
   serviceImageContainer: {
     position: 'relative',
     height: '180px',
@@ -1205,12 +1336,15 @@ const styles = {
     lineHeight: '1.5',
     marginBottom: '1rem',
   },
+  
+  // Service Details - Prix et Horaires
   serviceDetails: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '0.5rem',
+    gap: '0.75rem',
     marginTop: 'auto',
   },
+  
   servicePrice: {
     display: 'flex',
     alignItems: 'center',
@@ -1219,9 +1353,61 @@ const styles = {
     fontWeight: '700',
     fontSize: '1rem',
   },
+  
+  servicePriceOnRequest: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.375rem',
+    color: '#f97316',
+    fontWeight: '700',
+    fontSize: '1rem',
+    backgroundColor: '#fff7ed',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.5rem',
+    border: '1px solid #fed7aa',
+  },
+  
+  servicePricePromo: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff1f2',
+    padding: '0.75rem',
+    borderRadius: '0.75rem',
+    border: '1px solid #fecdd3',
+  },
+  
+  pricePromoContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.25rem',
+  },
+  
+  priceOld: {
+    fontSize: '0.875rem',
+    color: '#6b7280',
+    textDecoration: 'line-through',
+  },
+  
+  priceNew: {
+    fontSize: '1.125rem',
+    fontWeight: '700',
+    color: '#ef4444',
+  },
+  
+  discountBadge: {
+    backgroundColor: '#ef4444',
+    color: '#fff',
+    padding: '0.25rem 0.5rem',
+    borderRadius: '0.5rem',
+    fontSize: '0.75rem',
+    fontWeight: '700',
+  },
+  
   servicePriceIcon: {
     fontSize: '0.875rem',
   },
+  
   serviceHours: {
     display: 'flex',
     alignItems: 'center',
@@ -1233,6 +1419,8 @@ const styles = {
   serviceHoursIcon: {
     fontSize: '0.875rem',
   },
+  
+  // Service Footer
   serviceFooter: {
     padding: '1rem 1.5rem',
     borderTop: '1px solid #f1f5f9',
@@ -1466,6 +1654,9 @@ const styles = {
       gridTemplateColumns: '1fr',
     },
     serviceFooterActions: {
+      flexDirection: 'column',
+    },
+    modalActions: {
       flexDirection: 'column',
     },
   },

@@ -41,6 +41,53 @@ export default function PublicServices() {
     }
   };
 
+  // Vérifier si une promotion est active
+  const isPromotionActive = (promotion) => {
+    if (!promotion || !promotion.is_active) return false;
+    
+    const now = new Date();
+    const startDate = promotion.start_date ? new Date(promotion.start_date) : null;
+    const endDate = promotion.end_date ? new Date(promotion.end_date) : null;
+    
+    if (startDate && now < startDate) return false;
+    if (endDate && now > endDate) return false;
+    
+    return true;
+  };
+
+  // Calculer le prix promotionnel
+  const getPromotionalPrice = (price, promotion) => {
+    if (!price || !promotion || !promotion.discount_percentage) return null;
+    
+    const discount = parseFloat(promotion.discount_percentage);
+    if (isNaN(discount) || discount <= 0) return null;
+    
+    return price - (price * (discount / 100));
+  };
+
+  // Formater le prix
+  const formatPrice = (price) => {
+    if (!price && price !== 0) return null;
+    return `${price.toLocaleString()} FCFA`;
+  };
+
+  // Formater la période de promotion
+  const formatPromotionPeriod = (promotion) => {
+    if (!promotion || !promotion.start_date || !promotion.end_date) return null;
+    
+    const start = new Date(promotion.start_date);
+    const end = new Date(promotion.end_date);
+    
+    const formatDate = (date) => {
+      return date.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'short'
+      });
+    };
+    
+    return `du ${formatDate(start)} au ${formatDate(end)}`;
+  };
+
   // Mise à jour des paramètres URL
   const updateFilters = (search, domaine) => {
     const params = {};
@@ -62,9 +109,9 @@ export default function PublicServices() {
   // Filtrage des services
   const filteredServices = services.filter(s => {
     const matchSearch = !searchTerm || 
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.entreprise?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.domaine?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.entreprise?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.domaine?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.descriptions?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchDomaine = selectedDomaine === 'all' || 
@@ -78,7 +125,8 @@ export default function PublicServices() {
     total: services.length,
     filtered: filteredServices.length,
     domaines: new Set(services.map(s => s.domaine?.id).filter(Boolean)).size,
-    withPrice: services.filter(s => s.price).length
+    withPrice: services.filter(s => s.price).length,
+    withPromo: services.filter(s => isPromotionActive(s.promotion)).length
   };
 
   if (loading) {
@@ -117,6 +165,12 @@ export default function PublicServices() {
             <div style={styles.statNumber}>{stats.withPrice}</div>
             <div style={styles.statLabel}>Avec tarifs affichés</div>
           </div>
+          {stats.withPromo > 0 && (
+            <div style={{...styles.statCard, backgroundColor: '#fef2f2'}}>
+              <div style={{...styles.statNumber, color: '#dc2626'}}>{stats.withPromo}</div>
+              <div style={styles.statLabel}>En promotion</div>
+            </div>
+          )}
         </div>
 
         {/* Filtres */}
@@ -174,7 +228,7 @@ export default function PublicServices() {
         {/* Message d'erreur */}
         {error && (
           <div style={styles.error}>
-            ⚠️ {error}
+            {error}
           </div>
         )}
 
@@ -212,89 +266,127 @@ export default function PublicServices() {
           </div>
         ) : (
           <div style={styles.grid}>
-            {filteredServices.map((service) => (
-              <Link
-                key={service.id}
-                to={`/service/${service.id}`}
-                style={styles.card}
-                className="service-card"
-              >
-                {/* Image */}
-                {service.medias && service.medias.length > 0 ? (
-                  <div style={styles.cardImage}>
-                    <img 
-                      src={service.medias[0]}
-                      alt={service.name}
-                      style={styles.image}
-                    />
-                    {service.medias.length > 1 && (
-                      <div style={styles.imageBadge}>
-                        +{service.medias.length - 1} photo{service.medias.length > 2 ? 's' : ''}
+            {filteredServices.map((service) => {
+              const hasActivePromo = isPromotionActive(service.promotion);
+              const promoPrice = hasActivePromo 
+                ? getPromotionalPrice(service.price, service.promotion)
+                : null;
+              const promoPeriod = hasActivePromo 
+                ? formatPromotionPeriod(service.promotion)
+                : null;
+
+              return (
+                <Link
+                  key={service.id}
+                  to={`/service/${service.id}`}
+                  style={styles.card}
+                  className="service-card"
+                >
+                  {/* Image */}
+                  {service.medias && service.medias.length > 0 ? (
+                    <div style={styles.cardImage}>
+                      <img 
+                        src={service.medias[0]}
+                        alt={service.name}
+                        style={styles.image}
+                      />
+                      {service.medias.length > 1 && (
+                        <div style={styles.imageBadge}>
+                          +{service.medias.length - 1} photo{service.medias.length > 2 ? 's' : ''}
+                        </div>
+                      )}
+                      {hasActivePromo && (
+                        <div style={styles.promoBadge}>
+                          -{service.promotion.discount_percentage}%
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={styles.imagePlaceholder}>
+                      <div style={styles.placeholderIcon}>🛠️</div>
+                      {hasActivePromo && (
+                        <div style={styles.promoBadge}>
+                          -{service.promotion.discount_percentage}%
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Contenu */}
+                  <div style={styles.cardBody}>
+                    <h3 style={styles.cardTitle}>{service.name}</h3>
+                    
+                    {service.domaine && (
+                      <div style={styles.domaineTag}>
+                        {service.domaine.name}
+                      </div>
+                    )}
+
+                    {service.descriptions && (
+                      <p style={styles.description}>
+                        {service.descriptions.substring(0, 120)}
+                        {service.descriptions.length > 120 ? '...' : ''}
+                      </p>
+                    )}
+
+                    {/* Prix avec promotion */}
+                    <div style={styles.priceContainer}>
+                      {hasActivePromo ? (
+                        <>
+                          <div style={styles.promoPrice}>
+                            {formatPrice(promoPrice)}
+                          </div>
+                          <div style={styles.originalPrice}>
+                            {formatPrice(service.price)}
+                          </div>
+                          {promoPeriod && (
+                            <div style={styles.promoPeriod}>
+                              🔥 {promoPeriod}
+                            </div>
+                          )}
+                        </>
+                      ) : service.price ? (
+                        <div style={styles.normalPrice}>
+                          {formatPrice(service.price)}
+                        </div>
+                      ) : (
+                        <div style={styles.priceOnRequest}>
+                          Prix sur demande
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Horaires si disponibles */}
+                    {service.schedule && (
+                      <div style={styles.hours}>
+                        {Object.values(service.schedule).filter(d => d.is_open).length} jour(s) ouvert(s)
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div style={styles.imagePlaceholder}>
-                    <div style={styles.placeholderIcon}>🛠️</div>
-                  </div>
-                )}
 
-                {/* Contenu */}
-                <div style={styles.cardBody}>
-                  <h3 style={styles.cardTitle}>{service.name}</h3>
-                  
-                  {service.domaine && (
-                    <div style={styles.domaineTag}>
-                      🏷️ {service.domaine.name}
-                    </div>
-                  )}
-
-                  {service.descriptions && (
-                    <p style={styles.description}>
-                      {service.descriptions.substring(0, 120)}
-                      {service.descriptions.length > 120 ? '...' : ''}
-                    </p>
-                  )}
-
-                  <div style={styles.details}>
-                    <div style={styles.price}>
-                      {service.price 
-                        ? `${service.price.toLocaleString()} FCFA`
-                        : 'Prix sur demande'
-                      }
-                    </div>
-                    {service.is_open_24h ? (
-                      <div style={styles.hours}>🕐 24h/24</div>
-                    ) : service.start_time && service.end_time ? (
-                      <div style={styles.hours}>
-                        🕐 {service.start_time} - {service.end_time}
+                  {/* Footer */}
+                  <div style={styles.cardFooter}>
+                    {service.entreprise && (
+                      <div style={styles.entrepriseInfo}>
+                        {service.entreprise.logo ? (
+                          <img 
+                            src={service.entreprise.logo}
+                            alt={service.entreprise.name}
+                            style={styles.entrepriseLogo}
+                          />
+                        ) : (
+                          <div style={styles.logoPlaceholder}>🏢</div>
+                        )}
+                        <span style={styles.entrepriseName}>
+                          {service.entreprise.name}
+                        </span>
                       </div>
-                    ) : null}
+                    )}
+                    <span style={styles.viewLink}>Voir →</span>
                   </div>
-                </div>
-
-                {/* Footer */}
-                <div style={styles.cardFooter}>
-                  {service.entreprise && (
-                    <div style={styles.entrepriseInfo}>
-                      {service.entreprise.logo ? (
-                        <img 
-                          src={service.entreprise.logo}
-                          alt={service.entreprise.name}
-                          style={styles.entrepriseLogo}
-                        />
-                      ) : (
-                        <div style={styles.logoPlaceholder}>🏢</div>
-                      )}
-                      <span style={styles.entrepriseName}>
-                        {service.entreprise.name}
-                      </span>
-                    </div>
-                  )}
-                  <span style={styles.viewLink}>Voir →</span>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
@@ -308,6 +400,11 @@ export default function PublicServices() {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
         .service-card {
           transition: all 0.3s ease;
           animation: fadeIn 0.5s ease-out;
@@ -317,6 +414,9 @@ export default function PublicServices() {
         .service-card:hover {
           transform: translateY(-8px);
           box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+        .service-card:hover .promo-badge {
+          animation: pulse 1s infinite;
         }
       `}</style>
     </div>
@@ -410,6 +510,9 @@ const styles = {
     fontSize: '1rem',
     outline: 'none',
     backgroundColor: '#fff',
+    ':focus': {
+      borderColor: '#3b82f6',
+    },
   },
   clearButton: {
     position: 'absolute',
@@ -421,6 +524,9 @@ const styles = {
     fontSize: '1.25rem',
     color: '#94a3b8',
     cursor: 'pointer',
+    ':hover': {
+      color: '#64748b',
+    },
   },
   domainesFilter: {
     display: 'flex',
@@ -437,6 +543,10 @@ const styles = {
     color: '#475569',
     cursor: 'pointer',
     transition: 'all 0.3s',
+    ':hover': {
+      borderColor: '#3b82f6',
+      color: '#3b82f6',
+    },
   },
   domaineButtonActive: {
     backgroundColor: '#3b82f6',
@@ -473,6 +583,9 @@ const styles = {
     fontWeight: '600',
     color: '#475569',
     cursor: 'pointer',
+    ':hover': {
+      backgroundColor: '#e2e8f0',
+    },
   },
   emptyState: {
     backgroundColor: '#fff',
@@ -497,7 +610,7 @@ const styles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
     gap: '2rem',
   },
   card: {
@@ -529,7 +642,21 @@ const styles = {
     fontSize: '0.8rem',
     fontWeight: '600',
   },
+  promoBadge: {
+    position: 'absolute',
+    top: '10px',
+    left: '10px',
+    backgroundColor: '#dc2626',
+    color: '#fff',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.5rem',
+    fontSize: '1rem',
+    fontWeight: '700',
+    boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)',
+    zIndex: 2,
+  },
   imagePlaceholder: {
+    position: 'relative',
     height: '200px',
     backgroundColor: '#dbeafe',
     display: 'flex',
@@ -565,20 +692,49 @@ const styles = {
     lineHeight: '1.6',
     marginBottom: '1rem',
   },
-  details: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
+  priceContainer: {
+    marginBottom: '0.75rem',
   },
-  price: {
+  normalPrice: {
     color: '#10b981',
     fontWeight: '700',
     fontSize: '1.125rem',
+  },
+  promoPrice: {
+    color: '#dc2626',
+    fontWeight: '700',
+    fontSize: '1.25rem',
+    display: 'inline-block',
+    marginRight: '0.75rem',
+  },
+  originalPrice: {
+    color: '#94a3b8',
+    fontWeight: '500',
+    fontSize: '1rem',
+    textDecoration: 'line-through',
+    display: 'inline-block',
+  },
+  promoPeriod: {
+    color: '#dc2626',
+    fontSize: '0.8rem',
+    fontWeight: '500',
+    marginTop: '0.25rem',
+    backgroundColor: '#fee2e2',
+    padding: '0.25rem 0.75rem',
+    borderRadius: '1rem',
+    display: 'inline-block',
+  },
+  priceOnRequest: {
+    color: '#64748b',
+    fontWeight: '500',
+    fontSize: '0.95rem',
+    fontStyle: 'italic',
   },
   hours: {
     color: '#64748b',
     fontSize: '0.9rem',
     fontWeight: '600',
+    marginTop: '0.5rem',
   },
   cardFooter: {
     padding: '1rem 1.5rem',

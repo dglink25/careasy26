@@ -97,7 +97,7 @@ export default function PublicServiceDetails() {
   const handleContact = (method) => {
     if (!service?.entreprise) return;
 
-    const phone = service.entreprise.phone;
+    const phone = service.entreprise.call_phone;
     const email = service.entreprise.email;
 
     switch(method) {

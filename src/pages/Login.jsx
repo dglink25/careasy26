@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom'; // AJOUTER useLocation
 import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../contexts/ModalContext';
 import Logo from '../components/Logo';
@@ -15,6 +15,7 @@ export default function Login({ isModal = false, onClose }) {
   
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // AJOUTER pour récupérer l'état
   const { openModal } = useModal();
 
   const handleSubmit = async (e) => {
@@ -28,7 +29,21 @@ export default function Login({ isModal = false, onClose }) {
       if (isModal && onClose) {
         onClose();
       }
-      navigate('/dashboard');
+      
+      // MODIFICATION: Récupérer l'état de navigation ou utiliser la page par défaut
+      const from = location.state?.from || '/dashboard';
+      const openContactModal = location.state?.openContactModal;
+      const selectedService = location.state?.selectedService;
+      
+      console.log('Redirection après login vers:', from, { openContactModal, selectedService });
+      
+      // Naviguer vers la page d'origine avec l'état si nécessaire
+      navigate(from, { 
+        state: { 
+          openContactModal, 
+          selectedService 
+        } 
+      });
     } else {
       setError(result.message);
     }
@@ -49,22 +64,34 @@ export default function Login({ isModal = false, onClose }) {
   };
 
   // Modifier la fonction handleRegisterClick
-const handleRegisterClick = () => {
-  if (isModal && onClose) {
-    const { openModal } = useModal();
-    setTimeout(() => openModal('register'), 50);
+  const handleRegisterClick = () => {
+    if (isModal && onClose) {
+      // CORRECTION: utiliser openModal du hook, pas re-déclarer
+      setTimeout(() => openModal('register'), 50);
     } else {
-      navigate('/register');
+      // IMPORTANT: Passer l'état à la page d'inscription
+      navigate('/register', { 
+        state: { 
+          from: location.state?.from,
+          openContactModal: location.state?.openContactModal,
+          selectedService: location.state?.selectedService
+        } 
+      });
     }
   };
 
   // Modifier la fonction handleForgotPassword
   const handleForgotPassword = () => {
     if (isModal && onClose) {
-      const { openModal } = useModal();
       setTimeout(() => openModal('reset-password'), 50);
     } else {
-      navigate('/forgot-password');
+      navigate('/forgot-password', { 
+        state: { 
+          from: location.state?.from,
+          openContactModal: location.state?.openContactModal,
+          selectedService: location.state?.selectedService
+        } 
+      });
     }
   };
 
