@@ -354,6 +354,7 @@ export default function MessagesPage() {
           </p>
         </div>
       </div>
+      
 
       {/* Modal de nouvelle conversation */}
       {showNewConversationModal && (

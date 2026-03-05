@@ -582,6 +582,7 @@ export default function Home() {
       {/* MODAL DE CHAT (seulement pour utilisateurs connectés) */}
       {user && selectedService && showChatModal && (
         <ChatModal
+          serviceId={selectedService.id} 
           receiverId={selectedService.entreprise?.prestataire_id}
           receiverName={selectedService.entreprise?.name || 'Prestataire'}
           onClose={() => {
