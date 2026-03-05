@@ -55,7 +55,7 @@ export default function CreerService() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const entrepriseIdParam = searchParams.get('entreprise');
-  const fileInputRef = useRef(null); // ✅ Référence pour l'input file
+  const fileInputRef = useRef(null); 
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -100,8 +100,6 @@ const [formData, setFormData] = useState({
     try {
       setLoadingEntreprises(true);
       const data = await entrepriseApi.getMesEntreprises();
-      
-      // Filtrer seulement les entreprises validées
       const validatedEntreprises = data.filter(e => e.status === 'validated');
       setEntreprises(validatedEntreprises);
       
@@ -139,8 +137,8 @@ const [formData, setFormData] = useState({
       return;
     }
     
-    // Validation de la taille et du type
-    const maxSize = 2 * 1024 * 1024; // 2MB
+    
+    const maxSize = 2 * 1024 * 1024; 
     const validFiles = [];
     const errors = [];
     
@@ -168,15 +166,12 @@ const [formData, setFormData] = useState({
       return;
     }
     
-    console.log(`✅ ${validFiles.length} fichier(s) valide(s)`);
-    
-    // Ajouter les nouveaux fichiers aux fichiers existants
+    console.log(`${validFiles.length} fichier(s) valide(s)`);
     setFormData(prev => ({ 
       ...prev, 
       medias: [...prev.medias, ...validFiles] 
     }));
     
-    // Créer previews pour les nouveaux fichiers
     const newPreviews = validFiles.map(file => {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -190,25 +185,23 @@ const [formData, setFormData] = useState({
       console.log(`🖼️ ${newPreviewUrls.length} preview(s) créée(s)`);
     });
     
-    // Réinitialiser l'input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // ✅ Fonction pour ouvrir le sélecteur de fichiers
+ 
   const handleUploadClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('🖱️ Clic sur zone d\'upload');
+    console.log('Clic sur zone d\'upload');
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
-  // Fonction pour supprimer une image
   const removeImage = (index) => {
-    console.log(`🗑️ Suppression de l'image ${index + 1}`);
+    console.log(`Suppression de l'image ${index + 1}`);
     
     const newFiles = [...formData.medias];
     newFiles.splice(index, 1);
@@ -219,23 +212,21 @@ const [formData, setFormData] = useState({
     setPreviews(newPreviews);
   };
 
- // Dans CreerService.jsx, remplacez la fonction handleSubmit par ceci :
 
 const handleSubmit = async (e) => {
   e.preventDefault();
   e.stopPropagation();
   
-  console.log('🚀 Tentative de soumission du formulaire');
+  console.log('Tentative de soumission du formulaire');
   
   if (isSubmitting) {
-    console.log('⚠️ Soumission déjà en cours, abandon');
+    console.log('Soumission déjà en cours, abandon');
     return;
   }
   
   setError('');
   setSuccess('');
 
-  // Validation
   if (!formData.entreprise_id) {
     setError('Veuillez sélectionner une entreprise');
     setActiveSection('entreprise');
@@ -255,7 +246,6 @@ const handleSubmit = async (e) => {
     return;
   }
 
-  // Validation des horaires
   if (!isAlwaysOpen) {
     const hasOpenDay = Object.values(schedule).some(day => day && day.is_open);
     if (!hasOpenDay) {
@@ -272,24 +262,43 @@ const handleSubmit = async (e) => {
   try {
     const submitData = new FormData();
     
-    // Champs simples
+    
     submitData.append('entreprise_id', formData.entreprise_id);
     submitData.append('domaine_id', formData.domaine_id);
     submitData.append('name', formData.name.trim());
     
-    if (formData.price) {
-      submitData.append('price', formData.price);
+submitData.append('is_price_on_request', formData.is_price_on_request ? '1' : '0');
+
+if (!formData.is_price_on_request) {
+  if (formData.price) {
+    submitData.append('price', formData.price);
+  }
+
+  if (formData.has_promo) {
+    submitData.append('has_promo', '1');
+    if (formData.price_promo) {
+      submitData.append('price_promo', formData.price_promo);
     }
-    
-    if (formData.descriptions) {
-      submitData.append('descriptions', formData.descriptions.trim());
+    if (formData.promo_start_date) {
+      submitData.append('promo_start_date', formData.promo_start_date);
     }
+    if (formData.promo_end_date) {
+      submitData.append('promo_end_date', formData.promo_end_date);
+    }
+  } else {
+    submitData.append('has_promo', '0');
+  }
+} else {
+  submitData.append('has_promo', '0');
+}
+
+if (formData.descriptions) {
+  submitData.append('descriptions', formData.descriptions.trim());
+}
     
-    // Gestion des horaires - FORMAT CORRECT pour Laravel
     submitData.append('is_always_open', isAlwaysOpen ? '1' : '0');
     
     if (!isAlwaysOpen && Object.keys(schedule).length > 0) {
-      // Pour chaque jour, envoyer les champs individuels
       Object.entries(schedule).forEach(([day, data]) => {
         if (data && data.is_open) {
           submitData.append(`schedule[${day}][is_open]`, '1');
@@ -305,14 +314,12 @@ const handleSubmit = async (e) => {
       });
     }
 
-    // Ajouter les fichiers
     if (formData.medias && formData.medias.length > 0) {
       formData.medias.forEach((file) => {
         submitData.append('medias[]', file);
       });
     }
 
-    // Log des données pour déboguer
     console.log('📤 Données envoyées:');
     for (let pair of submitData.entries()) {
       console.log(pair[0] + ':', pair[1]);
@@ -321,7 +328,7 @@ const handleSubmit = async (e) => {
     const response = await serviceApi.createService(submitData);
     
     console.log('✅ Service créé avec succès:', response);
-    setSuccess('✅ Service créé avec succès ! Redirection en cours...');
+    setSuccess('Service créé avec succès ! Redirection en cours...');
     
     setTimeout(() => {
       navigate('/mes-services');
@@ -329,8 +336,7 @@ const handleSubmit = async (e) => {
     
   } catch (err) {
     console.error('❌ Erreur création:', err);
-    
-    // Afficher les erreurs de validation détaillées
+ 
     if (err.response?.data?.errors) {
       const errorMessages = Object.entries(err.response.data.errors)
         .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
@@ -473,11 +479,9 @@ const handleSubmit = async (e) => {
           </div>
         )}
 
-        {/* ✅ FORMULAIRE AVEC PROTECTION CONTRE SOUMISSION AUTO */}
         <form 
           onSubmit={handleSubmit} 
           style={styles.form}
-          // ✅ Empêcher la soumission par Enter
           onKeyDown={(e) => {
             if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
               e.preventDefault();
@@ -736,7 +740,6 @@ const handleSubmit = async (e) => {
                     </div>
                   </div>
 
-                  {/* ✅ NOUVEAU: Option promotion */}
                   <div style={styles.formGroup}>
                     <div style={styles.checkboxCard}>
                       <input
@@ -748,13 +751,12 @@ const handleSubmit = async (e) => {
                           setFormData(prev => ({
                             ...prev,
                             has_promo: checked,
-                            // Si on décoche la promo, on vide le prix promo
                             price_promo: checked ? prev.price_promo : ''
                           }));
                         }}
                         style={styles.checkbox}
                         id="has_promo"
-                        disabled={!formData.price} // Désactivé si pas de prix normal
+                        disabled={!formData.price} 
                       />
                       <label htmlFor="has_promo" style={styles.checkboxLabel}>
                         <div style={styles.checkboxIcon}>
@@ -772,7 +774,7 @@ const handleSubmit = async (e) => {
                     </div>
                   </div>
 
-                  {/* ✅ Prix promotionnel */}
+                  {/* Prix promotionnel */}
                   {formData.has_promo && (
                     <>
                       <div style={styles.formGroup}>
@@ -810,7 +812,7 @@ const handleSubmit = async (e) => {
                         )}
                       </div>
 
-                      {/* ✅ Dates de validité de la promo */}
+                      {/* Dates de validité de la promo */}
                       <div style={styles.formRow}>
                         <div style={styles.formGroup}>
                           <label style={styles.label}>
@@ -923,7 +925,6 @@ const handleSubmit = async (e) => {
 
               <div style={styles.formGroup}>
                 <div style={styles.uploadArea}>
-                  {/* ✅ Input file totalement isolé avec ref */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -932,12 +933,10 @@ const handleSubmit = async (e) => {
                     onChange={handleFilesChange}
                     style={styles.fileInput}
                     onClick={(e) => {
-                      // ✅ Empêcher la propagation du clic
                       e.stopPropagation();
                     }}
                   />
                   
-                  {/* ✅ Div cliquable totalement séparée */}
                   <div 
                     onClick={handleUploadClick}
                     onKeyDown={(e) => {

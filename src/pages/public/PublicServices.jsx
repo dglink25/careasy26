@@ -1,27 +1,749 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { publicApi } from '../../api/publicApi';
 
+import { 
+  FaWrench, FaFire, FaTag, FaClock, 
+  FaArrowRight, FaRegClock, FaDoorOpen, FaDoorClosed,
+  FaQuestionCircle, FaCheckCircle, FaTimesCircle,
+  FaChevronLeft, FaChevronRight, FaPause, FaPlay
+} from 'react-icons/fa';
+import { MdVerified, MdOutlineLocalOffer, MdBusiness } from 'react-icons/md';
+import { HiOutlineClock, HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineQuestionMarkCircle } from 'react-icons/hi';
+const AUTOPLAY_INTERVAL = 4000; 
+const AUTOPLAY_PAUSE_DURATION = 10000; 
+
+const JS_DAY_TO_KEY = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const DAYS_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const KEY_TO_FR = {
+  monday: 'Lundi', tuesday: 'Mardi', wednesday: 'Mercredi',
+  thursday: 'Jeudi', friday: 'Vendredi', saturday: 'Samedi', sunday: 'Dimanche',
+};
+
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return null;
+  const parts = timeStr.split(':').map(Number);
+  return parts[0] * 60 + (parts[1] || 0);
+};
+
+const formatPrice = (price) => {
+  if (!price && price !== 0) return null;
+  return `${Number(price).toLocaleString('fr-FR')} FCFA`;
+};
+
+const isPromoActive = (service) => {
+  if (!service?.has_promo || !service?.price_promo) return false;
+  const now = new Date();
+  if (!service.promo_start_date && !service.promo_end_date) return true;
+  const start = service.promo_start_date ? new Date(service.promo_start_date) : null;
+  const end = service.promo_end_date ? new Date(service.promo_end_date) : null;
+  if (start && end) return now >= start && now <= end;
+  if (start) return now >= start;
+  if (end) return now <= end;
+  return false;
+};
+
+const calculateDiscount = (service) => {
+  if (!service?.has_promo || !service?.price_promo || !service?.price || service.price === 0) return null;
+  return Math.round(((service.price - service.price_promo) / service.price) * 100);
+};
+
+const formatPromoPeriod = (service) => {
+  const fmt = (d) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  if (service?.promo_start_date && service?.promo_end_date)
+    return `du ${fmt(service.promo_start_date)} au ${fmt(service.promo_end_date)}`;
+  if (service?.promo_start_date) return `à partir du ${fmt(service.promo_start_date)}`;
+  if (service?.promo_end_date) return `jusqu'au ${fmt(service.promo_end_date)}`;
+  return null;
+};
+
+
+const getOpenStatus = (service) => {
+  if (service?.is_always_open || service?.is_open_24h) {
+    return {
+      isOpen: true,
+      label: 'Ouvert 24h/24',
+      sublabel: '7j/7',
+      color: '#059669',
+      bg: '#d1fae5',
+      icon: 'always',
+      todayHours: '00:00 – 24:00',
+    };
+  }
+
+  const now = new Date();
+  const currentDayKey = JS_DAY_TO_KEY[now.getDay()];
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+if (service?.schedule && typeof service.schedule === 'object' && Object.keys(service.schedule).length > 0) {
+    const today = service.schedule[currentDayKey];
+
+    if (!today || !today.is_open) {
+      // Cherche le prochain jour ouvert
+      const currentIdx = DAYS_ORDER.indexOf(currentDayKey);
+      let nextLabel = null;
+      for (let i = 1; i <= 7; i++) {
+        const nextKey = DAYS_ORDER[(currentIdx + i) % 7];
+        const nextDay = service.schedule[nextKey];
+        if (nextDay?.is_open && nextDay.start) {
+          const label = i === 1 ? 'Demain' : KEY_TO_FR[nextKey];
+          nextLabel = `${label} à ${nextDay.start}`;
+          break;
+        }
+      }
+      return {
+        isOpen: false,
+        label: 'Fermé aujourd\'hui',
+        sublabel: nextLabel ? `Ouvre ${nextLabel}` : 'Fermé cette semaine',
+        color: '#dc2626',
+        bg: '#fee2e2',
+        icon: 'closed',
+        todayHours: 'Fermé',
+      };
+    }
+  const start = parseTimeToMinutes(today.start);
+    const end = parseTimeToMinutes(today.end);
+
+    if (start === null || end === null) {
+      return {
+        isOpen: null,
+        label: 'Horaires incomplets',
+        sublabel: '',
+        color: '#64748b',
+        bg: '#e2e8f0',
+        icon: 'unknown',
+        todayHours: 'Non défini',
+      };
+    }
+   const isOpen = end < start
+      ? currentMinutes >= start || currentMinutes <= end
+      : currentMinutes >= start && currentMinutes <= end;
+
+    let sublabel;
+    if (isOpen) {
+      const minutesLeft = end < start
+        ? (end + 1440 - currentMinutes) % 1440
+        : end - currentMinutes;
+      sublabel = minutesLeft <= 60
+        ? `Ferme dans ${minutesLeft} min`
+        : `Ferme à ${today.end}`;
+    } else {
+      sublabel = currentMinutes < start
+        ? `Ouvre à ${today.start}`
+        : `Ouvre demain à ${today.start}`;
+    }
+
+    return {
+      isOpen,
+      label: isOpen ? 'Ouvert maintenant' : 'Actuellement fermé',
+      sublabel,
+      color: isOpen ? '#059669' : '#dc2626',
+      bg: isOpen ? '#d1fae5' : '#fee2e2',
+      icon: isOpen ? 'open' : 'closed',
+      todayHours: `${today.start} – ${today.end}`,
+    };
+  }
+if (service?.start_time && service?.end_time) {
+    const start = parseTimeToMinutes(service.start_time);
+    const end = parseTimeToMinutes(service.end_time);
+    const isOpen = end < start
+      ? currentMinutes >= start || currentMinutes <= end
+      : currentMinutes >= start && currentMinutes <= end;
+
+    return {
+      isOpen,
+      label: isOpen ? 'Ouvert maintenant' : 'Actuellement fermé',
+      sublabel: isOpen ? `Ferme à ${service.end_time}` : `Ouvre à ${service.start_time}`,
+      color: isOpen ? '#059669' : '#dc2626',
+      bg: isOpen ? '#d1fae5' : '#fee2e2',
+      icon: isOpen ? 'open' : 'closed',
+      todayHours: `${service.start_time} – ${service.end_time}`,
+    };
+  }
+
+  return {
+    isOpen: null,
+    label: 'Horaires non renseignés',
+    sublabel: '',
+    color: '#94a3b8',
+    bg: '#f1f5f9',
+    icon: 'unknown',
+    todayHours: null,
+  };
+};
+const useServicesImages = (services) => {
+  const [imageIndices, setImageIndices] = useState({});
+  const [autoPlayStates, setAutoPlayStates] = useState({});
+  const intervalsRef = useRef({});
+  const timeoutsRef = useRef({});
+
+  useEffect(() => {
+    const initialIndices = {};
+    const initialAutoPlay = {};
+    services.forEach(service => {
+      if (service.medias?.length > 0) {
+        initialIndices[service.id] = 0;
+        initialAutoPlay[service.id] = true;
+      }
+    });
+    setImageIndices(initialIndices);
+    setAutoPlayStates(initialAutoPlay);
+  }, [services]);
+
+  // Fonction pour passer à l'image suivante
+  const nextImage = useCallback((serviceId, totalImages) => {
+    setImageIndices(prev => ({
+      ...prev,
+      [serviceId]: ((prev[serviceId] || 0) + 1) % totalImages
+    }));
+  }, []);
+
+  // Fonction pour revenir à l'image précédente
+  const prevImage = useCallback((serviceId, totalImages) => {
+    setImageIndices(prev => ({
+      ...prev,
+      [serviceId]: (prev[serviceId] || 0) === 0 ? totalImages - 1 : (prev[serviceId] || 0) - 1
+    }));
+  }, []);
+
+  // Fonction pour aller à une image spécifique
+  const goToImage = useCallback((serviceId, index) => {
+    setImageIndices(prev => ({
+      ...prev,
+      [serviceId]: index
+    }));
+  }, []);
+
+  // Fonction pour gérer l'interaction utilisateur
+  const handleUserInteraction = useCallback((serviceId) => {
+    // Mettre en pause l'auto-play pour ce service
+    setAutoPlayStates(prev => ({
+      ...prev,
+      [serviceId]: false
+    }));
+
+    // Nettoyer l'intervalle existant
+    if (intervalsRef.current[serviceId]) {
+      clearInterval(intervalsRef.current[serviceId]);
+      delete intervalsRef.current[serviceId];
+    }
+
+    // Nettoyer le timeout existant
+    if (timeoutsRef.current[serviceId]) {
+      clearTimeout(timeoutsRef.current[serviceId]);
+      delete timeoutsRef.current[serviceId];
+    }
+  timeoutsRef.current[serviceId] = setTimeout(() => {
+      setAutoPlayStates(prev => ({
+        ...prev,
+        [serviceId]: true
+      }));
+      delete timeoutsRef.current[serviceId];
+    }, AUTOPLAY_PAUSE_DURATION);
+  }, []);
+useEffect(() => {
+     Object.values(intervalsRef.current).forEach(clearInterval);
+    intervalsRef.current = {};
+  services.forEach(service => {
+      const totalImages = service.medias?.length || 0;
+      if (totalImages >= 2 && autoPlayStates[service.id]) {
+        intervalsRef.current[service.id] = setInterval(() => {
+          nextImage(service.id, totalImages);
+        }, AUTOPLAY_INTERVAL);
+      }
+    });
+
+    // Nettoyage au démontage
+    return () => {
+      Object.values(intervalsRef.current).forEach(clearInterval);
+      Object.values(timeoutsRef.current).forEach(clearTimeout);
+    };
+  }, [services, autoPlayStates, nextImage]);
+
+  return {
+    imageIndices,
+    nextImage,
+    prevImage,
+    goToImage,
+    autoPlayStates,
+    handleUserInteraction
+  };
+};
+
+const StatusIcon = ({ type, size = '1rem', color }) => {
+  const s = { fontSize: size, color, flexShrink: 0 };
+  if (type === 'always') return <HiOutlineClock style={s} />;
+  if (type === 'open') return <HiOutlineCheckCircle style={s} />;
+  if (type === 'closed') return <HiOutlineXCircle style={s} />;
+  return <HiOutlineQuestionMarkCircle style={s} />;
+};
+
+const OpenStatusBadge = ({ status }) => {
+  if (!status) return null;
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: '10px',
+      right: '10px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '5px',
+      backgroundColor: status.bg,
+      color: status.color,
+      border: `1.5px solid ${status.color}55`,
+      borderRadius: '999px',
+      padding: '5px 11px',
+      fontSize: '0.78rem',
+      fontWeight: '700',
+      backdropFilter: 'blur(6px)',
+      zIndex: 3,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      maxWidth: 'calc(100% - 20px)',
+      letterSpacing: '0.01em',
+    }}>
+      <StatusIcon type={status.icon} color={status.color} />
+      <span>{status.label}</span>
+    </div>
+  );
+};
+
+// Badge promo (sur l'image)
+const PromoBadge = ({ discount }) => (
+  <div style={{
+    position: 'absolute',
+    top: '10px',
+    left: '10px',
+    backgroundColor: '#dc2626',
+    color: '#fff',
+    padding: '5px 13px',
+    borderRadius: '999px',
+    fontSize: '0.82rem',
+    fontWeight: '800',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    zIndex: 3,
+    boxShadow: '0 4px 12px rgba(220,38,38,0.4)',
+    letterSpacing: '0.02em',
+    animation: 'pulseBadge 2s ease-in-out infinite',
+  }}>
+    <FaFire style={{ fontSize: '0.72rem' }} />
+    -{discount}%
+  </div>
+);
+
+// Indicateur de défilement automatique
+const AutoPlayIndicator = ({ autoPlay, currentIndex, totalImages }) => (
+  <div style={{
+    position: 'absolute',
+    top: '10px',
+    right: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    color: '#fff',
+    padding: '4px 8px',
+    borderRadius: '20px',
+    fontSize: '0.7rem',
+    fontWeight: '600',
+    backdropFilter: 'blur(4px)',
+    zIndex: 4,
+    border: '1px solid rgba(255,255,255,0.2)',
+  }}>
+    
+  </div>
+);
+
+// Barre de progression
+const ProgressBar = ({ totalImages, currentIndex }) => (
+  <div style={{
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '3px',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    zIndex: 4,
+  }}>
+    <div style={{
+      height: '100%',
+      width: `${((currentIndex + 1) / totalImages) * 100}%`,
+      backgroundColor: '#3b82f6',
+      transition: 'width 0.3s ease',
+    }} />
+  </div>
+);
+
+// Miniatures de navigation
+const ImageThumbnails = ({ medias, currentIndex, onThumbnailClick }) => {
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: '10px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      display: 'flex',
+      gap: '5px',
+      padding: '5px',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      borderRadius: '20px',
+      backdropFilter: 'blur(4px)',
+      zIndex: 4,
+    }}>
+      {medias.map((_, index) => (
+        <button
+          key={index}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onThumbnailClick(index);
+          }}
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            backgroundColor: index === currentIndex ? '#3b82f6' : '#fff',
+            transition: 'all 0.2s ease',
+            transform: index === currentIndex ? 'scale(1.2)' : 'scale(1)',
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+// Ligne horaires du jour (dans la carte)
+const HoursChip = ({ status }) => {
+  if (!status?.todayHours || status.todayHours === 'Fermé' || status.todayHours === 'Non défini') return null;
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '5px',
+      fontSize: '0.78rem',
+      color: status.color,
+      backgroundColor: status.bg,
+      padding: '3px 9px',
+      borderRadius: '999px',
+      fontWeight: '600',
+      flexShrink: 0,
+      border: `1px solid ${status.color}33`,
+    }}>
+      <FaClock style={{ fontSize: '0.7rem' }} />
+      <span>{status.todayHours}</span>
+    </div>
+  );
+};
+
+// Affichage prix
+const PriceDisplay = ({ service, promoActive }) => {
+  if (service.is_price_on_request) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '4px',
+        color: '#ea580c', fontWeight: '700', fontSize: '0.85rem',
+        backgroundColor: '#fff7ed', padding: '4px 10px', borderRadius: '999px',
+        border: '1px solid #fdba7444',
+      }}>
+        <FaTag style={{ fontSize: '0.72rem' }} /> Sur devis
+      </div>
+    );
+  }
+  if (promoActive && service.price_promo) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px' }}>
+        <span style={{
+          color: '#dc2626', fontWeight: '800', fontSize: '0.95rem',
+          backgroundColor: '#fee2e2', padding: '3px 9px', borderRadius: '999px',
+        }}>
+          {formatPrice(service.price_promo)}
+        </span>
+        {service.price && (
+          <span style={{ color: '#94a3b8', fontSize: '0.75rem', textDecoration: 'line-through', paddingRight: '4px' }}>
+            {formatPrice(service.price)}
+          </span>
+        )}
+      </div>
+    );
+  }
+  if (service.price) {
+    return (
+      <span style={{
+        color: '#3b82f6', fontWeight: '700', fontSize: '0.9rem',
+        backgroundColor: '#dbeafe44', padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap',
+      }}>
+        {formatPrice(service.price)}
+      </span>
+    );
+  }
+  return (
+    <span style={{ color: '#94a3b8', fontSize: '0.82rem', fontStyle: 'italic' }}>
+      Prix sur demande
+    </span>
+  );
+};
+const ServiceCard = ({ service, status, imageIndex, onNextImage, onPrevImage, onGoToImage, autoPlay, onUserInteraction }) => {
+  const hasActivePromo = isPromoActive(service);
+  const discount = calculateDiscount(service);
+  const promoPeriod = formatPromoPeriod(service);
+  const totalImages = service.medias?.length || 0;
+
+  return (
+    <Link
+      to={`/service/${service.id}`}
+      style={styles.card}
+      className="service-card"
+      onClick={(e) => {
+        if (e.target.closest('.image-nav-button') || e.target.closest('.thumbnail-dot')) {
+          e.preventDefault();
+        }
+      }}
+    >
+       <div 
+        style={styles.cardImage}
+        onMouseEnter={() => onUserInteraction()}
+      >
+        {service.medias && service.medias.length > 0 ? (
+          <>
+            <img 
+              src={service.medias[imageIndex]}
+              alt={`${service.name} - Image ${imageIndex + 1}`}
+              style={styles.image}
+            />
+            
+           
+            
+            {/* Barre de progression */}
+            {service.medias.length > 1 && autoPlay && (
+              <ProgressBar 
+                totalImages={service.medias.length}
+                currentIndex={imageIndex}
+              />
+            )}
+            
+           
+            
+            {/* Boutons de navigation */}
+            {service.medias.length > 1 && (
+              <>
+                <button 
+                  className="image-nav-button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onPrevImage();
+                    onUserInteraction();
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: '5px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    color: '#fff',
+                    border: 'none',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    zIndex: 5,
+                    transition: 'all 0.2s ease',
+                    opacity: 0,
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
+                >
+                  <FaChevronLeft style={{ fontSize: '0.8rem' }} />
+                </button>
+                <button 
+                  className="image-nav-button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onNextImage();
+                    onUserInteraction();
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: '5px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    color: '#fff',
+                    border: 'none',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    zIndex: 5,
+                    transition: 'all 0.2s ease',
+                    opacity: 0,
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
+                >
+                  <FaChevronRight style={{ fontSize: '0.8rem' }} />
+                </button>
+              </>
+            )}
+          </>
+        ) : (
+          <div style={styles.imagePlaceholder}>
+            <FaWrench style={{ fontSize: '3rem', color: '#3b82f6', opacity: 0.5 }} />
+          </div>
+        )}
+        
+        {/* Badge promotion */}
+        {hasActivePromo && discount && (
+          <PromoBadge discount={discount} />
+        )}
+        
+        {/* Badge d'ouverture */}
+        <OpenStatusBadge status={status} />
+        
+        {/* Badge nombre de photos */}
+        {service.medias?.length > 1 && (
+          <div style={styles.imageBadge}>
+            +{service.medias.length - 1}
+          </div>
+        )}
+      </div>
+
+      {/* Contenu */}
+      <div style={styles.cardBody}>
+        {/* En-tête avec nom et prix */}
+        <div style={styles.cardHeader}>
+          <h3 style={styles.cardTitle}>{service.name}</h3>
+          <PriceDisplay service={service} promoActive={hasActivePromo} />
+        </div>
+        
+        {/* Domaine */}
+        {service.domaine && (
+          <div style={styles.domaineTag}>
+            {service.domaine.name}
+          </div>
+        )}
+
+        {/* Période de promotion */}
+        {hasActivePromo && promoPeriod && (
+          <div style={styles.promoPeriod}>
+            <MdOutlineLocalOffer style={{ fontSize: '0.9rem', flexShrink: 0 }} />
+            <span>{promoPeriod}</span>
+          </div>
+        )}
+
+        {/* Description */}
+        {service.descriptions && (
+          <p style={styles.description}>
+            {service.descriptions.substring(0, 100)}
+            {service.descriptions.length > 100 ? '...' : ''}
+          </p>
+        )}
+
+        {/* Sous-label statut */}
+        {status?.sublabel && (
+          <p style={{ ...styles.statusSublabel, color: status.color }}>
+            <StatusIcon type={status.icon} color={status.color} size="0.8rem" />
+            {status.sublabel}
+          </p>
+        )}
+
+        {/* Horaires du jour si disponible */}
+        {status?.todayHours && status.todayHours !== 'Fermé' && status.todayHours !== 'Non défini' && (
+          <div style={styles.hours}>
+            <FaRegClock style={{ marginRight: '5px', color: '#64748b' }} />
+            <span>{status.todayHours}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Footer avec entreprise */}
+      <div style={styles.cardFooter}>
+        {service.entreprise && (
+          <div style={styles.entrepriseInfo}>
+            {service.entreprise.logo ? (
+              <img 
+                src={service.entreprise.logo}
+                alt={service.entreprise.name}
+                style={styles.entrepriseLogo}
+              />
+            ) : (
+              <div style={styles.logoPlaceholder}>
+                <MdBusiness style={{ fontSize: '1.2rem', color: '#3b82f6' }} />
+              </div>
+            )}
+            <span style={styles.entrepriseName}>
+              {service.entreprise.name}
+              {service.entreprise.is_verified && (
+                <MdVerified style={{ color: '#3b82f6', fontSize: '0.9rem', marginLeft: '4px' }} />
+              )}
+            </span>
+          </div>
+        )}
+        <span style={styles.viewLink}>
+          Voir <FaArrowRight style={{ fontSize: '0.8rem', marginLeft: '4px' }} />
+        </span>
+      </div>
+    </Link>
+  );
+};
 export default function PublicServices() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [services, setServices] = useState([]);
   const [domaines, setDomaines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [openStatuses, setOpenStatuses] = useState({});
   
   // États pour les filtres
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedDomaine, setSelectedDomaine] = useState(searchParams.get('type') || 'all');
 
+  // Hook personnalisé pour gérer les images de tous les services
+  const {
+    imageIndices,
+    nextImage,
+    prevImage,
+    goToImage,
+    autoPlayStates,
+    handleUserInteraction
+  } = useServicesImages(services);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Mettre à jour les statuts d'ouverture toutes les minutes
+  useEffect(() => {
+    if (services.length > 0) {
+      updateOpenStatuses();
+      const interval = setInterval(updateOpenStatuses, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [services]);
 
   // Mettre à jour les filtres depuis l'URL
   useEffect(() => {
     setSearchTerm(searchParams.get('search') || '');
     setSelectedDomaine(searchParams.get('type') || 'all');
   }, [searchParams]);
+
+  const updateOpenStatuses = () => {
+    const newStatuses = {};
+    services.forEach(service => {
+      newStatuses[service.id] = getOpenStatus(service);
+    });
+    setOpenStatuses(newStatuses);
+  };
 
   const fetchData = async () => {
     try {
@@ -31,6 +753,14 @@ export default function PublicServices() {
         publicApi.getDomaines()
       ]);
       setServices(servicesData);
+      
+      // Calculer les statuts d'ouverture
+      const statuses = {};
+      servicesData.forEach(service => {
+        statuses[service.id] = getOpenStatus(service);
+      });
+      setOpenStatuses(statuses);
+      
       setDomaines(domainesData);
       setError('');
     } catch (err) {
@@ -39,53 +769,6 @@ export default function PublicServices() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Vérifier si une promotion est active
-  const isPromotionActive = (promotion) => {
-    if (!promotion || !promotion.is_active) return false;
-    
-    const now = new Date();
-    const startDate = promotion.start_date ? new Date(promotion.start_date) : null;
-    const endDate = promotion.end_date ? new Date(promotion.end_date) : null;
-    
-    if (startDate && now < startDate) return false;
-    if (endDate && now > endDate) return false;
-    
-    return true;
-  };
-
-  // Calculer le prix promotionnel
-  const getPromotionalPrice = (price, promotion) => {
-    if (!price || !promotion || !promotion.discount_percentage) return null;
-    
-    const discount = parseFloat(promotion.discount_percentage);
-    if (isNaN(discount) || discount <= 0) return null;
-    
-    return price - (price * (discount / 100));
-  };
-
-  // Formater le prix
-  const formatPrice = (price) => {
-    if (!price && price !== 0) return null;
-    return `${price.toLocaleString()} FCFA`;
-  };
-
-  // Formater la période de promotion
-  const formatPromotionPeriod = (promotion) => {
-    if (!promotion || !promotion.start_date || !promotion.end_date) return null;
-    
-    const start = new Date(promotion.start_date);
-    const end = new Date(promotion.end_date);
-    
-    const formatDate = (date) => {
-      return date.toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'short'
-      });
-    };
-    
-    return `du ${formatDate(start)} au ${formatDate(end)}`;
   };
 
   // Mise à jour des paramètres URL
@@ -126,7 +809,11 @@ export default function PublicServices() {
     filtered: filteredServices.length,
     domaines: new Set(services.map(s => s.domaine?.id).filter(Boolean)).size,
     withPrice: services.filter(s => s.price).length,
-    withPromo: services.filter(s => isPromotionActive(s.promotion)).length
+    withPromo: services.filter(s => isPromoActive(s)).length,
+    openNow: services.filter(s => {
+      const status = getOpenStatus(s);
+      return status.isOpen === true;
+    }).length
   };
 
   if (loading) {
@@ -162,8 +849,8 @@ export default function PublicServices() {
             <div style={styles.statLabel}>Domaines d'expertise</div>
           </div>
           <div style={styles.statCard}>
-            <div style={styles.statNumber}>{stats.withPrice}</div>
-            <div style={styles.statLabel}>Avec tarifs affichés</div>
+            <div style={styles.statNumber}>{stats.openNow}</div>
+            <div style={styles.statLabel}>Ouverts maintenant</div>
           </div>
           {stats.withPromo > 0 && (
             <div style={{...styles.statCard, backgroundColor: '#fef2f2'}}>
@@ -267,124 +954,20 @@ export default function PublicServices() {
         ) : (
           <div style={styles.grid}>
             {filteredServices.map((service) => {
-              const hasActivePromo = isPromotionActive(service.promotion);
-              const promoPrice = hasActivePromo 
-                ? getPromotionalPrice(service.price, service.promotion)
-                : null;
-              const promoPeriod = hasActivePromo 
-                ? formatPromotionPeriod(service.promotion)
-                : null;
-
+              const status = openStatuses[service.id] || getOpenStatus(service);
+              
               return (
-                <Link
+                <ServiceCard
                   key={service.id}
-                  to={`/service/${service.id}`}
-                  style={styles.card}
-                  className="service-card"
-                >
-                  {/* Image */}
-                  {service.medias && service.medias.length > 0 ? (
-                    <div style={styles.cardImage}>
-                      <img 
-                        src={service.medias[0]}
-                        alt={service.name}
-                        style={styles.image}
-                      />
-                      {service.medias.length > 1 && (
-                        <div style={styles.imageBadge}>
-                          +{service.medias.length - 1} photo{service.medias.length > 2 ? 's' : ''}
-                        </div>
-                      )}
-                      {hasActivePromo && (
-                        <div style={styles.promoBadge}>
-                          -{service.promotion.discount_percentage}%
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div style={styles.imagePlaceholder}>
-                      <div style={styles.placeholderIcon}>🛠️</div>
-                      {hasActivePromo && (
-                        <div style={styles.promoBadge}>
-                          -{service.promotion.discount_percentage}%
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Contenu */}
-                  <div style={styles.cardBody}>
-                    <h3 style={styles.cardTitle}>{service.name}</h3>
-                    
-                    {service.domaine && (
-                      <div style={styles.domaineTag}>
-                        {service.domaine.name}
-                      </div>
-                    )}
-
-                    {service.descriptions && (
-                      <p style={styles.description}>
-                        {service.descriptions.substring(0, 120)}
-                        {service.descriptions.length > 120 ? '...' : ''}
-                      </p>
-                    )}
-
-                    {/* Prix avec promotion */}
-                    <div style={styles.priceContainer}>
-                      {hasActivePromo ? (
-                        <>
-                          <div style={styles.promoPrice}>
-                            {formatPrice(promoPrice)}
-                          </div>
-                          <div style={styles.originalPrice}>
-                            {formatPrice(service.price)}
-                          </div>
-                          {promoPeriod && (
-                            <div style={styles.promoPeriod}>
-                              🔥 {promoPeriod}
-                            </div>
-                          )}
-                        </>
-                      ) : service.price ? (
-                        <div style={styles.normalPrice}>
-                          {formatPrice(service.price)}
-                        </div>
-                      ) : (
-                        <div style={styles.priceOnRequest}>
-                          Prix sur demande
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Horaires si disponibles */}
-                    {service.schedule && (
-                      <div style={styles.hours}>
-                        {Object.values(service.schedule).filter(d => d.is_open).length} jour(s) ouvert(s)
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Footer */}
-                  <div style={styles.cardFooter}>
-                    {service.entreprise && (
-                      <div style={styles.entrepriseInfo}>
-                        {service.entreprise.logo ? (
-                          <img 
-                            src={service.entreprise.logo}
-                            alt={service.entreprise.name}
-                            style={styles.entrepriseLogo}
-                          />
-                        ) : (
-                          <div style={styles.logoPlaceholder}>🏢</div>
-                        )}
-                        <span style={styles.entrepriseName}>
-                          {service.entreprise.name}
-                        </span>
-                      </div>
-                    )}
-                    <span style={styles.viewLink}>Voir →</span>
-                  </div>
-                </Link>
+                  service={service}
+                  status={status}
+                  imageIndex={imageIndices[service.id] || 0}
+                  onNextImage={() => nextImage(service.id, service.medias?.length || 0)}
+                  onPrevImage={() => prevImage(service.id, service.medias?.length || 0)}
+                  onGoToImage={(index) => goToImage(service.id, index)}
+                  autoPlay={autoPlayStates[service.id] || false}
+                  onUserInteraction={() => handleUserInteraction(service.id)}
+                />
               );
             })}
           </div>
@@ -400,10 +983,13 @@ export default function PublicServices() {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-          100% { transform: scale(1); }
+        @keyframes pulseBadge {
+          0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(220,38,38,0.4); }
+          50%       { transform: scale(1.06); box-shadow: 0 6px 16px rgba(220,38,38,0.55); }
+        }
+        @keyframes pulseDot {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
         }
         .service-card {
           transition: all 0.3s ease;
@@ -415,14 +1001,13 @@ export default function PublicServices() {
           transform: translateY(-8px);
           box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
         }
-        .service-card:hover .promo-badge {
-          animation: pulse 1s infinite;
+        .service-card:hover .image-nav-button {
+          opacity: 0.7 !important;
         }
       `}</style>
     </div>
   );
 }
-
 const styles = {
   container: {
     minHeight: '100vh',
@@ -549,8 +1134,8 @@ const styles = {
     },
   },
   domaineButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: '#dc2626',
+    borderColor: '#e4e1e1',
     color: '#fff',
   },
   error: {
@@ -625,62 +1210,59 @@ const styles = {
   cardImage: {
     position: 'relative',
     height: '200px',
+    overflow: 'hidden',
+    backgroundColor: '#dbeafe',
   },
   image: {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
+    transition: 'transform 0.5s ease',
   },
   imageBadge: {
     position: 'absolute',
-    bottom: '10px',
+    top: '10px',
     right: '10px',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     color: '#fff',
-    padding: '0.375rem 0.75rem',
+    padding: '4px 8px',
     borderRadius: '0.5rem',
     fontSize: '0.8rem',
     fontWeight: '600',
-  },
-  promoBadge: {
-    position: 'absolute',
-    top: '10px',
-    left: '10px',
-    backgroundColor: '#dc2626',
-    color: '#fff',
-    padding: '0.5rem 1rem',
-    borderRadius: '0.5rem',
-    fontSize: '1rem',
-    fontWeight: '700',
-    boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)',
-    zIndex: 2,
+    backdropFilter: 'blur(4px)',
+    zIndex: 3,
   },
   imagePlaceholder: {
-    position: 'relative',
-    height: '200px',
-    backgroundColor: '#dbeafe',
+    width: '100%',
+    height: '100%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  placeholderIcon: {
-    fontSize: '4rem',
   },
   cardBody: {
     padding: '1.5rem',
     flex: 1,
   },
+  cardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '1rem',
+    marginBottom: '0.5rem',
+  },
   cardTitle: {
-    fontSize: '1.25rem',
+    fontSize: '1.2rem',
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: '0.75rem',
+    margin: 0,
+    flex: 1,
+    lineHeight: '1.4',
   },
   domaineTag: {
     display: 'inline-block',
     backgroundColor: '#dbeafe',
     color: '#3b82f6',
-    padding: '0.375rem 0.75rem',
+    padding: '4px 10px',
     borderRadius: '0.5rem',
     fontSize: '0.8rem',
     fontWeight: '600',
@@ -688,53 +1270,42 @@ const styles = {
   },
   description: {
     color: '#64748b',
-    fontSize: '0.95rem',
+    fontSize: '0.9rem',
     lineHeight: '1.6',
-    marginBottom: '1rem',
-  },
-  priceContainer: {
     marginBottom: '0.75rem',
   },
-  normalPrice: {
-    color: '#10b981',
-    fontWeight: '700',
-    fontSize: '1.125rem',
-  },
-  promoPrice: {
-    color: '#dc2626',
-    fontWeight: '700',
-    fontSize: '1.25rem',
-    display: 'inline-block',
-    marginRight: '0.75rem',
-  },
-  originalPrice: {
-    color: '#94a3b8',
-    fontWeight: '500',
-    fontSize: '1rem',
-    textDecoration: 'line-through',
-    display: 'inline-block',
+  statusSublabel: {
+    fontSize: '0.8rem',
+    fontWeight: '600',
+    margin: '0 0 0.5rem 0',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
   },
   promoPeriod: {
-    color: '#dc2626',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
     fontSize: '0.8rem',
-    fontWeight: '500',
-    marginTop: '0.25rem',
-    backgroundColor: '#fee2e2',
-    padding: '0.25rem 0.75rem',
-    borderRadius: '1rem',
-    display: 'inline-block',
-  },
-  priceOnRequest: {
-    color: '#64748b',
-    fontWeight: '500',
-    fontSize: '0.95rem',
-    fontStyle: 'italic',
+    color: '#dc2626',
+    backgroundColor: '#fff1f2',
+    padding: '4px 10px',
+    borderRadius: '0.5rem',
+    border: '1px dashed #fca5a5',
+    fontWeight: '600',
+    marginBottom: '0.75rem',
   },
   hours: {
+    display: 'flex',
+    alignItems: 'center',
     color: '#64748b',
-    fontSize: '0.9rem',
-    fontWeight: '600',
+    fontSize: '0.85rem',
+    fontWeight: '500',
     marginTop: '0.5rem',
+    backgroundColor: '#f1f5f9',
+    padding: '4px 10px',
+    borderRadius: '0.5rem',
+    width: 'fit-content',
   },
   cardFooter: {
     padding: '1rem 1.5rem',
@@ -750,27 +1321,39 @@ const styles = {
     gap: '0.75rem',
   },
   entrepriseLogo: {
-    width: '40px',
-    height: '40px',
+    width: '36px',
+    height: '36px',
     borderRadius: '0.5rem',
     objectFit: 'cover',
+    border: '2px solid #e2e8f0',
   },
   logoPlaceholder: {
-    width: '40px',
-    height: '40px',
+    width: '36px',
+    height: '36px',
     borderRadius: '0.5rem',
     backgroundColor: '#dbeafe',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '1.25rem',
+    border: '2px solid #e2e8f0',
   },
   entrepriseName: {
+    fontSize: '0.9rem',
     fontWeight: '600',
     color: '#1e293b',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
   },
   viewLink: {
     color: '#3b82f6',
     fontWeight: '600',
+    fontSize: '0.9rem',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'transform 0.2s ease',
+    ':hover': {
+      transform: 'translateX(3px)',
+    },
   },
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { serviceApi } from '../../api/serviceApi';
 import theme from '../../config/theme';
@@ -8,7 +8,10 @@ import {
   FiCalendar,
   FiArrowLeft,
   FiEdit,
-  FiTrash2
+  FiTrash2,
+  FiChevronLeft,
+  FiChevronRight,
+  FiPause
 } from 'react-icons/fi';
 import {
   MdBusiness,
@@ -22,24 +25,20 @@ import {
   MdOutlineInfo
 } from 'react-icons/md';
 
-// Fonction pour formater le prix
 const formatPrice = (price) => {
   if (!price) return null;
   return `${price.toLocaleString('fr-FR')} FCFA`;
 };
 
-// Fonction pour vérifier si une promo est active
 const isPromoActive = (service) => {
   if (!service.has_promo || !service.price_promo) return false;
   
   const now = new Date();
   
-  // Si pas de dates définies, la promo est toujours active
   if (!service.promo_start_date && !service.promo_end_date) {
     return true;
   }
   
-  // Vérifier les dates
   if (service.promo_start_date && service.promo_end_date) {
     const start = new Date(service.promo_start_date);
     const end = new Date(service.promo_end_date);
@@ -57,7 +56,6 @@ const isPromoActive = (service) => {
   return false;
 };
 
-// Fonction pour calculer le pourcentage de réduction
 const calculateDiscount = (service) => {
   if (!service.has_promo || !service.price_promo || !service.price || service.price === 0) {
     return null;
@@ -66,7 +64,6 @@ const calculateDiscount = (service) => {
   return Math.round(discount);
 };
 
-// Fonction pour formater une date
 const formatDate = (dateString) => {
   if (!dateString) return null;
   const date = new Date(dateString);
@@ -78,6 +75,183 @@ const formatDate = (dateString) => {
     minute: '2-digit'
   });
 };
+const AUTOPLAY_INTERVAL = 4000; 
+const AUTOPLAY_PAUSE_DURATION = 10000; 
+
+const useImageGallery = (medias) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
+  const intervalRef = useRef(null);
+  const timeoutRef = useRef(null);
+
+  const totalImages = medias?.length || 0;
+
+  const nextImage = useCallback(() => {
+    if (totalImages > 0) {
+      setCurrentIndex((prev) => (prev + 1) % totalImages);
+    }
+  }, [totalImages]);
+  const prevImage = useCallback(() => {
+    if (totalImages > 0) {
+      setCurrentIndex((prev) => (prev === 0 ? totalImages - 1 : prev - 1));
+    }
+  }, [totalImages]);
+
+  const goToImage = useCallback((index) => {
+    if (index >= 0 && index < totalImages) {
+      setCurrentIndex(index);
+    }
+  }, [totalImages]);
+
+  const handleUserInteraction = useCallback(() => {
+    setAutoPlay(false);
+
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      setAutoPlay(true);
+      timeoutRef.current = null;
+    }, AUTOPLAY_PAUSE_DURATION);
+  }, []);
+
+  useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    if (autoPlay && totalImages >= 2) {
+      intervalRef.current = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % totalImages);
+      }, AUTOPLAY_INTERVAL);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [autoPlay, totalImages]);
+
+  return {
+    currentIndex,
+    nextImage,
+    prevImage,
+    goToImage,
+    autoPlay,
+    handleUserInteraction,
+    totalImages
+  };
+};
+
+
+const AutoPlayIndicator = ({ autoPlay, currentIndex, totalImages }) => (
+  <div style={{
+    position: 'absolute',
+    top: '10px',
+    right: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    color: '#fff',
+    padding: '4px 8px',
+    borderRadius: '20px',
+    fontSize: '0.7rem',
+    fontWeight: '600',
+    backdropFilter: 'blur(4px)',
+    zIndex: 4,
+    border: '1px solid rgba(255,255,255,0.2)',
+  }}>
+    {autoPlay ? (
+      <>
+        <div style={{
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          backgroundColor: '#3b82f6',
+          animation: 'pulseDot 1.5s ease-in-out infinite',
+        }} />
+        <span>Auto {currentIndex + 1}/{totalImages}</span>
+      </>
+    ) : (
+      <>
+        <FiPause style={{ fontSize: '0.6rem' }} />
+        <span>En pause</span>
+      </>
+    )}
+  </div>
+);
+
+const ProgressBar = ({ totalImages, currentIndex }) => (
+  <div style={{
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '3px',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    zIndex: 4,
+  }}>
+    <div style={{
+      height: '100%',
+      width: `${((currentIndex + 1) / totalImages) * 100}%`,
+      backgroundColor: '#3b82f6',
+      transition: 'width 0.3s ease',
+    }} />
+  </div>
+);
+
+const ImageThumbnails = ({ medias, currentIndex, onThumbnailClick }) => {
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: '10px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      display: 'flex',
+      gap: '5px',
+      padding: '5px',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      borderRadius: '20px',
+      backdropFilter: 'blur(4px)',
+      zIndex: 4,
+    }}>
+      {medias.map((_, index) => (
+        <button
+          key={index}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onThumbnailClick(index);
+          }}
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            backgroundColor: index === currentIndex ? '#3b82f6' : '#fff',
+            transition: 'all 0.2s ease',
+            transform: index === currentIndex ? 'scale(1.2)' : 'scale(1)',
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 
 export default function DetailsService() {
   const { id } = useParams();
@@ -85,8 +259,16 @@ export default function DetailsService() {
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [deleteModal, setDeleteModal] = useState(false);
+  const {
+    currentIndex: currentImageIndex,
+    nextImage,
+    prevImage,
+    goToImage,
+    autoPlay,
+    handleUserInteraction,
+    totalImages
+  } = useImageGallery(service?.medias);
 
   useEffect(() => {
     fetchService();
@@ -116,22 +298,6 @@ export default function DetailsService() {
     } catch (err) {
       console.error('Erreur suppression:', err);
       setError('Erreur lors de la suppression');
-    }
-  };
-
-  const nextImage = () => {
-    if (service?.medias && service.medias.length > 0) {
-      setCurrentImageIndex((prev) => 
-        prev === service.medias.length - 1 ? 0 : prev + 1
-      );
-    }
-  };
-
-  const prevImage = () => {
-    if (service?.medias && service.medias.length > 0) {
-      setCurrentImageIndex((prev) => 
-        prev === 0 ? service.medias.length - 1 : prev - 1
-      );
     }
   };
 
@@ -167,7 +333,6 @@ export default function DetailsService() {
   return (
     <div style={styles.container}>
       <div style={styles.content}>
-        {/* Header avec actions */}
         <div style={styles.header}>
           <div style={styles.headerLeft}>
             <Link to="/mes-services" style={styles.backButton}>
@@ -193,13 +358,14 @@ export default function DetailsService() {
           </div>
         </div>
 
-        {/* Grid principal */}
         <div style={styles.mainGrid}>
-          {/* Colonne gauche - Images */}
           <div style={styles.leftColumn}>
             {service.medias && service.medias.length > 0 ? (
               <div style={styles.galleryCard}>
-                <div style={styles.mainImageContainer}>
+                <div 
+                  style={styles.mainImageContainer}
+                  onMouseEnter={handleUserInteraction}
+                >
                   <img 
                     src={service.medias[currentImageIndex]}
                     alt={service.name}
@@ -207,24 +373,75 @@ export default function DetailsService() {
                   />
                   
                   {service.medias.length > 1 && (
+                    <AutoPlayIndicator 
+                      autoPlay={autoPlay}
+                      currentIndex={currentImageIndex}
+                      totalImages={service.medias.length}
+                    />
+                  )}
+                  
+                  {service.medias.length > 1 && autoPlay && (
+                    <ProgressBar 
+                      totalImages={service.medias.length}
+                      currentIndex={currentImageIndex}
+                    />
+                  )}
+                  
+                  {service.medias.length > 1 && (
+                    <ImageThumbnails 
+                      medias={service.medias}
+                      currentIndex={currentImageIndex}
+                      onThumbnailClick={(index) => {
+                        goToImage(index);
+                        handleUserInteraction();
+                      }}
+                    />
+                  )}
+                  
+                  {service.medias.length > 1 && (
                     <>
                       <button 
-                        onClick={prevImage}
-                        style={{...styles.navButton, left: '10px'}}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          prevImage();
+                          handleUserInteraction();
+                        }}
+                        style={{
+                          ...styles.navButton,
+                          left: '10px',
+                          opacity: 0,
+                        }}
+                        className="image-nav-button"
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = 0.9}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
                       >
-                        ‹
+                        <FiChevronLeft size={20} />
                       </button>
                       <button 
-                        onClick={nextImage}
-                        style={{...styles.navButton, right: '10px'}}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          nextImage();
+                          handleUserInteraction();
+                        }}
+                        style={{
+                          ...styles.navButton,
+                          right: '10px',
+                          opacity: 0,
+                        }}
+                        className="image-nav-button"
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = 0.9}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
                       >
-                        ›
+                        <FiChevronRight size={20} />
                       </button>
-                      <div style={styles.imageCounter}>
-                        {currentImageIndex + 1} / {service.medias.length}
-                      </div>
                     </>
                   )}
+                  
+                  <div style={styles.imageCounter}>
+                    {currentImageIndex + 1} / {service.medias.length}
+                  </div>
                 </div>
                 
                 {service.medias.length > 1 && (
@@ -232,7 +449,10 @@ export default function DetailsService() {
                     {service.medias.map((media, index) => (
                       <button
                         key={index}
-                        onClick={() => setCurrentImageIndex(index)}
+                        onClick={() => {
+                          goToImage(index);
+                          handleUserInteraction();
+                        }}
                         style={{
                           ...styles.thumbnail,
                           ...(index === currentImageIndex ? styles.thumbnailActive : {})
@@ -255,7 +475,6 @@ export default function DetailsService() {
               </div>
             )}
 
-            {/* Carte Entreprise */}
             {service.entreprise && (
               <div style={styles.card}>
                 <h2 style={styles.cardTitle}>
@@ -296,9 +515,7 @@ export default function DetailsService() {
             )}
           </div>
 
-          {/* Colonne droite - Informations */}
           <div style={styles.rightColumn}>
-            {/* Carte principale */}
             <div style={styles.card}>
               <div style={styles.serviceHeader}>
                 <h1 style={styles.serviceName}>{service.name}</h1>
@@ -309,7 +526,6 @@ export default function DetailsService() {
                 )}
               </div>
 
-              {/* Badge promo si actif */}
               {promoActive && (
                 <div style={styles.promoBanner}>
                   <MdOutlineLocalOffer style={styles.promoBannerIcon} />
@@ -328,7 +544,6 @@ export default function DetailsService() {
               )}
             </div>
 
-            {/* Carte Prix */}
             <div style={styles.card}>
               <h2 style={styles.cardTitle}>
                 <FiDollarSign style={styles.cardTitleIcon} />
@@ -367,7 +582,6 @@ export default function DetailsService() {
                           </div>
                         </div>
 
-                        {/* Dates de validité de la promo */}
                         {(service.promo_start_date || service.promo_end_date) && (
                           <div style={styles.infoItem}>
                             <span style={styles.infoLabel}>Validité promo</span>
@@ -404,7 +618,6 @@ export default function DetailsService() {
               </div>
             </div>
 
-            {/* Carte Horaires */}
             <div style={styles.card}>
               <h2 style={styles.cardTitle}>
                 <FiClock style={styles.cardTitleIcon} />
@@ -428,8 +641,7 @@ export default function DetailsService() {
                   </div>
                 </div>
 
-                {/* Affichage détaillé des horaires si schedule existe */}
-                {service.schedule && !service.is_always_open && (
+                {service.schedule && !service.is_open_24h && (
                   <div style={styles.scheduleDetails}>
                     <h4 style={styles.scheduleTitle}>Détail par jour</h4>
                     {Object.entries(service.schedule).map(([day, data]) => (
@@ -451,7 +663,7 @@ export default function DetailsService() {
               </div>
             </div>
 
-            {/* Info box */}
+            
             <div style={styles.infoBox}>
               <MdOutlineInfo style={styles.infoBoxIcon} />
               <div>
@@ -466,7 +678,6 @@ export default function DetailsService() {
         </div>
       </div>
 
-      {/* MODALE DE CONFIRMATION SUPPRESSION */}
       {deleteModal && (
         <div style={styles.modalOverlay} onClick={() => setDeleteModal(false)}>
           <div 
@@ -508,9 +719,23 @@ export default function DetailsService() {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
+
+        @keyframes pulseDot {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
         
         .service-card {
           animation: fadeIn 0.3s ease-out;
+        }
+
+        .image-nav-button {
+          transition: opacity 0.2s ease !important;
+        }
+
+        .image-nav-button:hover {
+          opacity: 0.9 !important;
+          transform: translateY(-50%) scale(1.1) !important;
         }
       `}</style>
     </div>
@@ -574,7 +799,6 @@ const styles = {
     color: '#64748b',
   },
   
-  // Header
   header: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -645,7 +869,6 @@ const styles = {
     },
   },
 
-  // Main Grid
   mainGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
@@ -662,7 +885,6 @@ const styles = {
     gap: '1.5rem',
   },
 
-  // Gallery
   galleryCard: {
     backgroundColor: '#fff',
     borderRadius: '1rem',
@@ -697,6 +919,7 @@ const styles = {
     justifyContent: 'center',
     transition: 'all 0.2s',
     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    zIndex: 5,
     ':hover': {
       backgroundColor: '#fff',
       transform: 'translateY(-50%) scale(1.1)',
@@ -712,6 +935,7 @@ const styles = {
     borderRadius: '2rem',
     fontSize: '0.875rem',
     fontWeight: '600',
+    zIndex: 3,
   },
   thumbnailsContainer: {
     display: 'flex',
@@ -756,7 +980,6 @@ const styles = {
     fontSize: '1.125rem',
   },
 
-  // Cards communes
   card: {
     backgroundColor: '#fff',
     padding: '1.5rem',
@@ -781,7 +1004,6 @@ const styles = {
     color: '#ef4444',
   },
 
-  // Service Header
   serviceHeader: {
     marginBottom: '1.5rem',
   },
@@ -802,7 +1024,6 @@ const styles = {
     fontWeight: '600',
   },
 
-  // Promo Banner
   promoBanner: {
     display: 'flex',
     alignItems: 'center',
@@ -834,7 +1055,6 @@ const styles = {
     color: '#ef4444',
   },
 
-  // Description
   descriptionSection: {
     marginTop: '1.5rem',
   },
@@ -851,7 +1071,6 @@ const styles = {
     whiteSpace: 'pre-wrap',
   },
 
-  // Info List
   infoList: {
     display: 'flex',
     flexDirection: 'column',
@@ -874,7 +1093,6 @@ const styles = {
     color: '#64748b',
   },
 
-  // Prix
   priceValue: {
     fontSize: '1.25rem',
     fontWeight: '700',
@@ -930,7 +1148,6 @@ const styles = {
     fontSize: '0.75rem',
   },
 
-  // Horaires
   hoursValue: {
     display: 'flex',
     alignItems: 'center',
@@ -980,7 +1197,6 @@ const styles = {
     color: '#ef4444',
   },
 
-  // Entreprise
   entrepriseLink: {
     display: 'flex',
     flexDirection: 'column',
@@ -1073,7 +1289,6 @@ const styles = {
     lineHeight: '1.5',
   },
 
-  // Modal
   modalOverlay: {
     position: 'fixed',
     top: 0,
@@ -1153,7 +1368,6 @@ const styles = {
     },
   },
 
-  // Responsive
   '@media (max-width: 768px)': {
     content: {
       padding: '0 1rem',
