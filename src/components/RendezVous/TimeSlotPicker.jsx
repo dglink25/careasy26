@@ -82,6 +82,7 @@ export default function TimeSlotPicker({ serviceId, selectedDate, onSlotSelect }
                 {slots.map((slot, index) => (
                     <button
                         key={index}
+                        type="button"
                         onClick={() => handleSlotClick(slot)}
                         style={{
                             ...styles.slotButton,

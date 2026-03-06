@@ -188,7 +188,7 @@ export default function Navbar() {
                           { to: '/mes-rendez-vous', icon: FiCalendar, label: 'Mes Rendez-vous' },
                           { to: '/favoris', icon: FiHeart, label: 'Favoris' },
                           { to: '/messages', icon: FiMessageSquare, label: 'Messages' },
-                          { to: '/entreprises', icon: FaSearch, label: 'Explorer' },
+                          { to: '/services', icon: FaSearch, label: 'Explorer' },
                         ].map(({ to, icon: Icon, label }) => (
                           <Link key={to} to={to} className="nav-link" style={{ ...navLink, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
                             <Icon style={{ fontSize: '1rem' }} />{label}

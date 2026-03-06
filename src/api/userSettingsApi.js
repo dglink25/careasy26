@@ -93,6 +93,11 @@ export const userSettingsApi = {
     return response.data;
   },
 
+  updateProfile: async (data) => {
+  const response = await api.put('/user/profile', data); // data contient déjà name + phone
+  return response.data;
+},
+
   /**
    * Supprimer la photo de profil
    */

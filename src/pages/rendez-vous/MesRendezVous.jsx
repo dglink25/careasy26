@@ -169,49 +169,54 @@ export default function MesRendezVous() {
         <div style={styles.container}>
             {/* Header */}
             <div style={styles.header}>
-                <div>
-                    <h1 style={styles.title}>
-                        <FiCalendar style={styles.titleIcon} />
-                        Mes Rendez-vous
-                    </h1>
-                    <p style={styles.subtitle}>
-                        {isPrestataire  // ← CORRECTION: Utilisation de isPrestataire au lieu de user?.isPrestataire()
-                            ? "Gérez les rendez-vous demandés pour vos services"
-                            : "Suivez l'état de vos demandes de rendez-vous"
-                        }
-                    </p>
-                </div>
-                <button 
-                    onClick={fetchRendezVous}
-                    style={styles.refreshButton}
-                    disabled={loading}
-                >
-                    <FiRefreshCw style={loading ? styles.refreshing : {}} />
-                    Rafraîchir
-                </button>
-                    <Link 
-                        to="/rendez-vous/calendrier" 
-                        style={{
-                            ...styles.tab,
-                            ...(location.pathname === '/rendez-vous/calendrier' ? styles.tabActive : {})
-                        }}
-                    >
-                        <FiCalendar style={styles.tabIcon} />
-                        Calendrier
-                    </Link>
-                    {isPrestataire && (
-                        <Link 
-                            to="/rendez-vous/gestion" 
-                            style={{
-                                ...styles.tab,
-                                ...(location.pathname === '/rendez-vous/gestion' ? styles.tabActive : {})
-                            }}
-                        >
-                            <FiCalendar style={styles.tabIcon} />
-                            Gestion
-                        </Link>
-                    )}
-            </div>
+    <div>
+        <h1 style={styles.title}>
+            <FiCalendar style={styles.titleIcon} />
+            Mes Rendez-vous
+        </h1>
+        <p style={styles.subtitle}>
+            {isPrestataire
+                ? "Gérez les rendez-vous demandés pour vos services"
+                : "Suivez l'état de vos demandes de rendez-vous"
+            }
+        </p>
+    </div>
+
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <button 
+            onClick={fetchRendezVous}
+            style={styles.refreshButton}
+            disabled={loading}
+        >
+            <FiRefreshCw style={loading ? styles.refreshing : {}} />
+            Rafraîchir
+        </button>
+        <Link 
+            to="/rendez-vous/calendrier" 
+            style={{
+                ...styles.refreshButton,
+                textDecoration: 'none',
+                color: '#475569',
+            }}
+        >
+            <FiCalendar style={{ fontSize: '1rem' }} />
+            Calendrier
+        </Link>
+        {isPrestataire && (
+            <Link 
+                to="/rendez-vous/gestion" 
+                style={{
+                    ...styles.refreshButton,
+                    textDecoration: 'none',
+                    color: '#475569',
+                }}
+            >
+                <FiFilter style={{ fontSize: '1rem' }} />
+                Gestion
+            </Link>
+        )}
+    </div>
+</div>
 
             {/* Statistiques */}
             <div style={styles.statsGrid}>

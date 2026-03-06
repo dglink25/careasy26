@@ -8,7 +8,7 @@ import { userSettingsApi } from '../api/userSettingsApi';
 import {
   FiUser, FiMail, FiLock, FiBell, FiEye, FiMoon, FiSun, FiMonitor,
   FiCamera, FiSave, FiAlertCircle, FiCheckCircle, FiX, FiSettings,
-  FiShield, FiGlobe,
+  FiShield, FiGlobe, FiPhone,
 } from 'react-icons/fi';
 
 /* ─── helper : couleurs selon le thème actuel ─── */
@@ -42,8 +42,8 @@ export default function Settings() {
   const [message, setMessage] = useState(null);
 
   const [profileData, setProfileData] = useState({
-    name: '', email: '', profile_photo: null, profile_photo_url: '',
-  });
+  name: '', email: '', phone: '', profile_photo: null, profile_photo_url: '',
+});
   const [passwordData, setPasswordData] = useState({
     current_password: '', new_password: '', new_password_confirmation: '',
   });
@@ -67,6 +67,7 @@ export default function Settings() {
       setProfileData({
         name: profileRes.user.name,
         email: profileRes.user.email,
+        phone: profileRes.user.phone || '',
         profile_photo: null,
         profile_photo_url: profileRes.user.profile_photo_url,
       });
@@ -108,7 +109,10 @@ export default function Settings() {
     try {
       setSaving(true);
       if (profileData.profile_photo) await userSettingsApi.updateProfilePhoto(profileData.profile_photo);
-      const res = await userSettingsApi.updateProfile({ name: profileData.name });
+      const res = await userSettingsApi.updateProfile({ 
+  name: profileData.name, 
+  phone: profileData.phone 
+});
       updateUser(res.user);
       showMessage('Profil mis à jour');
     } catch (e) {
@@ -338,6 +342,17 @@ export default function Settings() {
                 </div>
                 <p style={s.hint}>Un email de vérification sera envoyé</p>
               </div>
+              <div style={s.formGroup}>
+              <label style={s.label}>Téléphone</label>
+              <input
+                style={s.input}
+                type="tel"
+                value={profileData.phone}
+                onChange={e => setProfileData({ ...profileData, phone: e.target.value })}
+                placeholder="Ex : +229 97 00 00 00"
+              />
+              <p style={s.hint}>Utilisé pour les confirmations de rendez-vous par SMS</p>
+            </div>
               <button onClick={handleSaveProfile} style={s.btnPrimary(saving)} disabled={saving}>
                 <FiSave />{saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
               </button>
