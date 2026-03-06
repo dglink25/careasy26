@@ -1120,6 +1120,7 @@ export default function Home() {
       {/* ── Chat Modal ── */}
       {user && selectedService && showChatModal && (
         <ChatModal
+          serviceId={selectedService.id} 
           receiverId={selectedService.entreprise?.prestataire_id}
           receiverName={selectedService.entreprise?.name || 'Prestataire'}
           onClose={() => { setSelectedService(null); setShowChatModal(false); }}
