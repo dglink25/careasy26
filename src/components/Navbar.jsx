@@ -170,9 +170,10 @@ export default function Navbar() {
                       <>
                         {[
                           { to: '/dashboard', icon: MdDashboard, label: 'Tableau de bord' },
-                          { to: '/mes-entreprises', icon: FaBuilding, label: 'Mes Entreprises' },
-                          { to: '/mes-services', icon: FaTools, label: 'Mes Services' },
+                          { to: '/mes-entreprises', icon: FaBuilding, label: 'Entreprises' },
+                          { to: '/mes-services', icon: FaTools, label: 'Services' },
                           { to: '/messages', icon: FiMessageSquare, label: 'Messages' },
+                          { to: '/mes-rendez-vous', icon: FiCalendar, label: 'Rendez-vous' },
                         ].map(({ to, icon: Icon, label }) => (
                           <Link key={to} to={to} className="nav-link" style={{ ...navLink, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
                             <Icon style={{ fontSize: '1rem' }} />{label}

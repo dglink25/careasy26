@@ -101,7 +101,7 @@ const AudioMessage = ({ audioUrl }) => {
   if (error) {
     return (
       <div style={styles.audioErrorContainer}>
-        <div style={styles.audioErrorIcon}>⚠️</div>
+        <div style={styles.audioErrorIcon}></div>
         <div style={styles.audioErrorInfo}>
           <span style={styles.audioErrorText}>Impossible de lire l'audio</span>
           <a href={audioUrl} download style={styles.audioErrorDownload}>
@@ -267,7 +267,7 @@ export default function ChatModal({
       
       if (receiverId) {
         checkOnlineStatus(receiverId);
-        const interval = setInterval(() => checkOnlineStatus(receiverId), 30000);
+        const interval = setInterval(() => checkOnlineStatus(receiverId), 30);
         return () => clearInterval(interval);
       }
     }
@@ -420,7 +420,8 @@ export default function ChatModal({
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
-    } catch (err) {
+    } 
+    catch (err) {
       console.error('Erreur micro:', err);
       alert('Impossible d\'accéder au microphone');
     }
@@ -695,7 +696,6 @@ export default function ChatModal({
               <div style={styles.userInfo}>
                 <h3 style={styles.headerTitle}>
                   {receiverName || 'Utilisateur'}
-                  {isReceiverOnline && <span style={styles.onlineBadge}>● En ligne</span>}
                 </h3>
                 <div style={styles.headerStatus}>
                   {isReceiverOnline ? (

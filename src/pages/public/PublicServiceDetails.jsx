@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { publicApi } from '../../api/publicApi';
 import ChatButton from '../../components/Chat/ChatButton';
 import theme from '../../config/theme';
+import { useAuth } from '../../contexts/AuthContext'; 
 import { 
   FiArrowLeft, FiMapPin, FiClock, FiDollarSign, 
   FiPhone, FiMail, FiNavigation, FiShare2, FiHeart,
@@ -23,7 +24,7 @@ import {
 } from 'react-icons/fa';
 import { HiOutlineClock, HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineQuestionMarkCircle } from 'react-icons/hi';
 
-
+// CONSTANTES (en dehors du composant)
 const JS_DAY_TO_KEY = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const DAYS_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const KEY_TO_FR = {
@@ -31,6 +32,12 @@ const KEY_TO_FR = {
   thursday: 'Jeudi', friday: 'Vendredi', saturday: 'Samedi', sunday: 'Dimanche',
 };
 
+const MIN_SWIPE_DISTANCE = 50;
+const ZOOM_STEP = 0.5;
+const MAX_ZOOM = 3;
+const MIN_ZOOM = 1;
+
+// FONCTIONS UTILITAIRES (en dehors du composant)
 const parseTimeToMinutes = (timeStr) => {
   if (!timeStr) return null;
   const parts = timeStr.split(':').map(Number);
@@ -156,7 +163,8 @@ const getOpenStatus = (service) => {
       todayHours: `${today.start} – ${today.end}`,
     };
   }
- if (service?.start_time && service?.end_time) {
+  
+  if (service?.start_time && service?.end_time) {
     const start = parseTimeToMinutes(service.start_time);
     const end = parseTimeToMinutes(service.end_time);
     const isOpen = end < start
@@ -174,7 +182,7 @@ const getOpenStatus = (service) => {
     };
   }
 
-   return {
+  return {
     isOpen: null,
     label: 'Horaires non renseignés',
     sublabel: '',
@@ -185,6 +193,7 @@ const getOpenStatus = (service) => {
   };
 };
 
+// COMPOSANTS (en dehors du composant principal)
 
 const StatusIcon = ({ type, size = '1rem', color }) => {
   const s = { fontSize: size, color, flexShrink: 0 };
@@ -222,11 +231,7 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const MIN_SWIPE_DISTANCE = 50;
-const ZOOM_STEP = 0.5;
-const MAX_ZOOM = 3;
-const MIN_ZOOM = 1;
-
+// Hook personnalisé pour la navigation d'images
 const useImageNavigation = (totalImages) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -271,6 +276,7 @@ const useSwipe = (onSwipeLeft, onSwipeRight, threshold = MIN_SWIPE_DISTANCE) => 
 
   return { onTouchStart, onTouchMove, onTouchEnd };
 };
+
 const LoadingSpinner = () => (
   <div style={styles.loadingContainer}>
     <div style={styles.spinner}></div>
@@ -298,12 +304,13 @@ const ErrorDisplay = ({ error, onRetry }) => (
     </div>
   </div>
 );
+
 const ImageGallery = ({ medias, serviceName, hasPromo, discount, onImageClick }) => {
   const { currentIndex, next, prev, goTo } = useImageNavigation(medias?.length || 0);
   const [autoPlay, setAutoPlay] = useState(true);
   const [autoPlayInterval, setAutoPlayInterval] = useState(null);
 
-   useEffect(() => {
+  useEffect(() => {
     if (medias?.length >= 2 && autoPlay) {
       const interval = setInterval(() => {
         next();
@@ -380,7 +387,6 @@ const ImageGallery = ({ medias, serviceName, hasPromo, discount, onImageClick })
           onClick={() => handleImageClick(currentIndex)}
         />
         
-        
         <button 
           style={styles.fullscreenButton}
           onClick={() => handleImageClick(currentIndex)}
@@ -388,8 +394,6 @@ const ImageGallery = ({ medias, serviceName, hasPromo, discount, onImageClick })
         >
           <FiMaximize2 />
         </button>
-        
-        
         
         {hasPromo && (
           <div style={styles.promoBadge}>
@@ -402,9 +406,6 @@ const ImageGallery = ({ medias, serviceName, hasPromo, discount, onImageClick })
         <div style={styles.imageCounter}>
           {currentIndex + 1} / {medias.length}
         </div>
-        
-        
-        
         
         {medias.length > 1 && (
           <>
@@ -678,9 +679,9 @@ const ContactButtons = ({ entreprise, serviceName, onContact }) => {
       id: 'phone',
       icon: <FiPhone />,
       title: 'Appeler',
-      subtitle: entreprise.phone || 'Non disponible',
+      subtitle: entreprise.call_phone || 'Non disponible',
       onClick: () => onContact('phone'),
-      disabled: !entreprise.phone,
+      disabled: !entreprise.call_phone,
       style: {}
     },
     {
@@ -703,7 +704,7 @@ const ContactButtons = ({ entreprise, serviceName, onContact }) => {
       title: 'WhatsApp',
       subtitle: 'Message direct',
       onClick: () => onContact('whatsapp'),
-      disabled: !entreprise.phone,
+      disabled: !entreprise.whatsapp_phone,
       style: styles.whatsappButton
     },
     {
@@ -745,6 +746,7 @@ const ContactButtons = ({ entreprise, serviceName, onContact }) => {
 export default function PublicServiceDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth(); // ✅ Appel du hook ici, dans le corps du composant
   
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -754,6 +756,9 @@ export default function PublicServiceDetails() {
   const [modalImageIndex, setModalImageIndex] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [openStatus, setOpenStatus] = useState(null);
+
+  // Vérifier si l'utilisateur est prestataire
+  const isProvider = user?.isProvider || user?.role === 'prestataire' || user?.is_prestataire === true;
 
   // MÉMOÏSATION DES DONNÉES
   const hasActivePromo = useMemo(() => {
@@ -896,6 +901,15 @@ export default function PublicServiceDetails() {
   const openFullscreen = (index) => {
     setModalImageIndex(index);
     setModalOpen(true);
+  };
+
+  const handleRendezVous = () => {
+    if (!user) {
+      // Rediriger vers la page de connexion si l'utilisateur n'est pas connecté
+      navigate('/login', { state: { from: `/rendez-vous/demande/${id}` } });
+    } else {
+      navigate(`/rendez-vous/demande/${id}`);
+    }
   };
 
   if (loading) {
@@ -1088,7 +1102,6 @@ export default function PublicServiceDetails() {
               </div>
             </InfoCard>
 
-            {/* Carte Horaires - AMÉLIORÉE */}
             <InfoCard title="Disponibilité" icon={<FiClock style={styles.cardTitleIcon} />}>
               <div style={styles.infoList}>
                 {/* Statut actuel */}
@@ -1166,26 +1179,19 @@ export default function PublicServiceDetails() {
               onContact={handleContact}
             />
 
-            {/* Actions rapides */}
-            <div style={styles.actionsCard}>
-              <button 
-                onClick={toggleFavorite}
-                style={styles.actionButton}
-              >
-                <FiHeart style={{
-                  color: isFavorite ? '#ef4444' : '#64748b',
-                  fill: isFavorite ? '#ef4444' : 'none'
-                }} />
-                {isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-              </button>
-              <button 
-                onClick={handleShare}
-                style={styles.actionButton}
-              >
-                <FiShare2 />
-                Partager
-              </button>
-            </div>
+            {!isProvider && (
+              <div style={styles.rendezVousSection}>
+                <button
+                  onClick={handleRendezVous}
+                  style={styles.rendezVousButton}
+                  className="rendez-vous-button"
+                >
+                  <FiCalendar size={20} />
+                  <span>Prendre rendez-vous</span>
+                </button>
+
+              </div>
+            )}
 
             {/* Info box */}
             <div style={styles.infoBox}>
@@ -2146,6 +2152,47 @@ const styles = {
     ':active': {
       transform: 'translateY(0)',
     },
+  },
+
+  // Rendez-vous Section
+  rendezVousSection: {
+    marginTop: '1rem',
+    padding: '1rem',
+    backgroundColor: '#f0f9ff',
+    borderRadius: '0.75rem',
+    border: '1px solid #bae6fd',
+  },
+  
+  rendezVousButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.75rem',
+    width: '100%',
+    padding: '1rem',
+    backgroundColor: '#3b82f6',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '0.75rem',
+    fontSize: '1rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    ':hover': {
+      backgroundColor: '#2563eb',
+      transform: 'translateY(-2px)',
+      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+    },
+    ':active': {
+      transform: 'translateY(0)',
+    },
+  },
+  
+  rendezVousHint: {
+    fontSize: '0.8rem',
+    color: '#0369a1',
+    marginTop: '0.5rem',
+    textAlign: 'center',
   },
 
   // Info Box

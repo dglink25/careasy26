@@ -1,8 +1,8 @@
-// src/App.jsx
+// src/App.jsx (extrait modifié)
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { PrivacyProvider } from './contexts/PrivacyContext';   // ← NOUVEAU
+import { PrivacyProvider } from "./contexts/PrivacyContext";
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
@@ -31,6 +31,13 @@ import CreerService from './pages/services/CreerService';
 import DetailsService from './pages/services/DetailsService';
 import ModifierService from './pages/services/ModifierService';
 
+// Rendez-vous (NOUVEAU)
+import MesRendezVous from './pages/rendez-vous/MesRendezVous';
+import DemandeRendezVous from './pages/rendez-vous/DemandeRendezVous';
+import DetailsRendezVous from './pages/rendez-vous/DetailsRendezVous';
+import CalendrierRendezVous from './pages/rendez-vous/CalendrierRendezVous';
+import GestionRendezVous from './pages/rendez-vous/GestionRendezVous';
+
 // Messagerie
 import MessagesPage from './pages/messages/MessagesPage';
 import Settings from './pages/Settings';
@@ -52,7 +59,7 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <PrivacyProvider>          {/* ← NOUVEAU : juste après AuthProvider */}
+          <PrivacyProvider>
             <ModalProvider>
               <div style={{ minHeight: '100vh' }}>
                 <Routes>
@@ -63,6 +70,7 @@ function App() {
                     {/* Entreprises */}
                     <Route path="/mes-entreprises" element={<ProtectedRoute><MesEntreprises /></ProtectedRoute>} />
                     <Route path="/entreprises/creer" element={<ProtectedRoute><CreerEntreprise /></ProtectedRoute>} />
+                    <Route path="/entreprises/:id" element={<ProtectedRoute><DetailsEntreprise /></ProtectedRoute>} />
                     <Route path="/entreprises/:id/edit" element={<ProtectedRoute><EditEntreprise /></ProtectedRoute>} />
 
                     {/* Services */}
@@ -70,6 +78,13 @@ function App() {
                     <Route path="/services/creer" element={<ProtectedRoute><CreerService /></ProtectedRoute>} />
                     <Route path="/services/:id" element={<ProtectedRoute><DetailsService /></ProtectedRoute>} />
                     <Route path="/services/modifier/:id" element={<ProtectedRoute><ModifierService /></ProtectedRoute>} />
+
+                    {/* Rendez-vous (NOUVEAU) */}
+                    <Route path="/mes-rendez-vous" element={<ProtectedRoute><MesRendezVous /></ProtectedRoute>} />
+                    <Route path="/rendez-vous/demande/:serviceId" element={<ProtectedRoute><DemandeRendezVous /></ProtectedRoute>} />
+                    <Route path="/rendez-vous/:id" element={<ProtectedRoute><DetailsRendezVous /></ProtectedRoute>} />
+                    <Route path="/rendez-vous/calendrier" element={<ProtectedRoute><CalendrierRendezVous /></ProtectedRoute>} />
+                    <Route path="/rendez-vous/gestion" element={<ProtectedRoute><GestionRendezVous /></ProtectedRoute>} />
 
                     {/* Messagerie */}
                     <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
@@ -89,7 +104,7 @@ function App() {
                     <Route path="/faq" element={<FAQ />} />
                   </Route>
 
-                  {/* Sans Navbar */}
+                  {/* Routes sans Layout */}
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -100,7 +115,7 @@ function App() {
                 <AIChatWidget />
               </div>
             </ModalProvider>
-          </PrivacyProvider>          {/* ← FERMETURE du PrivacyProvider */}
+          </PrivacyProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
