@@ -384,11 +384,6 @@ const ImageThumbnails = ({ medias, currentIndex, onThumbnailClick }) => {
   );
 };
 
-// ============================================================
-// SOUS-COMPOSANTS (Icônes, badges, etc.)
-// ============================================================
-
-// Icône de statut
 const StatusIcon = ({ type, size = '1rem', color }) => {
   const s = { fontSize: size, color, flexShrink: 0 };
   if (type === 'always') return <HiOutlineClock style={s} />;
@@ -809,9 +804,6 @@ const ServiceCard = ({
   );
 };
 
-// ============================================================
-// COMPOSANT PRINCIPAL
-// ============================================================
 export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
