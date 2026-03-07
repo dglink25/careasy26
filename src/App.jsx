@@ -1,4 +1,3 @@
-// src/App.jsx (extrait modifié)
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -53,6 +52,8 @@ import PublicEntrepriseDetails from './pages/public/PublicEntrepriseDetails';
 import PublicServices from './pages/public/PublicServices';
 import PublicServiceDetails from './pages/public/PublicServiceDetails';
 import Partners from './pages/Partners';
+import PlanAdmin from './pages/admin/AdminPlans';
+import Plans from './pages/prestataire/Plans';
 
 function App() {
   return (
@@ -72,6 +73,8 @@ function App() {
                     <Route path="/entreprises/creer" element={<ProtectedRoute><CreerEntreprise /></ProtectedRoute>} />
                     <Route path="/entreprises/:id" element={<ProtectedRoute><DetailsEntreprise /></ProtectedRoute>} />
                     <Route path="/entreprises/:id/edit" element={<ProtectedRoute><EditEntreprise /></ProtectedRoute>} />
+                    <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
+                    <Route path="/admin/plans" element={<AdminRoute><PlanAdmin /></AdminRoute>} />
 
                     {/* Services */}
                     <Route path="/mes-services" element={<ProtectedRoute><MesServices /></ProtectedRoute>} />
@@ -79,7 +82,6 @@ function App() {
                     <Route path="/services/:id" element={<ProtectedRoute><DetailsService /></ProtectedRoute>} />
                     <Route path="/services/modifier/:id" element={<ProtectedRoute><ModifierService /></ProtectedRoute>} />
 
-                    {/* Rendez-vous (NOUVEAU) */}
                     <Route path="/mes-rendez-vous" element={<ProtectedRoute><MesRendezVous /></ProtectedRoute>} />
                     <Route path="/rendez-vous/demande/:serviceId" element={<ProtectedRoute><DemandeRendezVous /></ProtectedRoute>} />
                     <Route path="/rendez-vous/:id" element={<ProtectedRoute><DetailsRendezVous /></ProtectedRoute>} />

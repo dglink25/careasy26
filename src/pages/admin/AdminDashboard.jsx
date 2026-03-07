@@ -302,36 +302,6 @@ export default function AdminDashboard() {
               </div>
               <FiChevronRight style={styles.actionArrow} />
             </div>
-            
-            <div 
-              style={styles.actionCard}
-              onClick={() => handleQuickAction('stats')}
-              className="action-card"
-            >
-              <div style={{...styles.actionIconContainer, backgroundColor: 'rgba(139, 92, 246, 0.1)'}}>
-                <FiBarChart2 style={{...styles.actionIcon, color: '#8b5cf6'}} />
-              </div>
-              <div style={styles.actionContent}>
-                <div style={styles.actionTitle}>Analytiques</div>
-                <div style={styles.actionDesc}>Statistiques et rapports détaillés</div>
-              </div>
-              <FiChevronRight style={styles.actionArrow} />
-            </div>
-            
-            <div 
-              style={styles.actionCard}
-              onClick={() => handleQuickAction('settings')}
-              className="action-card"
-            >
-              <div style={{...styles.actionIconContainer, backgroundColor: 'rgba(107, 114, 128, 0.1)'}}>
-                <FiSettings style={{...styles.actionIcon, color: '#6b7280'}} />
-              </div>
-              <div style={styles.actionContent}>
-                <div style={styles.actionTitle}>Paramètres</div>
-                <div style={styles.actionDesc}>Configurer la plateforme</div>
-              </div>
-              <FiChevronRight style={styles.actionArrow} />
-            </div>
           </div>
         </div>
 

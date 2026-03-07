@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fa';
 import {
   FiMessageSquare, FiSettings, FiUser, FiLock,
-  FiBell, FiMoon, FiShield, FiShoppingBag, FiHeart, FiCalendar,
+  FiBell, FiMoon, FiShield, FiShoppingBag, FiHeart, FiCalendar, FiAward,
   FiChevronDown as FiChevronDownIcon
 } from 'react-icons/fi';
 import {
@@ -155,7 +155,7 @@ export default function Navbar() {
                       { to: '/admin/dashboard', icon: FaUser, label: 'Dashboard' },
                       { to: '/admin/entreprises', icon: FaBuilding, label: 'Entreprises' },
                       { to: '/messages', icon: FiMessageSquare, label: 'Messages' },
-                      { to: '/entreprises', icon: FaSearch, label: 'Site Public' },
+                       { to: '/admin/plans', icon: FiAward, label: 'Plans' }
                     ].map(({ to, icon: Icon, label }) => (
                       <Link key={to} to={to} className="nav-link" style={{ ...navLink, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
                         <Icon style={{ fontSize: '1rem' }} />{label}
@@ -174,6 +174,7 @@ export default function Navbar() {
                           { to: '/mes-services', icon: FaTools, label: 'Services' },
                           { to: '/messages', icon: FiMessageSquare, label: 'Messages' },
                           { to: '/mes-rendez-vous', icon: FiCalendar, label: 'Rendez-vous' },
+                          { to: '/plans', icon: FiAward, label: 'Plans' }
                         ].map(({ to, icon: Icon, label }) => (
                           <Link key={to} to={to} className="nav-link" style={{ ...navLink, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
                             <Icon style={{ fontSize: '1rem' }} />{label}

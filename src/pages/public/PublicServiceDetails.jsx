@@ -794,22 +794,11 @@ export default function PublicServiceDetails() {
                 {/* Coordonnées : visibles seulement si connecté */}
                 {user ? (
                   <div style={styles.contactInfoList}>
-                    {(service.entreprise.call_phone || service.entreprise.phone) && (
-                      <div style={styles.contactInfoItem}>
-                        <FiPhone style={styles.contactInfoIcon} />
-                        <span>{service.entreprise.call_phone || service.entreprise.phone}</span>
-                      </div>
-                    )}
-                    {service.entreprise.email && (
-                      <div style={styles.contactInfoItem}>
-                        <FiMail style={styles.contactInfoIcon} />
-                        <span>{service.entreprise.email}</span>
-                      </div>
-                    )}
+                    
                   </div>
                 ) : (
                   <div style={styles.lockedContactHint}>
-                    🔒 Connectez-vous pour voir les coordonnées complètes.
+                     Connectez-vous pour voir les coordonnées complètes.
                   </div>
                 )}
               </InfoCard>

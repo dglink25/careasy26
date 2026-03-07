@@ -1178,9 +1178,6 @@ export default function Home() {
   );
 }
 
-// ============================================================
-// STYLES
-// ============================================================
 const styles = {
   container: { backgroundColor: theme.colors.background, minHeight: '100vh' },
 
