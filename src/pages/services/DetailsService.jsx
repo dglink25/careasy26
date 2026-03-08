@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { serviceApi } from '../../api/serviceApi';
+import { entrepriseApi } from '../../api/entrepriseApi';
 import theme from '../../config/theme';
 import { 
   FiDollarSign, 
@@ -11,7 +12,11 @@ import {
   FiTrash2,
   FiChevronLeft,
   FiChevronRight,
-  FiPause
+  FiPause,
+  FiAlertCircle,
+  FiLock,
+  FiGift,
+  FiActivity
 } from 'react-icons/fi';
 import {
   MdBusiness,
@@ -22,7 +27,9 @@ import {
   MdOutlineVerified,
   MdOutlineDiscount,
   MdOutlineLocalOffer,
-  MdOutlineInfo
+  MdOutlineInfo,
+  MdTimer,
+  MdOutlineWarning
 } from 'react-icons/md';
 
 const formatPrice = (price) => {
@@ -75,6 +82,7 @@ const formatDate = (dateString) => {
     minute: '2-digit'
   });
 };
+
 const AUTOPLAY_INTERVAL = 4000; 
 const AUTOPLAY_PAUSE_DURATION = 10000; 
 
@@ -154,7 +162,6 @@ const useImageGallery = (medias) => {
     totalImages
   };
 };
-
 
 const AutoPlayIndicator = ({ autoPlay, currentIndex, totalImages }) => (
   <div style={{
@@ -257,9 +264,24 @@ export default function DetailsService() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [service, setService] = useState(null);
+  const [entreprises, setEntreprises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteModal, setDeleteModal] = useState(false);
+  
+  // État pour les limites du plan - COMME DANS LE DASHBOARD
+  const [currentPlan, setCurrentPlan] = useState({
+    name: 'Essai Gratuit',
+    maxServices: 3,
+    servicesCount: 0,
+    trialDaysLeft: 0,
+    isTrialActive: false,
+    isTrialExpired: false
+  });
+
+  // État pour le modal de limite
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  
   const {
     currentIndex: currentImageIndex,
     nextImage,
@@ -271,21 +293,83 @@ export default function DetailsService() {
   } = useImageGallery(service?.medias);
 
   useEffect(() => {
-    fetchService();
+    fetchData();
   }, [id]);
 
-  const fetchService = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await serviceApi.getServiceById(id);
-      setService(data);
+      
+      // Charger les entreprises pour obtenir les infos du plan
+      const entreprisesData = await entrepriseApi.getMesEntreprises();
+      setEntreprises(entreprisesData || []);
+      
+      // Charger le service
+      const serviceData = await serviceApi.getServiceById(id);
+      setService(serviceData);
+      
+      // Mettre à jour les stats du plan
+      updatePlanStats(entreprisesData || [], serviceData);
+      
       setError('');
     } catch (err) {
-      console.error('Erreur chargement service:', err);
+      console.error('Erreur chargement données:', err);
       setError('Service non trouvé');
       setTimeout(() => navigate('/mes-services'), 2000);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fonction pour mettre à jour les stats du plan - COMME DANS LE DASHBOARD
+  const updatePlanStats = (entreprisesData, currentService) => {
+    // Trouver la première entreprise validée avec période d'essai
+    const validatedEntreprise = entreprisesData.find(e => 
+      e.status === 'validated' && e.trial_ends_at
+    );
+
+    // Compter tous les services (pour la limite)
+    const servicesCount = 1; // Le service actuel
+
+    // Mettre à jour le plan
+    setCurrentPlan({
+      name: 'Essai Gratuit',
+      maxServices: validatedEntreprise?.max_services_allowed || 3,
+      servicesCount: servicesCount,
+      trialDaysLeft: validatedEntreprise ? calculateDaysLeft(validatedEntreprise.trial_ends_at) : 0,
+      isTrialActive: validatedEntreprise ? isTrialActive(validatedEntreprise.trial_ends_at) : false,
+      isTrialExpired: validatedEntreprise ? isTrialExpired(validatedEntreprise.trial_ends_at) : false
+    });
+  };
+
+  // Fonctions utilitaires pour les dates
+  const calculateDaysLeft = (trialEndsAt) => {
+    if (!trialEndsAt) return 0;
+    const end = new Date(trialEndsAt).getTime();
+    const now = new Date().getTime();
+    const distance = end - now;
+    return Math.max(0, Math.floor(distance / (1000 * 60 * 60 * 24)));
+  };
+
+  const isTrialActive = (trialEndsAt) => {
+    if (!trialEndsAt) return false;
+    return new Date(trialEndsAt).getTime() > new Date().getTime();
+  };
+
+  const isTrialExpired = (trialEndsAt) => {
+    if (!trialEndsAt) return false;
+    return new Date(trialEndsAt).getTime() <= new Date().getTime();
+  };
+
+  // Vérification des limites - COMME DANS LE DASHBOARD
+  const canModifyService = () => {
+    return currentPlan.servicesCount <= currentPlan.maxServices;
+  };
+
+  const handleEditClick = (e) => {
+    if (!canModifyService()) {
+      e.preventDefault();
+      setShowLimitModal(true);
     }
   };
 
@@ -341,13 +425,48 @@ export default function DetailsService() {
             </Link>
           </div>
           <div style={styles.headerActions}>
+            {/* Carte d'information du plan miniature */}
+            <div style={styles.planMiniCard}>
+              <FiGift style={styles.planMiniIcon} />
+              <div style={styles.planMiniInfo}>
+                <span style={styles.planMiniLabel}>Plan</span>
+                <span style={styles.planMiniValue}>{currentPlan.name}</span>
+              </div>
+              <div style={styles.planMiniProgress}>
+                <div style={styles.planMiniBar}>
+                  <div style={{
+                    ...styles.planMiniFill,
+                    width: `${(currentPlan.servicesCount / currentPlan.maxServices) * 100}%`,
+                    backgroundColor: currentPlan.servicesCount >= currentPlan.maxServices ? '#dc2626' : '#10b981'
+                  }} />
+                </div>
+                <span style={styles.planMiniCount}>
+                  {currentPlan.servicesCount}/{currentPlan.maxServices}
+                </span>
+              </div>
+            </div>
+
+            {/* Bouton Modifier avec vérification de limite */}
             <Link 
-              to={`/services/modifier/${service.id}`}
-              style={styles.editButton}
+              to={canModifyService() ? `/services/modifier/${service.id}` : "#"} 
+              style={{
+                ...styles.editButton,
+                opacity: canModifyService() ? 1 : 0.7,
+                cursor: canModifyService() ? 'pointer' : 'not-allowed',
+                backgroundColor: canModifyService() ? '#fff' : '#f1f5f9',
+                borderColor: canModifyService() ? '#ef4444' : '#94a3b8',
+                color: canModifyService() ? '#ef4444' : '#94a3b8'
+              }}
+              onClick={handleEditClick}
             >
-              <FiEdit size={16} />
-              Modifier
+              {canModifyService() ? (
+                <FiEdit size={16} />
+              ) : (
+                <FiLock size={16} />
+              )}
+              {canModifyService() ? 'Modifier' : 'Limite atteinte'}
             </Link>
+            
             <button 
               onClick={() => setDeleteModal(true)}
               style={styles.deleteButton}
@@ -663,6 +782,36 @@ export default function DetailsService() {
               </div>
             </div>
 
+            {/* Information sur le plan */}
+            {currentPlan.isTrialActive && (
+              <div style={styles.trialInfo}>
+                <MdTimer style={styles.trialInfoIcon} />
+                <div style={styles.trialInfoContent}>
+                  <span style={styles.trialInfoTitle}>Période d'essai</span>
+                  <span style={styles.trialInfoText}>
+                    {currentPlan.trialDaysLeft} jours restants
+                  </span>
+                </div>
+                <Link to="/plans" style={styles.trialInfoLink}>
+                  Voir plans
+                </Link>
+              </div>
+            )}
+
+            {currentPlan.servicesCount >= currentPlan.maxServices && (
+              <div style={styles.warningInfo}>
+                <FiAlertCircle style={styles.warningInfoIcon} />
+                <div style={styles.warningInfoContent}>
+                  <span style={styles.warningInfoTitle}>Limite atteinte</span>
+                  <span style={styles.warningInfoText}>
+                    Vous avez atteint la limite de services de votre plan
+                  </span>
+                </div>
+                <Link to="/plans" style={styles.warningInfoLink}>
+                  Améliorer
+                </Link>
+              </div>
+            )}
             
             <div style={styles.infoBox}>
               <MdOutlineInfo style={styles.infoBoxIcon} />
@@ -677,6 +826,76 @@ export default function DetailsService() {
           </div>
         </div>
       </div>
+
+      {/* Modal de limite atteinte */}
+      {showLimitModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowLimitModal(false)}>
+          <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <MdOutlineWarning style={{...styles.modalIcon, color: '#f59e0b'}} />
+              <h2 style={styles.modalTitle}>Limite de services atteinte</h2>
+              <button 
+                onClick={() => setShowLimitModal(false)}
+                style={styles.modalCloseButton}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.modalBody}>
+              <p style={styles.modalText}>
+                Vous avez atteint la limite maximale de services autorisée par votre plan actuel.
+              </p>
+              <div style={styles.modalInfoBox}>
+                <FiAlertCircle style={styles.modalInfoIcon} />
+                <p style={styles.modalInfoText}>
+                  <strong>Plan actuel :</strong> {currentPlan.name} ({currentPlan.maxServices} services maximum)
+                </p>
+              </div>
+
+              <div style={styles.modalSteps}>
+                <h4 style={{marginBottom: '1rem', color: '#1e293b'}}>Solutions disponibles :</h4>
+                
+                <div style={styles.modalStep}>
+                  <div style={{...styles.stepNumber, backgroundColor: '#f59e0b'}}>1</div>
+                  <div style={styles.stepContent}>
+                    <h4 style={styles.stepTitle}>Passer à un plan supérieur</h4>
+                    <p style={styles.stepText}>
+                      Bénéficiez de limites plus élevées et de fonctionnalités supplémentaires
+                    </p>
+                  </div>
+                </div>
+                
+                <div style={styles.modalStep}>
+                  <div style={{...styles.stepNumber, backgroundColor: '#f59e0b'}}>2</div>
+                  <div style={styles.stepContent}>
+                    <h4 style={styles.stepTitle}>Supprimer des services inutilisés</h4>
+                    <p style={styles.stepText}>
+                      Libérez de l'espace en supprimant les services que vous n'utilisez plus
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button 
+                onClick={() => setShowLimitModal(false)}
+                style={styles.modalCancelButton}
+              >
+                Fermer
+              </button>
+              <Link 
+                to="/plans"
+                style={styles.modalConfirmButton}
+                onClick={() => setShowLimitModal(false)}
+              >
+                Voir les plans
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleteModal && (
         <div style={styles.modalOverlay} onClick={() => setDeleteModal(false)}>
@@ -829,7 +1048,60 @@ const styles = {
   headerActions: {
     display: 'flex',
     gap: '0.75rem',
+    alignItems: 'center',
   },
+
+  // Plan mini card
+  planMiniCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    backgroundColor: '#fff',
+    border: '1px solid #e2e8f0',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.75rem',
+    minWidth: '200px',
+  },
+  planMiniIcon: {
+    fontSize: '1rem',
+    color: '#f59e0b',
+  },
+  planMiniInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  planMiniLabel: {
+    fontSize: '0.625rem',
+    color: '#94a3b8',
+  },
+  planMiniValue: {
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  planMiniProgress: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.375rem',
+    marginLeft: 'auto',
+  },
+  planMiniBar: {
+    width: '50px',
+    height: '4px',
+    backgroundColor: '#e2e8f0',
+    borderRadius: '2px',
+    overflow: 'hidden',
+  },
+  planMiniFill: {
+    height: '100%',
+    borderRadius: '2px',
+  },
+  planMiniCount: {
+    fontSize: '0.625rem',
+    fontWeight: '600',
+    color: '#64748b',
+  },
+
   editButton: {
     display: 'flex',
     alignItems: 'center',
@@ -1262,6 +1534,94 @@ const styles = {
     alignSelf: 'flex-end',
   },
 
+  // Trial Info
+  trialInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    backgroundColor: '#fef3c7',
+    border: '1px solid #fde68a',
+    padding: '1rem',
+    borderRadius: '0.75rem',
+  },
+  trialInfoIcon: {
+    fontSize: '1.5rem',
+    color: '#d97706',
+    flexShrink: 0,
+  },
+  trialInfoContent: {
+    flex: 1,
+  },
+  trialInfoTitle: {
+    display: 'block',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#b45309',
+    marginBottom: '0.125rem',
+  },
+  trialInfoText: {
+    display: 'block',
+    fontSize: '0.75rem',
+    color: '#92400e',
+  },
+  trialInfoLink: {
+    color: '#d97706',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    textDecoration: 'none',
+    padding: '0.25rem 0.75rem',
+    backgroundColor: '#fff',
+    borderRadius: '9999px',
+    ':hover': {
+      backgroundColor: '#d97706',
+      color: '#fff',
+    },
+  },
+
+  // Warning Info
+  warningInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    backgroundColor: '#fee2e2',
+    border: '1px solid #fecaca',
+    padding: '1rem',
+    borderRadius: '0.75rem',
+  },
+  warningInfoIcon: {
+    fontSize: '1.5rem',
+    color: '#dc2626',
+    flexShrink: 0,
+  },
+  warningInfoContent: {
+    flex: 1,
+  },
+  warningInfoTitle: {
+    display: 'block',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#b91c1c',
+    marginBottom: '0.125rem',
+  },
+  warningInfoText: {
+    display: 'block',
+    fontSize: '0.75rem',
+    color: '#991b1b',
+  },
+  warningInfoLink: {
+    color: '#dc2626',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    textDecoration: 'none',
+    padding: '0.25rem 0.75rem',
+    backgroundColor: '#fff',
+    borderRadius: '9999px',
+    ':hover': {
+      backgroundColor: '#dc2626',
+      color: '#fff',
+    },
+  },
+
   // Info Box
   infoBox: {
     backgroundColor: '#dbeafe',
@@ -1310,26 +1670,100 @@ const styles = {
     width: '90%',
     animation: 'fadeIn 0.3s ease-out',
   },
+  modalHeader: {
+    padding: '1.5rem',
+    borderBottom: '1px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    position: 'relative',
+  },
+  modalIcon: {
+    fontSize: '2rem',
+    color: '#ef4444',
+  },
   modalTitle: {
     fontSize: '1.25rem',
     fontWeight: '700',
     color: '#1e293b',
     marginBottom: '1rem',
   },
+  modalCloseButton: {
+    background: 'none',
+    border: 'none',
+    fontSize: '2rem',
+    color: '#64748b',
+    cursor: 'pointer',
+    padding: '0',
+    lineHeight: 1,
+  },
+  modalBody: {
+    padding: '1.5rem',
+  },
   modalText: {
     fontSize: '0.95rem',
     color: '#4b5563',
     marginBottom: '1rem',
   },
-  modalWarning: {
-    fontSize: '0.875rem',
-    color: '#ef4444',
-    backgroundColor: '#fee2e2',
-    padding: '0.75rem',
-    borderRadius: '0.5rem',
+  modalInfoBox: {
+    backgroundColor: '#f0f9ff',
+    padding: '1rem',
+    borderRadius: '0.75rem',
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.75rem',
     marginBottom: '1.5rem',
+    border: '1px solid #bae6fd',
   },
-  modalActions: {
+  modalInfoIcon: {
+    fontSize: '1.25rem',
+    color: '#0284c7',
+    flexShrink: 0,
+  },
+  modalInfoText: {
+    fontSize: '0.875rem',
+    color: '#0369a1',
+    lineHeight: '1.5',
+  },
+  modalSteps: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+  },
+  modalStep: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '1rem',
+  },
+  stepNumber: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '32px',
+    height: '32px',
+    backgroundColor: '#ef4444',
+    color: '#fff',
+    borderRadius: '50%',
+    fontSize: '1rem',
+    fontWeight: '600',
+    flexShrink: 0,
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: '1rem',
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: '0.25rem',
+  },
+  stepText: {
+    fontSize: '0.875rem',
+    color: '#64748b',
+  },
+  modalFooter: {
+    padding: '1.5rem',
+    borderTop: '1px solid #e2e8f0',
     display: 'flex',
     gap: '1rem',
   },
@@ -1367,6 +1801,18 @@ const styles = {
       backgroundColor: '#dc2626',
     },
   },
+  modalWarning: {
+    fontSize: '0.875rem',
+    color: '#ef4444',
+    backgroundColor: '#fee2e2',
+    padding: '0.75rem',
+    borderRadius: '0.5rem',
+    marginBottom: '1.5rem',
+  },
+  modalActions: {
+    display: 'flex',
+    gap: '1rem',
+  },
 
   '@media (max-width: 768px)': {
     content: {
@@ -1377,6 +1823,10 @@ const styles = {
       alignItems: 'flex-start',
     },
     headerActions: {
+      width: '100%',
+      flexWrap: 'wrap',
+    },
+    planMiniCard: {
       width: '100%',
     },
     editButton: {

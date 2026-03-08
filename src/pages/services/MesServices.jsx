@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { serviceApi } from '../../api/serviceApi';
+import { entrepriseApi } from '../../api/entrepriseApi';
 import theme from '../../config/theme';
 
 // Import des icônes React Icons
@@ -26,7 +27,10 @@ import {
   FiPrinter,
   FiX,
   FiCheck,
-  FiAlertTriangle
+  FiAlertTriangle,
+  FiLock,
+  FiGift,
+  FiActivity
 } from 'react-icons/fi';
 import {
   MdBusiness,
@@ -44,7 +48,9 @@ import {
   MdOutlineVisibility,
   MdOutlineMoreVert,
   MdOutlineLocalOffer,
-  MdOutlineDiscount
+  MdOutlineDiscount,
+  MdOutlineWarning,
+  MdTimer
 } from 'react-icons/md';
 
 // Fonction pour formater le prix
@@ -93,10 +99,37 @@ const calculateDiscount = (service) => {
 
 export default function MesServices() {
   const [services, setServices] = useState([]);
+  const [entreprises, setEntreprises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  
+  // État pour les limites du plan - COMME DANS LE DASHBOARD
+  const [currentPlan, setCurrentPlan] = useState({
+    name: 'Essai Gratuit',
+    maxServices: 3,
+    servicesCount: 0,
+    trialDaysLeft: 0,
+    isTrialActive: false,
+    isTrialExpired: false
+  });
+
+  // Statistiques - COMME DANS LE DASHBOARD
+  const [stats, setStats] = useState({
+    totalServices: 0,
+    entreprises: 0,
+    domaines: 0,
+    withPrice: 0,
+    onRequest: 0,
+    withPromo: 0,
+    activePromos: 0,
+    active24h: 0
+  });
+
+  // État pour le modal de limite
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitModalType, setLimitModalType] = useState('');
   
   // États pour la suppression
   const [deleteModal, setDeleteModal] = useState({
@@ -108,17 +141,31 @@ export default function MesServices() {
   const [deleteSuccess, setDeleteSuccess] = useState('');
 
   useEffect(() => {
-    fetchServices();
+    fetchData();
   }, []);
 
-  const fetchServices = async () => {
+  // Mettre à jour les stats quand les services changent
+  useEffect(() => {
+    if (services.length > 0 || entreprises.length > 0) {
+      updateStatsAndPlan();
+    }
+  }, [services, entreprises]);
+
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await serviceApi.getMesServices();
-      setServices(data);
+      
+      // Charger les entreprises pour obtenir les infos du plan
+      const entreprisesData = await entrepriseApi.getMesEntreprises();
+      setEntreprises(entreprisesData || []);
+      
+      // Charger les services
+      const servicesData = await serviceApi.getMesServices();
+      setServices(servicesData || []);
+      
       setError('');
     } catch (err) {
-      setError('Erreur lors du chargement des services');
+      setError('Erreur lors du chargement des données');
       console.error(err);
     } finally {
       setLoading(false);
@@ -126,10 +173,103 @@ export default function MesServices() {
     }
   };
 
+  // Fonction pour mettre à jour les stats et le plan - COMME DANS LE DASHBOARD
+  const updateStatsAndPlan = () => {
+    // Calculer les stats
+    const withPrice = services.filter(s => s.price && !s.is_price_on_request).length;
+    const onRequest = services.filter(s => s.is_price_on_request).length;
+    const withPromo = services.filter(s => s.has_promo && s.price_promo).length;
+    const activePromos = services.filter(s => isPromoActive(s)).length;
+    const active24h = services.filter(s => s.is_open_24h).length;
+    const domaines = new Set(services.map(s => s.domaine?.id)).size;
+
+    setStats({
+      totalServices: services.length,
+      entreprises: Object.keys(groupServicesByEntreprise()).length,
+      domaines,
+      withPrice,
+      onRequest,
+      withPromo,
+      activePromos,
+      active24h
+    });
+
+    // Trouver la première entreprise validée avec période d'essai
+    const validatedEntreprise = entreprises.find(e => 
+      e.status === 'validated' && e.trial_ends_at
+    );
+
+    // Mettre à jour le plan
+    setCurrentPlan({
+      name: 'Essai Gratuit',
+      maxServices: validatedEntreprise?.max_services_allowed || 3,
+      servicesCount: services.length,
+      trialDaysLeft: validatedEntreprise ? calculateDaysLeft(validatedEntreprise.trial_ends_at) : 0,
+      isTrialActive: validatedEntreprise ? isTrialActive(validatedEntreprise.trial_ends_at) : false,
+      isTrialExpired: validatedEntreprise ? isTrialExpired(validatedEntreprise.trial_ends_at) : false
+    });
+  };
+
+  // Fonctions utilitaires pour les dates
+  const calculateDaysLeft = (trialEndsAt) => {
+    if (!trialEndsAt) return 0;
+    const end = new Date(trialEndsAt).getTime();
+    const now = new Date().getTime();
+    const distance = end - now;
+    return Math.max(0, Math.floor(distance / (1000 * 60 * 60 * 24)));
+  };
+
+  const isTrialActive = (trialEndsAt) => {
+    if (!trialEndsAt) return false;
+    return new Date(trialEndsAt).getTime() > new Date().getTime();
+  };
+
+  const isTrialExpired = (trialEndsAt) => {
+    if (!trialEndsAt) return false;
+    return new Date(trialEndsAt).getTime() <= new Date().getTime();
+  };
+
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchServices();
+    fetchData();
   };
+
+  // Vérification des limites - COMME DANS LE DASHBOARD
+  const canCreateService = () => {
+    return stats.totalServices < currentPlan.maxServices;
+  };
+
+  const handleCreateService = (e) => {
+    if (!canCreateService()) {
+      e.preventDefault();
+      setLimitModalType('service');
+      setShowLimitModal(true);
+    }
+  };
+
+  // Grouper par entreprise
+  const groupServicesByEntreprise = () => {
+    return services.reduce((acc, service) => {
+      const entrepriseId = service.entreprise?.id || 'unknown';
+      if (!acc[entrepriseId]) {
+        acc[entrepriseId] = {
+          entreprise: service.entreprise,
+          services: []
+        };
+      }
+      acc[entrepriseId].services.push(service);
+      return acc;
+    }, {});
+  };
+
+  // Filtrer services par recherche
+  const filteredServices = services.filter(service =>
+    service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    service.entreprise?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    service.domaine?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const servicesByEntreprise = groupServicesByEntreprise();
 
   // Fonction pour ouvrir la modale de confirmation
   const openDeleteModal = (serviceId, serviceName) => {
@@ -161,9 +301,8 @@ export default function MesServices() {
       await serviceApi.deleteService(deleteModal.serviceId);
       
       // Mettre à jour la liste des services
-      setServices(prevServices => 
-        prevServices.filter(service => service.id !== deleteModal.serviceId)
-      );
+      const updatedServices = services.filter(service => service.id !== deleteModal.serviceId);
+      setServices(updatedServices);
 
       // Afficher le message de succès
       setDeleteSuccess('Service supprimé avec succès !');
@@ -176,44 +315,11 @@ export default function MesServices() {
         setDeleteSuccess('');
       }, 3000);
 
-    } 
-    catch (err) {
+    } catch (err) {
       console.error('Erreur lors de la suppression:', err);
       setError('Erreur lors de la suppression du service');
       closeDeleteModal();
     }
-  };
-
-  // Filtrer services par recherche
-  const filteredServices = services.filter(service =>
-    service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    service.entreprise?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    service.domaine?.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Grouper par entreprise
-  const servicesByEntreprise = filteredServices.reduce((acc, service) => {
-    const entrepriseId = service.entreprise?.id || 'unknown';
-    if (!acc[entrepriseId]) {
-      acc[entrepriseId] = {
-        entreprise: service.entreprise,
-        services: []
-      };
-    }
-    acc[entrepriseId].services.push(service);
-    return acc;
-  }, {});
-
-  // Statistiques améliorées avec prise en compte des promos
-  const stats = {
-    totalServices: services.length,
-    entreprises: Object.keys(servicesByEntreprise).length,
-    domaines: new Set(services.map(s => s.domaine?.id)).size,
-    withPrice: services.filter(s => s.price && !s.is_price_on_request).length,
-    onRequest: services.filter(s => s.is_price_on_request).length,
-    withPromo: services.filter(s => s.has_promo && s.price_promo).length,
-    activePromos: services.filter(s => isPromoActive(s)).length,
-    active24h: services.filter(s => s.is_open_24h).length,
   };
 
   if (loading) {
@@ -252,11 +358,74 @@ export default function MesServices() {
                 <FiRefreshCw style={refreshing ? styles.refreshingIcon : styles.headerActionIcon} />
                 {refreshing ? 'Rafraîchissement...' : 'Rafraîchir'}
               </button>
-              <Link to="/services/creer" style={styles.createButton}>
-                <FiPlus style={styles.createButtonIcon} />
-                Créer un service
+              
+              {/* Bouton de création avec vérification de limite - COMME DANS LE DASHBOARD */}
+              <Link 
+                to={canCreateService() ? "/services/creer" : "#"} 
+                style={{
+                  ...styles.createButton,
+                  opacity: canCreateService() ? 1 : 0.7,
+                  cursor: canCreateService() ? 'pointer' : 'not-allowed',
+                  backgroundColor: canCreateService() ? '#ef4444' : '#94a3b8'
+                }}
+                onClick={handleCreateService}
+              >
+                {canCreateService() ? (
+                  <FiPlus style={styles.createButtonIcon} />
+                ) : (
+                  <FiLock style={styles.createButtonIcon} />
+                )}
+                {canCreateService() ? 'Créer un service' : 'Limite atteinte'}
               </Link>
             </div>
+          </div>
+        </div>
+
+        {/* Carte d'information du plan - COMME DANS LE DASHBOARD */}
+        <div style={styles.planCard}>
+          <div style={styles.planCardHeader}>
+            <div style={styles.planCardTitle}>
+              <FiGift style={styles.planCardIcon} />
+              <span>Plan actuel : <strong>{currentPlan.name}</strong></span>
+            </div>
+            <Link to="/plans" style={styles.planCardLink}>
+              Changer de plan
+            </Link>
+          </div>
+          <div style={styles.planCardBody}>
+            <div style={styles.planProgress}>
+              <div style={styles.planProgressItem}>
+                <span style={styles.planProgressLabel}>Services</span>
+                <div style={styles.planProgressBarContainer}>
+                  <div style={styles.planProgressBar}>
+                    <div style={{
+                      ...styles.planProgressFill,
+                      width: `${currentPlan.maxServices > 0 ? (currentPlan.servicesCount / currentPlan.maxServices) * 100 : 0}%`,
+                      backgroundColor: currentPlan.servicesCount >= currentPlan.maxServices ? '#dc2626' : '#10b981'
+                    }} />
+                  </div>
+                  <span style={styles.planProgressValue}>
+                    {currentPlan.servicesCount} / {currentPlan.maxServices}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {currentPlan.isTrialActive && (
+              <div style={styles.trialInfo}>
+                <MdTimer style={styles.trialIcon} />
+                <span style={styles.trialText}>
+                  {currentPlan.trialDaysLeft} jours restants sur votre période d'essai
+                </span>
+              </div>
+            )}
+            {currentPlan.servicesCount >= currentPlan.maxServices && (
+              <div style={styles.warningInfo}>
+                <FiAlertCircle style={styles.warningIcon} />
+                <span style={styles.warningText}>
+                  Limite de services atteinte. Passez à un plan supérieur.
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -277,6 +446,16 @@ export default function MesServices() {
             <div style={styles.statContent}>
               <div style={styles.statNumber}>{stats.totalServices}</div>
               <div style={styles.statLabel}>Services totaux</div>
+            </div>
+            <div style={{
+              ...styles.statTrend,
+              backgroundColor: stats.totalServices >= currentPlan.maxServices ? '#fee2e2' : '#f0fdf4',
+              color: stats.totalServices >= currentPlan.maxServices ? '#dc2626' : '#16a34a'
+            }}>
+              <FiActivity style={styles.statTrendIcon} />
+              <span style={styles.statTrendText}>
+                {stats.totalServices >= currentPlan.maxServices ? 'Limite atteinte' : `${currentPlan.maxServices - stats.totalServices} restants`}
+              </span>
             </div>
           </div>
           
@@ -375,7 +554,7 @@ export default function MesServices() {
               <div style={styles.errorTitle}>Erreur de chargement</div>
               <div style={styles.errorText}>{error}</div>
             </div>
-            <button onClick={fetchServices} style={styles.errorRetryButton}>
+            <button onClick={fetchData} style={styles.errorRetryButton}>
               Réessayer
             </button>
           </div>
@@ -400,9 +579,22 @@ export default function MesServices() {
               }
             </p>
             {services.length === 0 && (
-              <Link to="/services/creer" style={styles.emptyButton}>
-                <FiPlus style={styles.emptyButtonIcon} />
-                Créer mon premier service
+              <Link 
+                to={canCreateService() ? "/services/creer" : "#"} 
+                style={{
+                  ...styles.emptyButton,
+                  opacity: canCreateService() ? 1 : 0.7,
+                  cursor: canCreateService() ? 'pointer' : 'not-allowed',
+                  backgroundColor: canCreateService() ? '#ef4444' : '#94a3b8'
+                }}
+                onClick={handleCreateService}
+              >
+                {canCreateService() ? (
+                  <FiPlus style={styles.emptyButtonIcon} />
+                ) : (
+                  <FiLock style={styles.emptyButtonIcon} />
+                )}
+                {canCreateService() ? 'Créer mon premier service' : 'Limite atteinte'}
               </Link>
             )}
           </div>
@@ -476,7 +668,7 @@ export default function MesServices() {
                           </div>
                         )}
 
-                        {/* Images du service - Version améliorée avec fallback */}
+                        {/* Images du service */}
                         <div style={styles.serviceImageContainer}>
                           {service.medias && service.medias.length > 0 ? (
                             <img 
@@ -486,7 +678,6 @@ export default function MesServices() {
                               onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.style.display = 'none';
-                                // Afficher le placeholder
                                 const placeholder = e.target.parentElement.querySelector('.service-image-placeholder');
                                 if (placeholder) placeholder.style.display = 'flex';
                               }}
@@ -541,9 +732,8 @@ export default function MesServices() {
                             </p>
                           )}
 
-                          {/* Prix et horaires - Version améliorée avec promo */}
+                          {/* Prix et horaires */}
                           <div style={styles.serviceDetails}>
-                            {/* Affichage du prix */}
                             {service.is_price_on_request ? (
                               <div style={styles.servicePriceOnRequest}>
                                 <MdOutlineAttachMoney style={styles.servicePriceIcon} />
@@ -575,7 +765,6 @@ export default function MesServices() {
                               </div>
                             )}
                             
-                            {/* Horaires */}
                             {service.is_open_24h ? (
                               <div style={styles.serviceHours}>
                                 <FiClock style={styles.serviceHoursIcon} />
@@ -618,6 +807,78 @@ export default function MesServices() {
           </div>
         )}
       </div>
+
+      {/* Modal de limite atteinte - COMME DANS LE DASHBOARD */}
+      {showLimitModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowLimitModal(false)}>
+          <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <MdOutlineWarning style={{...styles.modalIcon, color: '#f59e0b'}} />
+              <h2 style={styles.modalTitle}>
+                Limite de services atteinte
+              </h2>
+              <button 
+                onClick={() => setShowLimitModal(false)}
+                style={styles.modalCloseButton}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.modalBody}>
+              <p style={styles.modalText}>
+                Vous avez atteint la limite maximale de services autorisée par votre plan actuel.
+              </p>
+              <div style={styles.modalInfoBox}>
+                <FiAlertCircle style={styles.modalInfoIcon} />
+                <p style={styles.modalInfoText}>
+                  <strong>Plan actuel :</strong> {currentPlan.name} ({currentPlan.maxServices} services maximum)
+                </p>
+              </div>
+
+              <div style={styles.modalSteps}>
+                <h4 style={{marginBottom: '1rem', color: '#1e293b'}}>Solutions disponibles :</h4>
+                
+                <div style={styles.modalStep}>
+                  <div style={{...styles.stepNumber, backgroundColor: '#f59e0b'}}>1</div>
+                  <div style={styles.stepContent}>
+                    <h4 style={styles.stepTitle}>Passer à un plan supérieur</h4>
+                    <p style={styles.stepText}>
+                      Bénéficiez de limites plus élevées et de fonctionnalités supplémentaires
+                    </p>
+                  </div>
+                </div>
+                
+                <div style={styles.modalStep}>
+                  <div style={{...styles.stepNumber, backgroundColor: '#f59e0b'}}>2</div>
+                  <div style={styles.stepContent}>
+                    <h4 style={styles.stepTitle}>Optimiser vos ressources</h4>
+                    <p style={styles.stepText}>
+                      Supprimez ou désactivez les services que vous n'utilisez plus
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button 
+                onClick={() => setShowLimitModal(false)}
+                style={styles.modalCancelButton}
+              >
+                Fermer
+              </button>
+              <Link 
+                to="/plans"
+                style={styles.modalConfirmButton}
+                onClick={() => setShowLimitModal(false)}
+              >
+                Voir les plans
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODALE DE CONFIRMATION DE SUPPRESSION */}
       {deleteModal.isOpen && (
@@ -736,7 +997,7 @@ export default function MesServices() {
   );
 }
 
-// Styles (avec ajouts pour les éléments de promo)
+// Styles (avec ajouts pour les éléments de plan)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -837,14 +1098,6 @@ const styles = {
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s',
-    ':hover': {
-      backgroundColor: '#f1f5f9',
-      transform: 'translateY(-1px)',
-    },
-    ':disabled': {
-      opacity: 0.6,
-      cursor: 'not-allowed',
-    },
   },
   headerActionIcon: {
     fontSize: '1rem',
@@ -865,14 +1118,122 @@ const styles = {
     fontWeight: '600',
     boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)',
     transition: 'all 0.2s',
-    ':hover': {
-      backgroundColor: '#dc2626',
-      transform: 'translateY(-2px)',
-      boxShadow: '0 10px 15px -3px rgba(239, 68, 68, 0.3)',
-    },
   },
   createButtonIcon: {
     fontSize: '1.125rem',
+  },
+
+  // Styles pour la carte du plan - COMME DANS LE DASHBOARD
+  planCard: {
+    backgroundColor: '#fff',
+    borderRadius: '1rem',
+    border: '1px solid #e2e8f0',
+    padding: '1.5rem',
+    marginBottom: '2rem',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+  },
+  planCardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '1rem',
+  },
+  planCardTitle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    fontSize: '1rem',
+    color: '#475569',
+  },
+  planCardIcon: {
+    fontSize: '1.25rem',
+    color: '#f59e0b',
+  },
+  planCardLink: {
+    color: '#ef4444',
+    textDecoration: 'none',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+  },
+  planCardBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+  },
+  planProgress: {
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: '1.5rem',
+  },
+  planProgressItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.375rem',
+  },
+  planProgressLabel: {
+    fontSize: '0.875rem',
+    color: '#475569',
+    fontWeight: '500',
+  },
+  planProgressBarContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+  },
+  planProgressBar: {
+    flex: 1,
+    height: '8px',
+    backgroundColor: '#e2e8f0',
+    borderRadius: '4px',
+    overflow: 'hidden',
+  },
+  planProgressFill: {
+    height: '100%',
+    borderRadius: '4px',
+    transition: 'width 0.3s ease',
+  },
+  planProgressValue: {
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#1e293b',
+    minWidth: '60px',
+    textAlign: 'right',
+  },
+  trialInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.75rem',
+    backgroundColor: '#fef3c7',
+    borderRadius: '0.5rem',
+    border: '1px solid #fde68a',
+  },
+  trialIcon: {
+    fontSize: '1rem',
+    color: '#d97706',
+  },
+  trialText: {
+    fontSize: '0.875rem',
+    color: '#b45309',
+    fontWeight: '500',
+  },
+  warningInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.75rem',
+    backgroundColor: '#fee2e2',
+    borderRadius: '0.5rem',
+    border: '1px solid #fecaca',
+  },
+  warningIcon: {
+    fontSize: '1rem',
+    color: '#dc2626',
+  },
+  warningText: {
+    fontSize: '0.875rem',
+    color: '#b91c1c',
+    fontWeight: '500',
   },
 
   // Stats
@@ -891,10 +1252,6 @@ const styles = {
     alignItems: 'center',
     gap: '1rem',
     transition: 'all 0.3s',
-    ':hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.1)',
-    },
   },
   statIconContainer: {
     display: 'flex',
@@ -922,6 +1279,23 @@ const styles = {
     fontSize: '0.875rem',
     color: '#64748b',
     fontWeight: '500',
+  },
+  statTrend: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.375rem',
+    backgroundColor: '#f0fdf4',
+    color: '#16a34a',
+    padding: '0.375rem 0.75rem',
+    borderRadius: '0.5rem',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+  },
+  statTrendIcon: {
+    fontSize: '0.875rem',
+  },
+  statTrendText: {
+    whiteSpace: 'nowrap',
   },
 
   // Search
@@ -955,10 +1329,6 @@ const styles = {
     outline: 'none',
     transition: 'all 0.3s',
     backgroundColor: '#fff',
-    ':focus': {
-      borderColor: '#ef4444',
-      boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.1)',
-    },
   },
   clearSearchButton: {
     position: 'absolute',
@@ -972,10 +1342,6 @@ const styles = {
     cursor: 'pointer',
     padding: '0',
     transition: 'all 0.2s',
-    ':hover': {
-      color: '#ef4444',
-      transform: 'translateY(-50%) scale(1.2)',
-    },
   },
   filterActions: {
     display: 'flex',
@@ -994,10 +1360,6 @@ const styles = {
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s',
-    ':hover': {
-      backgroundColor: '#f1f5f9',
-      transform: 'translateY(-1px)',
-    },
   },
   filterIcon: {
     fontSize: '1rem',
@@ -1041,9 +1403,6 @@ const styles = {
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s',
-    ':hover': {
-      backgroundColor: '#b91c1c',
-    },
   },
 
   // Empty State
@@ -1065,9 +1424,6 @@ const styles = {
     borderRadius: '50%',
     marginBottom: '1.5rem',
     transition: 'all 0.3s',
-    ':hover': {
-      transform: 'scale(1.1)',
-    },
   },
   emptyIcon: {
     fontSize: '2.5rem',
@@ -1099,11 +1455,6 @@ const styles = {
     fontWeight: '600',
     boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)',
     transition: 'all 0.2s',
-    ':hover': {
-      backgroundColor: '#dc2626',
-      transform: 'translateY(-2px)',
-      boxShadow: '0 10px 15px -3px rgba(239, 68, 68, 0.3)',
-    },
   },
   emptyButtonIcon: {
     fontSize: '1.125rem',
@@ -1192,9 +1543,6 @@ const styles = {
     fontWeight: '600',
     fontSize: '0.875rem',
     transition: 'all 0.2s',
-    ':hover': {
-      gap: '0.75rem',
-    },
   },
   viewEntrepriseIcon: {
     fontSize: '1rem',
@@ -1307,10 +1655,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s',
-    ':hover': {
-      color: '#ef4444',
-      transform: 'scale(1.2)',
-    },
   },
   deleteIcon: {
     fontSize: '1.2rem',
@@ -1337,7 +1681,7 @@ const styles = {
     marginBottom: '1rem',
   },
   
-  // Service Details - Prix et Horaires
+  // Service Details
   serviceDetails: {
     display: 'flex',
     flexDirection: 'column',
@@ -1443,10 +1787,6 @@ const styles = {
     flex: 1,
     justifyContent: 'center',
     transition: 'all 0.2s',
-    ':hover': {
-      backgroundColor: '#dc2626',
-      transform: 'translateY(-2px)',
-    },
   },
   viewButtonIcon: {
     fontSize: '0.875rem',
@@ -1467,16 +1807,12 @@ const styles = {
     justifyContent: 'center',
     textDecoration: 'none',
     transition: 'all 0.2s',
-    ':hover': {
-      backgroundColor: '#e2e8f0',
-      transform: 'translateY(-2px)',
-    },
   },
   editButtonIcon: {
     fontSize: '0.875rem',
   },
 
-  // MODALE DE SUPPRESSION
+  // Styles du modal
   modalOverlay: {
     position: 'fixed',
     top: 0,
@@ -1488,26 +1824,143 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9999,
-    animation: 'fadeIn 0.3s ease-out',
-    backdropFilter: 'blur(5px)',
+    backdropFilter: 'blur(4px)',
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderRadius: '1.5rem',
-    padding: '2rem',
+    borderRadius: '1rem',
     maxWidth: '500px',
     width: '90%',
     maxHeight: '90vh',
     overflow: 'auto',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    animation: 'scaleIn 0.3s ease-out',
+    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
   },
   modalHeader: {
+    padding: '1.5rem',
+    borderBottom: '1px solid #e2e8f0',
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '1.5rem',
+    alignItems: 'center',
+    gap: '1rem',
+    position: 'relative',
   },
+  modalIcon: {
+    fontSize: '2rem',
+    color: '#ef4444',
+  },
+  modalTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '700',
+    color: '#1e293b',
+    flex: 1,
+  },
+  modalCloseButton: {
+    background: 'none',
+    border: 'none',
+    fontSize: '2rem',
+    color: '#64748b',
+    cursor: 'pointer',
+    padding: '0',
+    lineHeight: 1,
+  },
+  modalBody: {
+    padding: '1.5rem',
+  },
+  modalText: {
+    fontSize: '0.95rem',
+    color: '#475569',
+    lineHeight: '1.6',
+    marginBottom: '1rem',
+  },
+  modalInfoBox: {
+    backgroundColor: '#f0f9ff',
+    padding: '1rem',
+    borderRadius: '0.75rem',
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.75rem',
+    marginBottom: '1.5rem',
+    border: '1px solid #bae6fd',
+  },
+  modalInfoIcon: {
+    fontSize: '1.25rem',
+    color: '#0284c7',
+    flexShrink: 0,
+  },
+  modalInfoText: {
+    fontSize: '0.875rem',
+    color: '#0369a1',
+    lineHeight: '1.5',
+  },
+  modalSteps: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+  },
+  modalStep: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '1rem',
+  },
+  stepNumber: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '32px',
+    height: '32px',
+    backgroundColor: '#ef4444',
+    color: '#fff',
+    borderRadius: '50%',
+    fontSize: '1rem',
+    fontWeight: '600',
+    flexShrink: 0,
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: '1rem',
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: '0.25rem',
+  },
+  stepText: {
+    fontSize: '0.875rem',
+    color: '#64748b',
+  },
+  modalFooter: {
+    padding: '1.5rem',
+    borderTop: '1px solid #e2e8f0',
+    display: 'flex',
+    gap: '1rem',
+  },
+  modalCancelButton: {
+    flex: 1,
+    padding: '0.75rem',
+    backgroundColor: '#fff',
+    border: '2px solid #e2e8f0',
+    borderRadius: '0.5rem',
+    color: '#475569',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  modalConfirmButton: {
+    flex: 1,
+    padding: '0.75rem',
+    backgroundColor: '#ef4444',
+    border: 'none',
+    borderRadius: '0.5rem',
+    color: '#fff',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    textAlign: 'center',
+    transition: 'all 0.2s',
+  },
+  
+  // MODALE DE SUPPRESSION
   modalIconContainer: {
     width: '64px',
     height: '64px',
@@ -1516,38 +1969,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  modalIcon: {
-    fontSize: '2.5rem',
-    color: '#ef4444',
-  },
-  modalCloseButton: {
-    backgroundColor: 'transparent',
-    border: 'none',
-    color: '#9ca3af',
-    fontSize: '1.5rem',
-    cursor: 'pointer',
-    padding: '0.5rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.2s',
-    ':hover': {
-      color: '#ef4444',
-      transform: 'rotate(90deg)',
-    },
-  },
-  modalTitle: {
-    fontSize: '1.5rem',
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: '1rem',
-  },
-  modalText: {
-    fontSize: '1rem',
-    color: '#4b5563',
-    marginBottom: '1rem',
-    lineHeight: '1.6',
   },
   modalWarning: {
     fontSize: '0.875rem',
@@ -1561,51 +1982,6 @@ const styles = {
   modalActions: {
     display: 'flex',
     gap: '1rem',
-  },
-  modalCancelButton: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-    color: '#4b5563',
-    border: '1px solid #e5e7eb',
-    padding: '0.875rem',
-    borderRadius: '0.75rem',
-    fontSize: '0.875rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    ':hover': {
-      backgroundColor: '#e5e7eb',
-      transform: 'translateY(-1px)',
-    },
-    ':disabled': {
-      opacity: 0.6,
-      cursor: 'not-allowed',
-    },
-  },
-  modalConfirmButton: {
-    flex: 1,
-    backgroundColor: '#ef4444',
-    color: '#fff',
-    border: 'none',
-    padding: '0.875rem',
-    borderRadius: '0.75rem',
-    fontSize: '0.875rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    transition: 'all 0.2s',
-    ':hover': {
-      backgroundColor: '#dc2626',
-      transform: 'translateY(-1px)',
-      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-    },
-    ':disabled': {
-      opacity: 0.6,
-      cursor: 'not-allowed',
-    },
   },
   modalConfirmIcon: {
     fontSize: '1rem',

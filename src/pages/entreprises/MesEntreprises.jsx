@@ -1,10 +1,13 @@
 // careasy-frontend/src/pages/entreprises/MesEntreprises.jsx
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { entrepriseApi } from '../../api/entrepriseApi';
+import { serviceApi } from '../../api/serviceApi';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Import des icônes React Icons
 import {
+  FiActivity,
   FiPlus,
   FiSearch,
   FiFilter,
@@ -25,7 +28,11 @@ import {
   FiDownload,
   FiPrinter,
   FiGrid,
-  FiStar
+  FiStar,
+  FiLock,
+  FiGift,
+  FiDollarSign,
+  FiTool
 } from 'react-icons/fi';
 import {
   MdBusiness,
@@ -41,39 +48,219 @@ import {
   MdOutlineMoreVert,
   MdOutlineAttachMoney,
   MdOutlineDescription,
-  MdOutlineWork
+  MdOutlineWork,
+  MdTimer
 } from 'react-icons/md';
 
 export default function MesEntreprises() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [entreprises, setEntreprises] = useState([]);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [servicesLoading, setServicesLoading] = useState(false);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState('all'); // all, pending, validated, rejected
+  const [filter, setFilter] = useState('all'); 
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // État pour les limites du plan - MÊME STRUCTURE QUE LE DASHBOARD
+  const [currentPlan, setCurrentPlan] = useState({
+    name: 'Essai Gratuit',
+    maxEntreprises: 1,
+    maxServices: 3,
+    maxEmployees: 1,
+    hasApiAccess: false,
+    entreprisesCount: 0,
+    servicesCount: 0,
+    employeesCount: 0,
+    trialDaysLeft: 0,
+    isTrialActive: false,
+    isTrialExpired: false
+  });
 
+  // Statistiques - MÊME STRUCTURE QUE LE DASHBOARD
+  const [stats, setStats] = useState({
+    totalEntreprises: 0,
+    validatedEntreprises: 0,
+    pendingEntreprises: 0,
+    totalServices: 0,
+    servicesWithPrice: 0,
+    services24h: 0,
+    activeClients: 0,
+    monthlyRevenue: 0
+  });
+
+  // État pour le modal de limite
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitModalType, setLimitModalType] = useState('');
+
+  // Charger les données au montage
   useEffect(() => {
-    fetchEntreprises();
+    fetchData();
   }, []);
 
-  const fetchEntreprises = async () => {
+  // Mettre à jour les stats et le plan quand les données changent
+  useEffect(() => {
+    if (entreprises.length > 0 || services.length > 0) {
+      updateStatsAndPlan();
+    }
+  }, [entreprises, services]);
+
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError('');
-      const data = await entrepriseApi.getMesEntreprises();
-      setEntreprises(data);
+      
+      // Charger les entreprises
+      const entreprisesData = await entrepriseApi.getMesEntreprises();
+      setEntreprises(entreprisesData || []);
+      
+      // Charger tous les services
+      await fetchAllServices();
+      
     } catch (err) {
       console.error('Erreur:', err);
-      setError('Erreur lors du chargement des entreprises');
+      setError('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
+  const fetchAllServices = async () => {
+    try {
+      setServicesLoading(true);
+      const servicesData = await serviceApi.getMesServices();
+      
+      let servicesList = [];
+      if (servicesData) {
+        if (Array.isArray(servicesData)) {
+          servicesList = servicesData;
+        } else if (servicesData.data && Array.isArray(servicesData.data)) {
+          servicesList = servicesData.data;
+        } else if (servicesData.services && Array.isArray(servicesData.services)) {
+          servicesList = servicesData.services;
+        }
+      }
+      
+      setServices(servicesList);
+      
+    } catch (err) {
+      console.error('Erreur chargement services:', err);
+      setServices([]);
+    } finally {
+      setServicesLoading(false);
+    }
+  };
+
+  // Fonction pour mettre à jour les stats et le plan - COMME DANS LE DASHBOARD
+  const updateStatsAndPlan = () => {
+    // Calculer les stats
+    const validatedEntreprises = entreprises.filter(e => e.status === 'validated').length;
+    const pendingEntreprises = entreprises.filter(e => e.status === 'pending').length;
+    const servicesWithPrice = services.filter(s => s.price).length;
+    const services24h = services.filter(s => s.is_open_24h).length;
+    
+    const monthlyRevenue = services
+      .filter(s => s.price)
+      .reduce((acc, s) => acc + (s.price * 3), 0);
+
+    setStats({
+      totalEntreprises: entreprises.length,
+      validatedEntreprises,
+      pendingEntreprises,
+      totalServices: services.length,
+      servicesWithPrice,
+      services24h,
+      activeClients: 24,
+      monthlyRevenue
+    });
+
+    // Trouver la première entreprise validée avec période d'essai
+    const validatedEntreprise = entreprises.find(e => 
+      e.status === 'validated' && e.trial_ends_at
+    );
+
+    // Mettre à jour le plan avec les vraies données
+    setCurrentPlan({
+      name: 'Essai Gratuit',
+      maxEntreprises: 1,
+      maxServices: validatedEntreprise?.max_services_allowed || 3,
+      maxEmployees: validatedEntreprise?.max_employees_allowed || 1,
+      hasApiAccess: validatedEntreprise?.has_api_access || false,
+      entreprisesCount: entreprises.length,
+      servicesCount: services.length,
+      employeesCount: 1,
+      trialDaysLeft: validatedEntreprise ? calculateDaysLeft(validatedEntreprise.trial_ends_at) : 0,
+      isTrialActive: validatedEntreprise ? isTrialActive(validatedEntreprise.trial_ends_at) : false,
+      isTrialExpired: validatedEntreprise ? isTrialExpired(validatedEntreprise.trial_ends_at) : false
+    });
+  };
+
+  // Fonctions utilitaires pour les dates
+  const calculateDaysLeft = (trialEndsAt) => {
+    if (!trialEndsAt) return 0;
+    const end = new Date(trialEndsAt).getTime();
+    const now = new Date().getTime();
+    const distance = end - now;
+    return Math.max(0, Math.floor(distance / (1000 * 60 * 60 * 24)));
+  };
+
+  const isTrialActive = (trialEndsAt) => {
+    if (!trialEndsAt) return false;
+    return new Date(trialEndsAt).getTime() > new Date().getTime();
+  };
+
+  const isTrialExpired = (trialEndsAt) => {
+    if (!trialEndsAt) return false;
+    return new Date(trialEndsAt).getTime() <= new Date().getTime();
+  };
+
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchEntreprises();
+    fetchData();
+  };
+
+  // Vérification des limites - COMME DANS LE DASHBOARD
+  const canCreateEntreprise = () => {
+    return stats.totalEntreprises < currentPlan.maxEntreprises;
+  };
+
+  const canCreateService = () => {
+    return stats.totalServices < currentPlan.maxServices;
+  };
+
+  const handleCreateEntreprise = (e) => {
+    if (!canCreateEntreprise()) {
+      e.preventDefault();
+      setLimitModalType('entreprise');
+      setShowLimitModal(true);
+    }
+  };
+
+  const handleCreateService = (e) => {
+    if (!canCreateService()) {
+      e.preventDefault();
+      setLimitModalType('service');
+      setShowLimitModal(true);
+    }
+  };
+
+  const handleManageEntreprises = (e) => {
+    if (stats.totalEntreprises === 0) {
+      e.preventDefault();
+      setLimitModalType('no-entreprise');
+      setShowLimitModal(true);
+    }
+  };
+
+  const handleManageServices = (e) => {
+    if (stats.totalServices === 0) {
+      e.preventDefault();
+      setLimitModalType('no-service');
+      setShowLimitModal(true);
+    }
   };
 
   const handleDeleteEntreprise = async (id, name) => {
@@ -81,7 +268,14 @@ export default function MesEntreprises() {
       try {
         // Appel API pour supprimer l'entreprise
         // await entrepriseApi.deleteEntreprise(id);
-        setEntreprises(entreprises.filter(e => e.id !== id));
+        
+        // Mettre à jour la liste
+        const updatedEntreprises = entreprises.filter(e => e.id !== id);
+        setEntreprises(updatedEntreprises);
+        
+        // Recharger les services
+        await fetchAllServices();
+        
       } catch (err) {
         alert('Erreur lors de la suppression');
       }
@@ -136,14 +330,12 @@ export default function MesEntreprises() {
     );
   });
 
-  const stats = {
-    total: entreprises.length,
-    pending: entreprises.filter(e => e.status === 'pending').length,
-    validated: entreprises.filter(e => e.status === 'validated').length,
-    rejected: entreprises.filter(e => e.status === 'rejected').length,
-    hasServices: entreprises.filter(e => e.services_count > 0).length,
-    totalServices: entreprises.reduce((acc, e) => acc + (e.services_count || 0), 0),
-    active24h: entreprises.filter(e => e.has_24h_service).length,
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'XOF',
+      minimumFractionDigits: 0
+    }).format(price);
   };
 
   if (loading) {
@@ -182,23 +374,137 @@ export default function MesEntreprises() {
                 <FiRefreshCw style={refreshing ? styles.refreshingIcon : styles.headerActionIcon} />
                 {refreshing ? 'Rafraîchissement...' : 'Rafraîchir'}
               </button>
-              <Link to="/entreprises/creer" style={styles.createButton}>
-                <FiPlus style={styles.createButtonIcon} />
-                Nouvelle entreprise
+              
+              {/* Bouton de création avec vérification de limite - COMME DANS LE DASHBOARD */}
+              <Link 
+                to={canCreateEntreprise() ? "/entreprises/creer" : "#"} 
+                style={{
+                  ...styles.createButton,
+                  opacity: canCreateEntreprise() ? 1 : 0.7,
+                  cursor: canCreateEntreprise() ? 'pointer' : 'not-allowed',
+                  backgroundColor: canCreateEntreprise() ? '#ef4444' : '#94a3b8'
+                }}
+                onClick={handleCreateEntreprise}
+              >
+                {canCreateEntreprise() ? (
+                  <FiPlus style={styles.createButtonIcon} />
+                ) : (
+                  <FiLock style={styles.createButtonIcon} />
+                )}
+                {canCreateEntreprise() ? 'Nouvelle entreprise' : 'Limite atteinte'}
               </Link>
             </div>
           </div>
         </div>
 
-        {/* Statistiques améliorées */}
+        {/* Carte d'information du plan - COMME DANS LE DASHBOARD */}
+        <div style={styles.planCard}>
+          <div style={styles.planCardHeader}>
+            <div style={styles.planCardTitle}>
+              <FiGift style={styles.planCardIcon} />
+              <span>Plan actuel : <strong>{currentPlan.name}</strong></span>
+            </div>
+            <Link to="/plans" style={styles.planCardLink}>
+              Changer de plan
+            </Link>
+          </div>
+          <div style={styles.planCardBody}>
+            <div style={styles.planProgress}>
+              <div style={styles.planProgressItem}>
+                <span style={styles.planProgressLabel}>Entreprises</span>
+                <div style={styles.planProgressBarContainer}>
+                  <div style={styles.planProgressBar}>
+                    <div style={{
+                      ...styles.planProgressFill,
+                      width: `${currentPlan.maxEntreprises > 0 ? (currentPlan.entreprisesCount / currentPlan.maxEntreprises) * 100 : 0}%`,
+                      backgroundColor: currentPlan.entreprisesCount >= currentPlan.maxEntreprises ? '#dc2626' : '#10b981'
+                    }} />
+                  </div>
+                  <span style={styles.planProgressValue}>
+                    {currentPlan.entreprisesCount} / {currentPlan.maxEntreprises}
+                  </span>
+                </div>
+              </div>
+              <div style={styles.planProgressItem}>
+                <span style={styles.planProgressLabel}>Services</span>
+                <div style={styles.planProgressBarContainer}>
+                  <div style={styles.planProgressBar}>
+                    <div style={{
+                      ...styles.planProgressFill,
+                      width: `${currentPlan.maxServices > 0 ? (currentPlan.servicesCount / currentPlan.maxServices) * 100 : 0}%`,
+                      backgroundColor: currentPlan.servicesCount >= currentPlan.maxServices ? '#dc2626' : '#10b981'
+                    }} />
+                  </div>
+                  <span style={styles.planProgressValue}>
+                    {currentPlan.servicesCount} / {currentPlan.maxServices}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {currentPlan.isTrialActive && (
+              <div style={styles.trialInfo}>
+                <MdTimer style={styles.trialIcon} />
+                <span style={styles.trialText}>
+                  {currentPlan.trialDaysLeft} jours restants sur votre période d'essai
+                </span>
+              </div>
+            )}
+            {(currentPlan.entreprisesCount >= currentPlan.maxEntreprises || currentPlan.servicesCount >= currentPlan.maxServices) && (
+              <div style={styles.warningInfo}>
+                <FiAlertCircle style={styles.warningIcon} />
+                <span style={styles.warningText}>
+                  Limite {currentPlan.entreprisesCount >= currentPlan.maxEntreprises ? 'd\'entreprises' : 'de services'} atteinte. Passez à un plan supérieur.
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Statistiques améliorées - COMME DANS LE DASHBOARD */}
         <div style={styles.statsGrid}>
           <div style={styles.statCard}>
             <div style={styles.statIconContainer}>
               <MdBusiness style={styles.statIcon} />
             </div>
             <div style={styles.statContent}>
-              <div style={styles.statNumber}>{stats.total}</div>
+              <div style={styles.statNumber}>{stats.totalEntreprises}</div>
               <div style={styles.statLabel}>Entreprises</div>
+              <div style={styles.statSubtext}>
+                {stats.validatedEntreprises} validées • {stats.pendingEntreprises} en attente
+              </div>
+            </div>
+            <div style={{
+              ...styles.statTrend,
+              backgroundColor: stats.totalEntreprises >= currentPlan.maxEntreprises ? '#fee2e2' : '#f0fdf4',
+              color: stats.totalEntreprises >= currentPlan.maxEntreprises ? '#dc2626' : '#16a34a'
+            }}>
+              <FiActivity style={styles.statTrendIcon} />
+              <span style={styles.statTrendText}>
+                {stats.totalEntreprises >= currentPlan.maxEntreprises ? 'Limite atteinte' : `${currentPlan.maxEntreprises - stats.totalEntreprises} restante`}
+              </span>
+            </div>
+          </div>
+          
+          <div style={styles.statCard}>
+            <div style={styles.statIconContainer}>
+              <MdOutlineWork style={styles.statIcon} />
+            </div>
+            <div style={styles.statContent}>
+              <div style={styles.statNumber}>{stats.totalServices}</div>
+              <div style={styles.statLabel}>Services</div>
+              <div style={styles.statSubtext}>
+                {stats.servicesWithPrice} avec tarif • {stats.services24h} 24h/24
+              </div>
+            </div>
+            <div style={{
+              ...styles.statTrend,
+              backgroundColor: stats.totalServices >= currentPlan.maxServices ? '#fee2e2' : '#f0fdf4',
+              color: stats.totalServices >= currentPlan.maxServices ? '#dc2626' : '#16a34a'
+            }}>
+              <FiActivity style={styles.statTrendIcon} />
+              <span style={styles.statTrendText}>
+                {stats.totalServices >= currentPlan.maxServices ? 'Limite atteinte' : `${currentPlan.maxServices - stats.totalServices} restants`}
+              </span>
             </div>
           </div>
           
@@ -207,7 +513,7 @@ export default function MesEntreprises() {
               <MdOutlinePending style={{...styles.statIcon, color: '#d97706'}} />
             </div>
             <div style={styles.statContent}>
-              <div style={{...styles.statNumber, color: '#d97706'}}>{stats.pending}</div>
+              <div style={{...styles.statNumber, color: '#d97706'}}>{stats.pendingEntreprises}</div>
               <div style={styles.statLabel}>En attente</div>
             </div>
           </div>
@@ -217,28 +523,8 @@ export default function MesEntreprises() {
               <MdOutlineVerified style={{...styles.statIcon, color: '#059669'}} />
             </div>
             <div style={styles.statContent}>
-              <div style={{...styles.statNumber, color: '#059669'}}>{stats.validated}</div>
+              <div style={{...styles.statNumber, color: '#059669'}}>{stats.validatedEntreprises}</div>
               <div style={styles.statLabel}>Validées</div>
-            </div>
-          </div>
-          
-          <div style={styles.statCard}>
-            <div style={{...styles.statIconContainer, backgroundColor: '#fee2e2'}}>
-              <MdOutlineWarning style={{...styles.statIcon, color: '#dc2626'}} />
-            </div>
-            <div style={styles.statContent}>
-              <div style={{...styles.statNumber, color: '#dc2626'}}>{stats.rejected}</div>
-              <div style={styles.statLabel}>Rejetées</div>
-            </div>
-          </div>
-          
-          <div style={styles.statCard}>
-            <div style={styles.statIconContainer}>
-              <FiClock style={styles.statIcon} />
-            </div>
-            <div style={styles.statContent}>
-              <div style={styles.statNumber}>{stats.active24h}</div>
-              <div style={styles.statLabel}>Disponible 24h</div>
             </div>
           </div>
         </div>
@@ -285,7 +571,7 @@ export default function MesEntreprises() {
             }}
           >
             <FiGrid style={styles.filterButtonIcon} />
-            Toutes ({stats.total})
+            Toutes ({stats.totalEntreprises})
           </button>
           <button 
             onClick={() => setFilter('pending')}
@@ -295,7 +581,7 @@ export default function MesEntreprises() {
             }}
           >
             <FiClock style={styles.filterButtonIcon} />
-            En attente ({stats.pending})
+            En attente ({stats.pendingEntreprises})
           </button>
           <button 
             onClick={() => setFilter('validated')}
@@ -305,7 +591,7 @@ export default function MesEntreprises() {
             }}
           >
             <FiCheckCircle style={styles.filterButtonIcon} />
-            Validées ({stats.validated})
+            Validées ({stats.validatedEntreprises})
           </button>
           <button 
             onClick={() => setFilter('rejected')}
@@ -327,7 +613,7 @@ export default function MesEntreprises() {
               <div style={styles.errorTitle}>Erreur de chargement</div>
               <div style={styles.errorText}>{error}</div>
             </div>
-            <button onClick={fetchEntreprises} style={styles.errorRetryButton}>
+            <button onClick={fetchData} style={styles.errorRetryButton}>
               Réessayer
             </button>
           </div>
@@ -352,9 +638,22 @@ export default function MesEntreprises() {
               }
             </p>
             {entreprises.length === 0 && (
-              <Link to="/entreprises/creer" style={styles.emptyButton}>
-                <FiPlus style={styles.emptyButtonIcon} />
-                Créer ma première entreprise
+              <Link 
+                to={canCreateEntreprise() ? "/entreprises/creer" : "#"} 
+                style={{
+                  ...styles.emptyButton,
+                  opacity: canCreateEntreprise() ? 1 : 0.7,
+                  cursor: canCreateEntreprise() ? 'pointer' : 'not-allowed',
+                  backgroundColor: canCreateEntreprise() ? '#ef4444' : '#94a3b8'
+                }}
+                onClick={handleCreateEntreprise}
+              >
+                {canCreateEntreprise() ? (
+                  <FiPlus style={styles.emptyButtonIcon} />
+                ) : (
+                  <FiLock style={styles.emptyButtonIcon} />
+                )}
+                {canCreateEntreprise() ? 'Créer ma première entreprise' : 'Limite atteinte'}
               </Link>
             )}
           </div>
@@ -376,10 +675,13 @@ export default function MesEntreprises() {
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.style.display = 'none';
-                            e.target.nextElementSibling.style.display = 'flex';
                           }}
                         />
-                      ) : null}
+                      ) : (
+                        <div style={styles.logoPlaceholder}>
+                          <MdBusiness style={styles.logoIcon} />
+                        </div>
+                      )}
                       
                       <div style={styles.cardHeaderInfo}>
                         <h3 style={styles.cardTitle}>{entreprise.name}</h3>
@@ -487,6 +789,167 @@ export default function MesEntreprises() {
         )}
       </div>
 
+      {/* Modal de limite atteinte - COMME DANS LE DASHBOARD */}
+      {showLimitModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowLimitModal(false)}>
+          <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <MdOutlineWarning style={{...styles.modalIcon, color: '#f59e0b'}} />
+              <h2 style={styles.modalTitle}>
+                {limitModalType === 'entreprise' && 'Limite d\'entreprises atteinte'}
+                {limitModalType === 'service' && 'Limite de services atteinte'}
+                {limitModalType === 'no-entreprise' && 'Aucune entreprise'}
+                {limitModalType === 'no-service' && 'Aucun service'}
+              </h2>
+              <button 
+                onClick={() => setShowLimitModal(false)}
+                style={styles.modalCloseButton}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.modalBody}>
+              {limitModalType === 'entreprise' && (
+                <>
+                  <p style={styles.modalText}>
+                    Vous avez atteint la limite maximale d'entreprises autorisée par votre plan actuel.
+                  </p>
+                  <div style={styles.modalInfoBox}>
+                    <FiAlertCircle style={styles.modalInfoIcon} />
+                    <p style={styles.modalInfoText}>
+                      <strong>Plan actuel :</strong> {currentPlan.name} ({currentPlan.maxEntreprises} entreprise maximum)
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {limitModalType === 'service' && (
+                <>
+                  <p style={styles.modalText}>
+                    Vous avez atteint la limite maximale de services autorisée par votre plan actuel.
+                  </p>
+                  <div style={styles.modalInfoBox}>
+                    <FiAlertCircle style={styles.modalInfoIcon} />
+                    <p style={styles.modalInfoText}>
+                      <strong>Plan actuel :</strong> {currentPlan.name} ({currentPlan.maxServices} services maximum)
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {limitModalType === 'no-entreprise' && (
+                <>
+                  <p style={styles.modalText}>
+                    Vous n'avez pas encore créé d'entreprise. Pour accéder à cette section, vous devez d'abord créer votre première entreprise.
+                  </p>
+                  <div style={styles.modalInfoBox}>
+                    <FiAlertCircle style={styles.modalInfoIcon} />
+                    <p style={styles.modalInfoText}>
+                      Une fois votre entreprise créée et validée, vous pourrez gérer vos services et vos informations.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {limitModalType === 'no-service' && (
+                <>
+                  <p style={styles.modalText}>
+                    Vous n'avez pas encore créé de service. Pour accéder à cette section, vous devez d'abord créer vos services.
+                  </p>
+                  <div style={styles.modalInfoBox}>
+                    <FiAlertCircle style={styles.modalInfoIcon} />
+                    <p style={styles.modalInfoText}>
+                      Une fois vos services créés, vous pourrez les gérer et les modifier depuis cette interface.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <div style={styles.modalSteps}>
+                <h4 style={{marginBottom: '1rem', color: '#1e293b'}}>Solutions disponibles :</h4>
+                
+                {(limitModalType === 'entreprise' || limitModalType === 'service') && (
+                  <>
+                    <div style={styles.modalStep}>
+                      <div style={{...styles.stepNumber, backgroundColor: '#f59e0b'}}>1</div>
+                      <div style={styles.stepContent}>
+                        <h4 style={styles.stepTitle}>Passer à un plan supérieur</h4>
+                        <p style={styles.stepText}>
+                          Bénéficiez de limites plus élevées et de fonctionnalités supplémentaires
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div style={styles.modalStep}>
+                      <div style={{...styles.stepNumber, backgroundColor: '#f59e0b'}}>2</div>
+                      <div style={styles.stepContent}>
+                        <h4 style={styles.stepTitle}>Optimiser vos ressources</h4>
+                        <p style={styles.stepText}>
+                          Supprimez ou désactivez les éléments que vous n'utilisez plus
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {(limitModalType === 'no-entreprise' || limitModalType === 'no-service') && (
+                  <div style={styles.modalStep}>
+                    <div style={{...styles.stepNumber, backgroundColor: '#f59e0b'}}>1</div>
+                    <div style={styles.stepContent}>
+                      <h4 style={styles.stepTitle}>
+                        {limitModalType === 'no-entreprise' ? 'Créer votre première entreprise' : 'Créer votre premier service'}
+                      </h4>
+                      <p style={styles.stepText}>
+                        {limitModalType === 'no-entreprise' 
+                          ? 'Commencez par créer votre entreprise pour proposer vos services'
+                          : 'Une fois votre entreprise créée, ajoutez vos services pour les rendre visibles'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button 
+                onClick={() => setShowLimitModal(false)}
+                style={styles.modalCancelButton}
+              >
+                Fermer
+              </button>
+              {(limitModalType === 'entreprise' || limitModalType === 'service') && (
+                <Link 
+                  to="/plans"
+                  style={styles.modalConfirmButton}
+                  onClick={() => setShowLimitModal(false)}
+                >
+                  Voir les plans
+                </Link>
+              )}
+              {limitModalType === 'no-entreprise' && (
+                <Link 
+                  to="/entreprises/creer"
+                  style={styles.modalConfirmButton}
+                  onClick={() => setShowLimitModal(false)}
+                >
+                  Créer une entreprise
+                </Link>
+              )}
+              {limitModalType === 'no-service' && (
+                <Link 
+                  to="/services/creer"
+                  style={styles.modalConfirmButton}
+                  onClick={() => setShowLimitModal(false)}
+                >
+                  Créer un service
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CSS pour animations */}
       <style>{`
         @keyframes spin {
@@ -516,7 +979,7 @@ export default function MesEntreprises() {
   );
 }
 
-// Styles
+// Styles (avec les nouveaux styles pour les barres de progression)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -540,7 +1003,7 @@ const styles = {
     width: '50px',
     height: '50px',
     border: `4px solid #dbeafe`,
-    borderTop: `4px solid #3b82f6`,
+    borderTop: `4px solid #ef4444`,
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
@@ -616,15 +1079,129 @@ const styles = {
     borderRadius: '0.75rem',
     textDecoration: 'none',
     fontWeight: '600',
-    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
+    boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)',
     transition: 'all 0.2s',
   },
   createButtonIcon: {
     fontSize: '1.125rem',
   },
+
+  // Styles pour la carte du plan - COMME DANS LE DASHBOARD
+  planCard: {
+    backgroundColor: '#fff',
+    borderRadius: '1rem',
+    border: '1px solid #e2e8f0',
+    padding: '1.5rem',
+    marginBottom: '2rem',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+  },
+  planCardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '1rem',
+  },
+  planCardTitle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    fontSize: '1rem',
+    color: '#475569',
+  },
+  planCardIcon: {
+    fontSize: '1.25rem',
+    color: '#f59e0b',
+  },
+  planCardLink: {
+    color: '#ef4444',
+    textDecoration: 'none',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+  },
+  planCardBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+  },
+  planProgress: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '1.5rem',
+  },
+  planProgressItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.375rem',
+  },
+  planProgressLabel: {
+    fontSize: '0.875rem',
+    color: '#475569',
+    fontWeight: '500',
+  },
+  planProgressBarContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+  },
+  planProgressBar: {
+    flex: 1,
+    height: '8px',
+    backgroundColor: '#e2e8f0',
+    borderRadius: '4px',
+    overflow: 'hidden',
+  },
+  planProgressFill: {
+    height: '100%',
+    borderRadius: '4px',
+    transition: 'width 0.3s ease',
+  },
+  planProgressValue: {
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#1e293b',
+    minWidth: '60px',
+    textAlign: 'right',
+  },
+  trialInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.75rem',
+    backgroundColor: '#fef3c7',
+    borderRadius: '0.5rem',
+    border: '1px solid #fde68a',
+  },
+  trialIcon: {
+    fontSize: '1rem',
+    color: '#d97706',
+  },
+  trialText: {
+    fontSize: '0.875rem',
+    color: '#b45309',
+    fontWeight: '500',
+  },
+  warningInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.75rem',
+    backgroundColor: '#fee2e2',
+    borderRadius: '0.5rem',
+    border: '1px solid #fecaca',
+  },
+  warningIcon: {
+    fontSize: '1rem',
+    color: '#dc2626',
+  },
+  warningText: {
+    fontSize: '0.875rem',
+    color: '#b91c1c',
+    fontWeight: '500',
+  },
+
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
     gap: '1.25rem',
     marginBottom: '2rem',
   },
@@ -637,6 +1214,7 @@ const styles = {
     alignItems: 'center',
     gap: '1rem',
     transition: 'all 0.3s',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
   },
   statIconContainer: {
     display: 'flex',
@@ -662,8 +1240,30 @@ const styles = {
   },
   statLabel: {
     fontSize: '0.875rem',
+    fontWeight: '600',
     color: '#64748b',
-    fontWeight: '500',
+    marginBottom: '0.25rem',
+  },
+  statSubtext: {
+    fontSize: '0.75rem',
+    color: '#94a3b8',
+  },
+  statTrend: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.375rem',
+    backgroundColor: '#f0fdf4',
+    color: '#16a34a',
+    padding: '0.375rem 0.75rem',
+    borderRadius: '0.5rem',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+  },
+  statTrendIcon: {
+    fontSize: '0.875rem',
+  },
+  statTrendText: {
+    whiteSpace: 'nowrap',
   },
   searchSection: {
     display: 'flex',
@@ -838,7 +1438,7 @@ const styles = {
     borderRadius: '0.75rem',
     textDecoration: 'none',
     fontWeight: '600',
-    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
+    boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)',
   },
   emptyButtonIcon: {
     fontSize: '1.125rem',
@@ -1068,63 +1668,161 @@ const styles = {
     fontSize: '0.75rem',
   },
 
-  // Styles responsives
-  '@media (max-width: 1200px)': {
-    grid: {
-      gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-    },
+  // Styles du modal
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+    backdropFilter: 'blur(4px)',
   },
-  '@media (max-width: 1024px)': {
-    statsGrid: {
-      gridTemplateColumns: 'repeat(3, 1fr)',
-    },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: '1rem',
+    maxWidth: '500px',
+    width: '90%',
+    maxHeight: '90vh',
+    overflow: 'auto',
+    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
   },
-  '@media (max-width: 768px)': {
-    content: {
-      padding: '0 1rem',
-    },
-    title: {
-      fontSize: '1.75rem',
-    },
-    statsGrid: {
-      gridTemplateColumns: 'repeat(2, 1fr)',
-    },
-    grid: {
-      gridTemplateColumns: '1fr',
-    },
-    infoGrid: {
-      gridTemplateColumns: '1fr',
-    },
-    cardFooter: {
-      flexDirection: 'column',
-      alignItems: 'stretch',
-    },
-    cardFooterActions: {
-      width: '100%',
-    },
-    viewButton: {
-      flex: 1,
-      justifyContent: 'center',
-    },
-    editButton: {
-      flex: 1,
-      justifyContent: 'center',
-    },
-    deleteButton: {
-      flex: 1,
-      justifyContent: 'center',
-    },
+  modalHeader: {
+    padding: '1.5rem',
+    borderBottom: '1px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    position: 'relative',
   },
-  '@media (max-width: 480px)': {
-    statsGrid: {
-      gridTemplateColumns: '1fr',
-    },
-    headerMain: {
-      flexDirection: 'column',
-    },
-    headerActions: {
-      width: '100%',
-      justifyContent: 'flex-end',
-    },
+  modalIcon: {
+    fontSize: '2rem',
+    color: '#ef4444',
+  },
+  modalTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '700',
+    color: '#1e293b',
+    flex: 1,
+  },
+  modalCloseButton: {
+    background: 'none',
+    border: 'none',
+    fontSize: '2rem',
+    color: '#64748b',
+    cursor: 'pointer',
+    padding: '0',
+    lineHeight: 1,
+  },
+  modalBody: {
+    padding: '1.5rem',
+  },
+  modalText: {
+    fontSize: '0.95rem',
+    color: '#475569',
+    lineHeight: '1.6',
+    marginBottom: '1rem',
+  },
+  modalInfoBox: {
+    backgroundColor: '#f0f9ff',
+    padding: '1rem',
+    borderRadius: '0.75rem',
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.75rem',
+    marginBottom: '1.5rem',
+    border: '1px solid #bae6fd',
+  },
+  modalInfoIcon: {
+    fontSize: '1.25rem',
+    color: '#0284c7',
+    flexShrink: 0,
+  },
+  modalInfoText: {
+    fontSize: '0.875rem',
+    color: '#0369a1',
+    lineHeight: '1.5',
+  },
+  modalSteps: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+  },
+  modalStep: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '1rem',
+  },
+  stepNumber: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '32px',
+    height: '32px',
+    backgroundColor: '#ef4444',
+    color: '#fff',
+    borderRadius: '50%',
+    fontSize: '1rem',
+    fontWeight: '600',
+    flexShrink: 0,
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: '1rem',
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: '0.25rem',
+  },
+  stepText: {
+    fontSize: '0.875rem',
+    color: '#64748b',
+  },
+  modalFooter: {
+    padding: '1.5rem',
+    borderTop: '1px solid #e2e8f0',
+    display: 'flex',
+    gap: '1rem',
+  },
+  modalCancelButton: {
+    flex: 1,
+    padding: '0.75rem',
+    backgroundColor: '#fff',
+    border: '2px solid #e2e8f0',
+    borderRadius: '0.5rem',
+    color: '#475569',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  modalConfirmButton: {
+    flex: 1,
+    padding: '0.75rem',
+    backgroundColor: '#ef4444',
+    border: 'none',
+    borderRadius: '0.5rem',
+    color: '#fff',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    textAlign: 'center',
+    transition: 'all 0.2s',
   },
 };
+
+// Ajouter l'animation globale
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+document.head.appendChild(style);

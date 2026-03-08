@@ -6,22 +6,49 @@ import { serviceApi } from '../api/serviceApi';
 import { 
   FiSettings, FiShoppingBag, FiHeart, FiCalendar, FiBell, 
   FiTrendingUp, FiActivity, FiBarChart2, FiTarget, FiPlus, 
-  FiBriefcase, FiInfo, FiChevronRight, FiUsers, FiDollarSign, FiTool
+  FiBriefcase, FiInfo, FiChevronRight, FiUsers, FiDollarSign, FiTool,
+  FiClock, FiGift, FiAlertCircle, FiLock
 } from 'react-icons/fi';
 import { 
   MdDashboard, MdOutlineBusiness, MdOutlineWork, 
   MdOutlineInsights, MdOutlineStorefront, 
-  MdOutlineInventory, MdOutlineDirectionsCar 
+  MdOutlineInventory, MdOutlineDirectionsCar,
+  MdTimer, MdHourglassEmpty, MdWarning
 } from 'react-icons/md';
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [showBecomeProviderModal, setShowBecomeProviderModal] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitModalType, setLimitModalType] = useState('');
   const [isProvider, setIsProvider] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [entreprises, setEntreprises] = useState([]);
   const [services, setServices] = useState([]);
+  
+  // État pour le compte à rebours de l'essai
+  const [trialTimeLeft, setTrialTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    total: 0,
+    isActive: false,
+    isExpired: false
+  });
+  
+  const [currentPlan, setCurrentPlan] = useState({
+    name: 'Essai Gratuit',
+    maxServices: 0,
+    maxEmployees: 0,
+    maxEntreprises: 1,
+    hasApiAccess: false,
+    servicesCount: 0,
+    employeesCount: 0,
+    entreprisesCount: 0
+  });
+
   const [stats, setStats] = useState({
     totalEntreprises: 0,
     validatedEntreprises: 0,
@@ -35,10 +62,8 @@ export default function Dashboard() {
 
   // EFFET PRINCIPAL POUR LA REDIRECTION
   useEffect(() => {
-    // Ne rien faire tant que l'auth n'est pas chargée
     if (authLoading) return;
 
-    // Si pas d'utilisateur, rediriger vers login
     if (!user) {
       navigate('/login', { 
         state: { from: '/dashboard' },
@@ -47,7 +72,6 @@ export default function Dashboard() {
       return;
     }
 
-    // Redirection basée sur le rôle
     switch (user.role) {
       case 'admin':
         navigate('/admin/dashboard', { replace: true });
@@ -55,6 +79,7 @@ export default function Dashboard() {
       case 'prestataire':
       case 'provider':
         setIsProvider(true);
+        setDataLoading(false);
         break;
       case 'client':
       default:
@@ -64,6 +89,90 @@ export default function Dashboard() {
     }
   }, [user, authLoading, navigate]);
 
+  // EFFET POUR LE COMPTE À REBOURS
+  useEffect(() => {
+    if (!isProvider || !entreprises.length) return;
+
+    const validatedEntreprise = entreprises.find(e => 
+      e.status === 'validated' && e.trial_ends_at
+    );
+
+    if (!validatedEntreprise) {
+      setTrialTimeLeft({
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        total: 0,
+        isActive: false,
+        isExpired: false
+      });
+      
+      setCurrentPlan(prev => ({
+        ...prev,
+        maxServices: validatedEntreprise?.max_services_allowed || 3,
+        maxEmployees: validatedEntreprise?.max_employees_allowed || 1,
+        maxEntreprises: 1,
+        hasApiAccess: validatedEntreprise?.has_api_access || false,
+        servicesCount: stats.totalServices || 0,
+        employeesCount: 1,
+        entreprisesCount: stats.totalEntreprises || 0
+      }));
+      
+      return;
+    }
+
+    setCurrentPlan({
+      name: 'Essai Gratuit',
+      maxServices: validatedEntreprise.max_services_allowed || 3,
+      maxEmployees: validatedEntreprise.max_employees_allowed || 1,
+      maxEntreprises: 1,
+      hasApiAccess: validatedEntreprise.has_api_access || false,
+      servicesCount: stats.totalServices || 0,
+      employeesCount: 1,
+      entreprisesCount: stats.totalEntreprises || 0
+    });
+
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const endDate = new Date(validatedEntreprise.trial_ends_at).getTime();
+      const distance = endDate - now;
+
+      if (distance < 0) {
+        setTrialTimeLeft({
+          days: 0,
+          hours: 0,
+          minutes: 0,
+          seconds: 0,
+          total: 0,
+          isActive: false,
+          isExpired: true
+        });
+        return;
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      setTrialTimeLeft({
+        days,
+        hours,
+        minutes,
+        seconds,
+        total: distance,
+        isActive: true,
+        isExpired: false
+      });
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
+  }, [isProvider, entreprises, stats.totalServices, stats.totalEntreprises]);
+
   // EFFET POUR CHARGER LES DONNÉES PRESTATAIRE
   useEffect(() => {
     const loadProviderData = async () => {
@@ -72,15 +181,12 @@ export default function Dashboard() {
       try {
         setDataLoading(true);
         
-        // Charger les entreprises
         const entreprisesData = await entrepriseApi.getMesEntreprises();
         setEntreprises(entreprisesData || []);
         
-        // Charger les services
         const servicesData = await serviceApi.getMesServices();
         setServices(servicesData || []);
         
-        // Calculer les stats
         const validatedEntreprises = (entreprisesData || []).filter(e => e.status === 'validated').length;
         const pendingEntreprises = (entreprisesData || []).filter(e => e.status === 'pending').length;
         const servicesWithPrice = (servicesData || []).filter(s => s.price).length;
@@ -112,15 +218,48 @@ export default function Dashboard() {
     }
   }, [isProvider, user]);
 
-  // EFFET POUR METTRE À JOUR LE LOADING DES PRESTATAIRES
-  useEffect(() => {
-    if (isProvider && user) {
-      setDataLoading(true);
-    }
-  }, [isProvider, user]);
+  // Vérification des limites
+  const canCreateEntreprise = () => {
+    return stats.totalEntreprises < currentPlan.maxEntreprises;
+  };
 
-  // Afficher le loader pendant le chargement
-  if (authLoading || (isProvider && dataLoading)) {
+  const canCreateService = () => {
+    return stats.totalServices < currentPlan.maxServices;
+  };
+
+  const handleCreateEntreprise = (e) => {
+    if (!canCreateEntreprise()) {
+      e.preventDefault();
+      setLimitModalType('entreprise');
+      setShowLimitModal(true);
+    }
+  };
+
+  const handleCreateService = (e) => {
+    if (!canCreateService()) {
+      e.preventDefault();
+      setLimitModalType('service');
+      setShowLimitModal(true);
+    }
+  };
+
+  const handleManageEntreprises = (e) => {
+    if (stats.totalEntreprises === 0) {
+      e.preventDefault();
+      setLimitModalType('no-entreprise');
+      setShowLimitModal(true);
+    }
+  };
+
+  const handleManageServices = (e) => {
+    if (stats.totalServices === 0) {
+      e.preventDefault();
+      setLimitModalType('no-service');
+      setShowLimitModal(true);
+    }
+  };
+
+  if (authLoading || dataLoading) {
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
@@ -134,7 +273,6 @@ export default function Dashboard() {
     );
   }
 
-  // Si pas d'utilisateur (ne devrait pas arriver)
   if (!user) {
     return null;
   }
@@ -147,12 +285,114 @@ export default function Dashboard() {
     }).format(price);
   };
 
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const formatTimeUnit = (value) => {
+    return value.toString().padStart(2, '0');
+  };
+
+  // Composant Timer
+  const TrialTimer = () => {
+    if (!trialTimeLeft.isActive && !trialTimeLeft.isExpired) {
+      return (
+        <div style={styles.timerInactive}>
+          <FiClock style={styles.timerIcon} />
+          <span>Aucune période d'essai active</span>
+        </div>
+      );
+    }
+
+    if (trialTimeLeft.isExpired) {
+      return (
+        <div style={styles.timerExpired}>
+          <FiAlertCircle style={styles.timerIcon} />
+          <div style={styles.timerContent}>
+            <span style={styles.timerLabel}>Période d'essai expirée</span>
+            <Link to="/abonnements" style={styles.timerAction}>
+              Souscrire un abonnement
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={styles.timerCard}>
+        <div style={styles.timerHeader}>
+          <FiGift style={styles.timerGiftIcon} />
+          <div>
+            <h4 style={styles.timerTitle}>Période d'essai gratuite</h4>
+            <p style={styles.timerSubtitle}>30 jours offerts pour découvrir la plateforme</p>
+          </div>
+        </div>
+        
+        <div style={styles.timerDisplay}>
+          <div style={styles.timerUnit}>
+            <span style={styles.timerNumber}>{formatTimeUnit(trialTimeLeft.days)}</span>
+            <span style={styles.timerUnitLabel}>Jours</span>
+          </div>
+          <span style={styles.timerSeparator}>:</span>
+          <div style={styles.timerUnit}>
+            <span style={styles.timerNumber}>{formatTimeUnit(trialTimeLeft.hours)}</span>
+            <span style={styles.timerUnitLabel}>Heures</span>
+          </div>
+          <span style={styles.timerSeparator}>:</span>
+          <div style={styles.timerUnit}>
+            <span style={styles.timerNumber}>{formatTimeUnit(trialTimeLeft.minutes)}</span>
+            <span style={styles.timerUnitLabel}>Minutes</span>
+          </div>
+          <span style={styles.timerSeparator}>:</span>
+          <div style={styles.timerUnit}>
+            <span style={styles.timerNumber}>{formatTimeUnit(trialTimeLeft.seconds)}</span>
+            <span style={styles.timerUnitLabel}>Secondes</span>
+          </div>
+        </div>
+
+        <div style={styles.timerProgressBar}>
+          <div 
+            style={{
+              ...styles.timerProgressFill,
+              width: `${((30 * 24 * 60 * 60 * 1000 - trialTimeLeft.total) / (30 * 24 * 60 * 60 * 1000)) * 100}%`
+            }}
+          />
+        </div>
+
+        <div style={styles.timerFooter}>
+          <div style={styles.timerStats}>
+            <div style={styles.timerStat}>
+              <span style={styles.timerStatLabel}>Services utilisés</span>
+              <span style={styles.timerStatValue}>
+                {currentPlan.servicesCount} / {currentPlan.maxServices}
+              </span>
+            </div>
+            <div style={styles.timerStat}>
+              <span style={styles.timerStatLabel}>Entreprises</span>
+              <span style={styles.timerStatValue}>
+                {currentPlan.entreprisesCount} / {currentPlan.maxEntreprises}
+              </span>
+            </div>
+          </div>
+          <Link to="/plans" style={styles.timerLink}>
+            Voir les offres
+          </Link>
+        </div>
+      </div>
+    );
+  };
+
   // DASHBOARD CLIENT
   if (!isProvider) {
     return (
       <div style={styles.container}>
         <div style={styles.content}>
-          {/* Header Client */}
           <div style={styles.header}>
             <div style={styles.headerMain}>
               <div>
@@ -161,7 +401,7 @@ export default function Dashboard() {
                   Espace Client
                 </h1>
                 <p style={styles.subtitle}>
-                  Bienvenue sur votre espace personnel, {user?.name?.split(' ')[0]} !
+                  Bienvenue sur votre espace personnel, {user?.name?.split(' ')[0] || 'Client'} !
                 </p>
               </div>
               <div style={styles.headerActions}>
@@ -178,7 +418,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Carte de bienvenue */}
           <div style={styles.welcomeCard}>
             <div style={styles.welcomeContent}>
               <h2 style={styles.welcomeTitle}>Bienvenue sur CarEasy !</h2>
@@ -199,7 +438,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Statistiques client */}
           <div style={styles.statsGrid}>
             <div style={styles.statCard}>
               <div style={styles.statIconContainer}>
@@ -222,9 +460,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Contenu principal client */}
           <div style={styles.clientMainContent}>
-            {/* Colonne gauche */}
             <div style={styles.clientLeftColumn}>
               <div style={styles.sectionCard}>
                 <div style={styles.sectionHeader}>
@@ -246,7 +482,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Colonne droite */}
             <div style={styles.clientRightColumn}>
               <div style={styles.sectionCard}>
                 <div style={styles.sectionHeader}>
@@ -377,6 +612,11 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Timer de période d'essai */}
+        <div style={styles.timerSection}>
+          <TrialTimer />
+        </div>
+
         {/* Statistiques principales */}
         <div style={styles.statsGrid}>
           <div style={styles.statCard}>
@@ -390,9 +630,15 @@ export default function Dashboard() {
                 {stats.validatedEntreprises} validées • {stats.pendingEntreprises} en attente
               </div>
             </div>
-            <div style={styles.statTrend}>
-              <FiTrendingUp style={styles.statTrendIcon} />
-              <span style={styles.statTrendText}>+2 ce mois</span>
+            <div style={{
+              ...styles.statTrend,
+              backgroundColor: stats.totalEntreprises >= currentPlan.maxEntreprises ? '#fee2e2' : '#f0fdf4',
+              color: stats.totalEntreprises >= currentPlan.maxEntreprises ? '#dc2626' : '#16a34a'
+            }}>
+              <FiActivity style={styles.statTrendIcon} />
+              <span style={styles.statTrendText}>
+                {stats.totalEntreprises >= currentPlan.maxEntreprises ? 'Limite atteinte' : `${currentPlan.maxEntreprises - stats.totalEntreprises} restante`}
+              </span>
             </div>
           </div>
 
@@ -401,15 +647,23 @@ export default function Dashboard() {
               <MdOutlineWork style={styles.statIcon} />
             </div>
             <div style={styles.statContent}>
-              <div style={styles.statNumber}>{stats.totalServices}</div>
+              <div style={styles.statNumber}>
+                {stats.totalServices} / {currentPlan.maxServices}
+              </div>
               <div style={styles.statLabel}>Services</div>
               <div style={styles.statSubtext}>
                 {stats.servicesWithPrice} avec tarif • {stats.services24h} 24h/24
               </div>
             </div>
-            <div style={styles.statTrend}>
-              <FiTrendingUp style={styles.statTrendIcon} />
-              <span style={styles.statTrendText}>+5 ce mois</span>
+            <div style={{
+              ...styles.statTrend,
+              backgroundColor: stats.totalServices >= currentPlan.maxServices ? '#fee2e2' : '#f0fdf4',
+              color: stats.totalServices >= currentPlan.maxServices ? '#dc2626' : '#16a34a'
+            }}>
+              <FiActivity style={styles.statTrendIcon} />
+              <span style={styles.statTrendText}>
+                {stats.totalServices >= currentPlan.maxServices ? 'Limite atteinte' : `${currentPlan.maxServices - stats.totalServices} restants`}
+              </span>
             </div>
           </div>
 
@@ -418,15 +672,23 @@ export default function Dashboard() {
               <FiUsers style={styles.statIcon} />
             </div>
             <div style={styles.statContent}>
-              <div style={styles.statNumber}>{stats.activeClients}</div>
-              <div style={styles.statLabel}>Clients actifs</div>
+              <div style={styles.statNumber}>
+                {currentPlan.employeesCount} / {currentPlan.maxEmployees}
+              </div>
+              <div style={styles.statLabel}>Employés</div>
               <div style={styles.statSubtext}>
-                12 nouveaux ce mois
+                Limite du plan {currentPlan.name}
               </div>
             </div>
-            <div style={styles.statTrend}>
-              <FiActivity style={styles.statTrendIcon} />
-              <span style={styles.statTrendText}>Actif</span>
+            <div style={{
+              ...styles.statTrend,
+              backgroundColor: currentPlan.employeesCount >= currentPlan.maxEmployees ? '#fee2e2' : '#f0fdf4',
+              color: currentPlan.employeesCount >= currentPlan.maxEmployees ? '#dc2626' : '#16a34a'
+            }}>
+              <FiUsers style={styles.statTrendIcon} />
+              <span style={styles.statTrendText}>
+                {currentPlan.employeesCount >= currentPlan.maxEmployees ? 'Max atteint' : `${currentPlan.maxEmployees - currentPlan.employeesCount} places`}
+              </span>
             </div>
           </div>
 
@@ -460,49 +722,136 @@ export default function Dashboard() {
                 </h3>
               </div>
               <div style={styles.actionsGrid}>
-                <Link to="/services/creer" style={styles.actionCard}>
-                  <div style={styles.actionIcon}>
-                    <FiPlus />
+                <Link 
+                  to={canCreateService() ? "/services/creer" : "#"} 
+                  style={{
+                    ...styles.actionCard,
+                    opacity: canCreateService() ? 1 : 0.7,
+                    cursor: canCreateService() ? 'pointer' : 'not-allowed'
+                  }}
+                  onClick={handleCreateService}
+                >
+                  <div style={{
+                    ...styles.actionIcon,
+                    backgroundColor: canCreateService() ? '#dbeafe' : '#fee2e2'
+                  }}>
+                    {canCreateService() ? <FiPlus /> : <FiLock />}
                   </div>
                   <div style={styles.actionContent}>
                     <div style={styles.actionTitle}>Nouveau service</div>
-                    <div style={styles.actionDescription}>Ajouter un service</div>
+                    <div style={styles.actionDescription}>
+                      {canCreateService() ? 'Ajouter un service' : 'Limite atteinte'}
+                    </div>
                   </div>
                   <FiChevronRight style={styles.actionArrow} />
                 </Link>
 
-                <Link to="/entreprises/creer" style={styles.actionCard}>
-                  <div style={styles.actionIcon}>
-                    <MdOutlineBusiness />
+                <Link 
+                  to={canCreateEntreprise() ? "/entreprises/creer" : "#"} 
+                  style={{
+                    ...styles.actionCard,
+                    opacity: canCreateEntreprise() ? 1 : 0.7,
+                    cursor: canCreateEntreprise() ? 'pointer' : 'not-allowed'
+                  }}
+                  onClick={handleCreateEntreprise}
+                >
+                  <div style={{
+                    ...styles.actionIcon,
+                    backgroundColor: canCreateEntreprise() ? '#dbeafe' : '#fee2e2'
+                  }}>
+                    {canCreateEntreprise() ? <MdOutlineBusiness /> : <FiLock />}
                   </div>
                   <div style={styles.actionContent}>
                     <div style={styles.actionTitle}>Nouvelle entreprise</div>
-                    <div style={styles.actionDescription}>Créer une entreprise</div>
+                    <div style={styles.actionDescription}>
+                      {canCreateEntreprise() ? 'Créer une entreprise' : 'Limite atteinte'}
+                    </div>
                   </div>
                   <FiChevronRight style={styles.actionArrow} />
                 </Link>
 
-                <Link to="/mes-services" style={styles.actionCard}>
-                  <div style={styles.actionIcon}>
-                    <MdOutlineWork />
+                <Link 
+                  to={stats.totalServices > 0 ? "/mes-services" : "#"} 
+                  style={{
+                    ...styles.actionCard,
+                    opacity: stats.totalServices > 0 ? 1 : 0.7,
+                    cursor: stats.totalServices > 0 ? 'pointer' : 'not-allowed'
+                  }}
+                  onClick={handleManageServices}
+                >
+                  <div style={{
+                    ...styles.actionIcon,
+                    backgroundColor: stats.totalServices > 0 ? '#dbeafe' : '#fee2e2'
+                  }}>
+                    {stats.totalServices > 0 ? <MdOutlineWork /> : <FiLock />}
                   </div>
                   <div style={styles.actionContent}>
                     <div style={styles.actionTitle}>Gérer les services</div>
-                    <div style={styles.actionDescription}>Voir tous les services</div>
+                    <div style={styles.actionDescription}>
+                      {stats.totalServices > 0 ? 'Voir tous les services' : 'Aucun service'}
+                    </div>
                   </div>
                   <FiChevronRight style={styles.actionArrow} />
                 </Link>
 
-                <Link to="/mes-entreprises" style={styles.actionCard}>
-                  <div style={styles.actionIcon}>
-                    <FiBriefcase />
+                <Link 
+                  to={stats.totalEntreprises > 0 ? "/mes-entreprises" : "#"} 
+                  style={{
+                    ...styles.actionCard,
+                    opacity: stats.totalEntreprises > 0 ? 1 : 0.7,
+                    cursor: stats.totalEntreprises > 0 ? 'pointer' : 'not-allowed'
+                  }}
+                  onClick={handleManageEntreprises}
+                >
+                  <div style={{
+                    ...styles.actionIcon,
+                    backgroundColor: stats.totalEntreprises > 0 ? '#dbeafe' : '#fee2e2'
+                  }}>
+                    {stats.totalEntreprises > 0 ? <FiBriefcase /> : <FiLock />}
                   </div>
                   <div style={styles.actionContent}>
                     <div style={styles.actionTitle}>Gérer les entreprises</div>
-                    <div style={styles.actionDescription}>Voir les entreprises</div>
+                    <div style={styles.actionDescription}>
+                      {stats.totalEntreprises > 0 ? 'Voir les entreprises' : 'Aucune entreprise'}
+                    </div>
                   </div>
                   <FiChevronRight style={styles.actionArrow} />
                 </Link>
+              </div>
+            </div>
+
+            {/* Plan d'abonnement */}
+            <div style={styles.sectionCard}>
+              <div style={styles.sectionHeader}>
+                <h3 style={styles.sectionTitle}>
+                  <FiGift style={styles.sectionIcon} />
+                  Plan actuel
+                </h3>
+                <Link to="/plans" style={styles.viewAllLink}>
+                  Changer de plan
+                </Link>
+              </div>
+              <div style={styles.planInfo}>
+                <div style={styles.planName}>
+                  <span style={styles.planNameText}>{currentPlan.name}</span>
+                  {currentPlan.name === 'Essai Gratuit' && (
+                    <span style={styles.planBadge}>30 jours</span>
+                  )}
+                </div>
+                <div style={styles.planFeatures}>
+                  <div style={styles.planFeature}>
+                    <span style={styles.planFeatureLabel}>Entreprises max</span>
+                    <span style={styles.planFeatureValue}>{currentPlan.maxEntreprises}</span>
+                  </div>
+                  <div style={styles.planFeature}>
+                    <span style={styles.planFeatureLabel}>Services max</span>
+                    <span style={styles.planFeatureValue}>{currentPlan.maxServices}</span>
+                  </div>
+                  <div style={styles.planFeature}>
+                    <span style={styles.planFeatureLabel}>Employés max</span>
+                    <span style={styles.planFeatureValue}>{currentPlan.maxEmployees}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -516,7 +865,13 @@ export default function Dashboard() {
                   <MdOutlineStorefront style={styles.sectionIcon} />
                   État des entreprises
                 </h3>
-                <Link to="/mes-entreprises" style={styles.viewAllLink}>
+                <Link to={stats.totalEntreprises > 0 ? "/mes-entreprises" : "#"} 
+                  style={{
+                    ...styles.viewAllLink,
+                    opacity: stats.totalEntreprises > 0 ? 1 : 0.5,
+                    pointerEvents: stats.totalEntreprises > 0 ? 'auto' : 'none'
+                  }}
+                >
                   Voir toutes
                 </Link>
               </div>
@@ -548,6 +903,11 @@ export default function Dashboard() {
                             {entreprise.status === 'validated' ? 'Validée' : 
                              entreprise.status === 'pending' ? 'En attente' : 'Rejetée'}
                           </span>
+                          {entreprise.trial_ends_at && entreprise.status === 'validated' && (
+                            <span style={styles.trialBadge}>
+                              Essai
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -560,7 +920,15 @@ export default function Dashboard() {
                   <div style={styles.emptyState}>
                     <MdOutlineBusiness style={styles.emptyStateIcon} />
                     <p style={styles.emptyStateText}>Aucune entreprise créée</p>
-                    <Link to="/entreprises/creer" style={styles.emptyStateButton}>
+                    <Link 
+                      to={canCreateEntreprise() ? "/entreprises/creer" : "#"} 
+                      style={{
+                        ...styles.emptyStateButton,
+                        opacity: canCreateEntreprise() ? 1 : 0.5,
+                        cursor: canCreateEntreprise() ? 'pointer' : 'not-allowed'
+                      }}
+                      onClick={handleCreateEntreprise}
+                    >
                       Créer une entreprise
                     </Link>
                   </div>
@@ -575,7 +943,13 @@ export default function Dashboard() {
                   <MdOutlineInventory style={styles.sectionIcon} />
                   Services récents
                 </h3>
-                <Link to="/mes-services" style={styles.viewAllLink}>
+                <Link to={stats.totalServices > 0 ? "/mes-services" : "#"} 
+                  style={{
+                    ...styles.viewAllLink,
+                    opacity: stats.totalServices > 0 ? 1 : 0.5,
+                    pointerEvents: stats.totalServices > 0 ? 'auto' : 'none'
+                  }}
+                >
                   Voir tous
                 </Link>
               </div>
@@ -622,7 +996,15 @@ export default function Dashboard() {
                   <div style={styles.emptyState}>
                     <MdOutlineWork style={styles.emptyStateIcon} />
                     <p style={styles.emptyStateText}>Aucun service créé</p>
-                    <Link to="/services/creer" style={styles.emptyStateButton}>
+                    <Link 
+                      to={canCreateService() ? "/services/creer" : "#"} 
+                      style={{
+                        ...styles.emptyStateButton,
+                        opacity: canCreateService() ? 1 : 0.5,
+                        cursor: canCreateService() ? 'pointer' : 'not-allowed'
+                      }}
+                      onClick={handleCreateService}
+                    >
                       Créer un service
                     </Link>
                   </div>
@@ -678,11 +1060,172 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Modal de limite atteinte */}
+      {showLimitModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowLimitModal(false)}>
+          <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <MdWarning style={{...styles.modalIcon, color: '#f59e0b'}} />
+              <h2 style={styles.modalTitle}>
+                {limitModalType === 'entreprise' && 'Limite d\'entreprises atteinte'}
+                {limitModalType === 'service' && 'Limite de services atteinte'}
+                {limitModalType === 'no-entreprise' && 'Aucune entreprise'}
+                {limitModalType === 'no-service' && 'Aucun service'}
+              </h2>
+              <button 
+                onClick={() => setShowLimitModal(false)}
+                style={styles.modalCloseButton}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.modalBody}>
+              {limitModalType === 'entreprise' && (
+                <>
+                  <p style={styles.modalText}>
+                    Vous avez atteint la limite maximale d'entreprises autorisée par votre plan actuel.
+                  </p>
+                  <div style={styles.modalInfoBox}>
+                    <FiInfo style={styles.modalInfoIcon} />
+                    <p style={styles.modalInfoText}>
+                      <strong>Plan actuel :</strong> {currentPlan.name} ({currentPlan.maxEntreprises} entreprise maximum)
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {limitModalType === 'service' && (
+                <>
+                  <p style={styles.modalText}>
+                    Vous avez atteint la limite maximale de services autorisée par votre plan actuel.
+                  </p>
+                  <div style={styles.modalInfoBox}>
+                    <FiInfo style={styles.modalInfoIcon} />
+                    <p style={styles.modalInfoText}>
+                      <strong>Plan actuel :</strong> {currentPlan.name} ({currentPlan.maxServices} services maximum)
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {limitModalType === 'no-entreprise' && (
+                <>
+                  <p style={styles.modalText}>
+                    Vous n'avez pas encore créé d'entreprise. Pour accéder à cette section, vous devez d'abord créer votre première entreprise.
+                  </p>
+                  <div style={styles.modalInfoBox}>
+                    <FiInfo style={styles.modalInfoIcon} />
+                    <p style={styles.modalInfoText}>
+                      Une fois votre entreprise créée et validée, vous pourrez gérer vos services et vos informations.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {limitModalType === 'no-service' && (
+                <>
+                  <p style={styles.modalText}>
+                    Vous n'avez pas encore créé de service. Pour accéder à cette section, vous devez d'abord créer vos services.
+                  </p>
+                  <div style={styles.modalInfoBox}>
+                    <FiInfo style={styles.modalInfoIcon} />
+                    <p style={styles.modalInfoText}>
+                      Une fois vos services créés, vous pourrez les gérer et les modifier depuis cette interface.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <div style={styles.modalSteps}>
+                <h4 style={{marginBottom: '1rem', color: '#1e293b'}}>Solutions disponibles :</h4>
+                
+                {(limitModalType === 'entreprise' || limitModalType === 'service') && (
+                  <>
+                    <div style={styles.modalStep}>
+                      <div style={{...styles.stepNumber, backgroundColor: '#f59e0b'}}>1</div>
+                      <div style={styles.stepContent}>
+                        <h4 style={styles.stepTitle}>Passer à un plan supérieur</h4>
+                        <p style={styles.stepText}>
+                          Bénéficiez de limites plus élevées et de fonctionnalités supplémentaires
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div style={styles.modalStep}>
+                      <div style={{...styles.stepNumber, backgroundColor: '#f59e0b'}}>2</div>
+                      <div style={styles.stepContent}>
+                        <h4 style={styles.stepTitle}>Optimiser vos ressources</h4>
+                        <p style={styles.stepText}>
+                          Supprimez ou désactivez les éléments que vous n'utilisez plus
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {(limitModalType === 'no-entreprise' || limitModalType === 'no-service') && (
+                  <div style={styles.modalStep}>
+                    <div style={{...styles.stepNumber, backgroundColor: '#f59e0b'}}>1</div>
+                    <div style={styles.stepContent}>
+                      <h4 style={styles.stepTitle}>
+                        {limitModalType === 'no-entreprise' ? 'Créer votre première entreprise' : 'Créer votre premier service'}
+                      </h4>
+                      <p style={styles.stepText}>
+                        {limitModalType === 'no-entreprise' 
+                          ? 'Commencez par créer votre entreprise pour proposer vos services'
+                          : 'Une fois votre entreprise créée, ajoutez vos services pour les rendre visibles'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button 
+                onClick={() => setShowLimitModal(false)}
+                style={styles.modalCancelButton}
+              >
+                Fermer
+              </button>
+              {(limitModalType === 'entreprise' || limitModalType === 'service') && (
+                <Link 
+                  to="/plans"
+                  style={styles.modalConfirmButton}
+                  onClick={() => setShowLimitModal(false)}
+                >
+                  Voir les plans
+                </Link>
+              )}
+              {limitModalType === 'no-entreprise' && (
+                <Link 
+                  to="/entreprises/creer"
+                  style={styles.modalConfirmButton}
+                  onClick={() => setShowLimitModal(false)}
+                >
+                  Créer une entreprise
+                </Link>
+              )}
+              {limitModalType === 'no-service' && (
+                <Link 
+                  to="/services/creer"
+                  style={styles.modalConfirmButton}
+                  onClick={() => setShowLimitModal(false)}
+                >
+                  Créer un service
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// STYLES (conservés identiques)
+// STYLES (inchangés, garder ceux déjà présents)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -782,6 +1325,202 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  timerSection: {
+    marginBottom: '2rem',
+  },
+  timerCard: {
+    backgroundColor: '#fff',
+    borderRadius: '1rem',
+    padding: '1.5rem',
+    border: '1px solid #e2e8f0',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    background: 'linear-gradient(135deg, #e80a0aff 0%, #c1201aff 100%)',
+    color: '#fff',
+  },
+  timerHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    marginBottom: '1.5rem',
+  },
+  timerGiftIcon: {
+    fontSize: '2rem',
+  },
+  timerTitle: {
+    fontSize: '1.25rem',
+    fontWeight: '600',
+    marginBottom: '0.25rem',
+  },
+  timerSubtitle: {
+    fontSize: '0.875rem',
+    opacity: 0.9,
+  },
+  timerDisplay: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    marginBottom: '1.5rem',
+  },
+  timerUnit: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    minWidth: '80px',
+  },
+  timerNumber: {
+    fontSize: '2.5rem',
+    fontWeight: '700',
+    lineHeight: 1,
+  },
+  timerUnitLabel: {
+    fontSize: '0.75rem',
+    opacity: 0.9,
+    marginTop: '0.25rem',
+  },
+  timerSeparator: {
+    fontSize: '2.5rem',
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  timerProgressBar: {
+    height: '6px',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: '3px',
+    marginBottom: '1rem',
+    overflow: 'hidden',
+  },
+  timerProgressFill: {
+    height: '100%',
+    backgroundColor: '#fff',
+    borderRadius: '3px',
+    transition: 'width 1s linear',
+  },
+  timerFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  timerStats: {
+    display: 'flex',
+    gap: '1.5rem',
+  },
+  timerStat: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  timerStatLabel: {
+    fontSize: '0.75rem',
+    opacity: 0.9,
+    marginBottom: '0.125rem',
+  },
+  timerStatValue: {
+    fontSize: '1rem',
+    fontWeight: '600',
+  },
+  timerLink: {
+    color: '#fff',
+    textDecoration: 'none',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    padding: '0.5rem 1rem',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: '0.5rem',
+  },
+  timerInactive: {
+    backgroundColor: '#f1f5f9',
+    borderRadius: '1rem',
+    padding: '1rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    color: '#64748b',
+    border: '1px dashed #cbd5e1',
+  },
+  timerExpired: {
+    backgroundColor: '#fee2e2',
+    borderRadius: '1rem',
+    padding: '1rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    color: '#991b1b',
+    border: '1px solid #fecaca',
+  },
+  timerIcon: {
+    fontSize: '1.5rem',
+    flexShrink: 0,
+  },
+  timerContent: {
+    flex: 1,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timerLabel: {
+    fontWeight: '500',
+  },
+  timerAction: {
+    color: '#dc2626',
+    textDecoration: 'none',
+    fontWeight: '600',
+    fontSize: '0.875rem',
+  },
+  planInfo: {
+    padding: '0.5rem 0',
+  },
+  planName: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    marginBottom: '1rem',
+  },
+  planNameText: {
+    fontSize: '1.125rem',
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  planBadge: {
+    backgroundColor: '#dbeafe',
+    color: '#1e40af',
+    padding: '0.25rem 0.5rem',
+    borderRadius: '0.375rem',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+  },
+  planFeatures: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '1rem',
+  },
+  planFeature: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
+    padding: '0.75rem',
+    backgroundColor: '#f8fafc',
+    borderRadius: '0.5rem',
+  },
+  planFeatureLabel: {
+    fontSize: '0.75rem',
+    color: '#64748b',
+    marginBottom: '0.25rem',
+  },
+  planFeatureValue: {
+    fontSize: '1rem',
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  trialBadge: {
+    backgroundColor: '#dbeafe',
+    color: '#1e40af',
+    padding: '0.125rem 0.375rem',
+    borderRadius: '0.25rem',
+    fontSize: '0.625rem',
+    fontWeight: '600',
+    marginLeft: '0.5rem',
   },
   statsGrid: {
     display: 'grid',
@@ -1156,8 +1895,6 @@ const styles = {
     color: '#64748b',
     lineHeight: '1.5',
   },
-
-  // Styles client
   welcomeCard: {
     background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
     borderRadius: '1.5rem',
