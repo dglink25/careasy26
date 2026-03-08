@@ -17,7 +17,6 @@ export const AuthProvider = ({ children }) => {
     
     if (token && savedUser) {
       try {
-        //  Utilise les données sauvegardées au lieu d'appeler /user
         setUser(JSON.parse(savedUser));
       } catch (error) {
         localStorage.removeItem('token');
@@ -27,17 +26,29 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   };
 
-  const login = async (email, password) => {
+  const login = async (credentials) => {
     try {
-      const response = await api.post('/login', { email, password });
-      const { token, user } = response.data;
+      // Vérifier qu'on a soit email soit téléphone
+      if (!credentials.email && !credentials.phone) {
+        throw new Error('Veuillez fournir un email ou un numéro de téléphone');
+      }
       
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      setUser(user);
+      if (credentials.email && credentials.phone) {
+        throw new Error('Veuillez choisir entre email et téléphone');
+      }
       
-      return { success: true };
-    } catch (error) {
+      const response = await api.post(`/login`, credentials);
+      
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        setUser(response.data.user);
+        return { success: true, user: response.data.user };
+      }
+      
+      return { success: true, user: response.data.user };
+    } 
+    catch (error) {
       return { 
         success: false, 
         message: error.response?.data?.message || 'Erreur de connexion' 
@@ -45,48 +56,50 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password, password_confirmation) => {
+  const register = async (userData) => {
     try {
-      const response = await api.post('/register', {
-        name,
-        email,
-        password,
-        password_confirmation
-      });
+      if (!userData.email && !userData.phone) {
+        throw new Error('Veuillez fournir un email ou un numéro de téléphone');
+      }
       
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      setUser(user);
+      if (userData.email && userData.phone) {
+        throw new Error('Veuillez choisir entre email et téléphone');
+      }
       
-      return { success: true };
-    } catch (error) {
+      const response = await api.post('/register', userData);
+
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        setUser(response.data.user);
+        return { success: true, user: response.data.user };
+      }
+      
+      return { success: true, user: response.data.user };
+    } 
+    catch (error) {
+      console.error('Registration error:', error);
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Erreur d\'inscription' 
+        message: error.response?.data?.message || error.message || 'Erreur lors de l\'inscription'
       };
     }
   };
 
-  // 👉 NOUVELLE FONCTION : Mettre à jour l'utilisateur dans le contexte
   const updateUser = (updatedUserData) => {
     try {
-      // Fusionner les nouvelles données avec l'utilisateur existant
       const updatedUser = {
         ...user,
         ...updatedUserData
       };
       
-      // Mettre à jour le state
       setUser(updatedUser);
-      
-      // Mettre à jour le localStorage
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
-      console.log(' Utilisateur mis à jour dans le contexte:', updatedUser);
+      console.log('Utilisateur mis à jour dans le contexte:', updatedUser);
     } 
     catch (error) {
-      console.error(' Erreur mise à jour utilisateur:', error);
+      console.error('Erreur mise à jour utilisateur:', error);
       throw error;
     }
   };

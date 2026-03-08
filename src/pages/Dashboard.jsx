@@ -4,32 +4,22 @@ import { useAuth } from '../contexts/AuthContext';
 import { entrepriseApi } from '../api/entrepriseApi';
 import { serviceApi } from '../api/serviceApi';
 import { 
-  FiSettings, FiShoppingBag, FiClock, FiCheckCircle, FiHeart, 
-  FiCalendar, FiMapPin, FiPhone, FiMail, FiBell, FiHelpCircle, 
+  FiSettings, FiShoppingBag, FiHeart, FiCalendar, FiBell, 
   FiTrendingUp, FiActivity, FiBarChart2, FiTarget, FiPlus, 
-  FiBriefcase, FiInfo, FiChevronRight, FiUsers 
+  FiBriefcase, FiInfo, FiChevronRight, FiUsers, FiDollarSign, FiTool
 } from 'react-icons/fi';
 import { 
-  MdDashboard, MdOutlineBusiness, MdOutlineWork, MdOutlinePerson, 
-  MdOutlineEmail, MdOutlinePhone, MdOutlineVerified, MdOutlineNotifications, 
-  MdOutlineSettings, MdOutlineDescription, MdOutlineLocationOn, 
-  MdOutlineAccessTime, MdOutlineAttachMoney, MdOutlineAnalytics, 
-  MdOutlineInsights, MdOutlineStorefront, MdOutlineLibraryAdd, 
-  MdOutlineInventory, MdOutlineSchedule, MdOutlineDirectionsCar, 
-  MdOutlineLocalShipping, MdOutlineTwoWheeler 
+  MdDashboard, MdOutlineBusiness, MdOutlineWork, 
+  MdOutlineInsights, MdOutlineStorefront, 
+  MdOutlineInventory, MdOutlineDirectionsCar 
 } from 'react-icons/md';
 
-import {   
-  FiDollarSign,
-  FiTool 
-} from 'react-icons/fi';
-
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [showBecomeProviderModal, setShowBecomeProviderModal] = useState(false);
   const [isProvider, setIsProvider] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
   const [entreprises, setEntreprises] = useState([]);
   const [services, setServices] = useState([]);
   const [stats, setStats] = useState({
@@ -39,78 +29,115 @@ export default function Dashboard() {
     totalServices: 0,
     servicesWithPrice: 0,
     services24h: 0,
-    activeClients: 0,
+    activeClients: 24,
     monthlyRevenue: 0
   });
 
-  // Redirection admin
+  // EFFET PRINCIPAL POUR LA REDIRECTION
   useEffect(() => {
-    if (user && user.role === 'admin') {
-      navigate('/admin/dashboard', { replace: true });
+    // Ne rien faire tant que l'auth n'est pas chargée
+    if (authLoading) return;
+
+    // Si pas d'utilisateur, rediriger vers login
+    if (!user) {
+      navigate('/login', { 
+        state: { from: '/dashboard' },
+        replace: true 
+      });
+      return;
     }
-  }, [user, navigate]);
 
-  // Vérifier le rôle utilisateur
-  useEffect(() => {
-    checkUserRole();
-  }, []);
-
-  const checkUserRole = async () => {
-    try {
-      setLoading(true);
-      
-      // Vérifier si l'utilisateur a des entreprises
-      const entreprisesData = await entrepriseApi.getMesEntreprises();
-      const hasEntreprises = entreprisesData && entreprisesData.length > 0;
-      
-      if (hasEntreprises) {
-        // C'est un prestataire
+    // Redirection basée sur le rôle
+    switch (user.role) {
+      case 'admin':
+        navigate('/admin/dashboard', { replace: true });
+        break;
+      case 'prestataire':
+      case 'provider':
         setIsProvider(true);
-        // Charger les données prestataire
+        break;
+      case 'client':
+      default:
+        setIsProvider(false);
+        setDataLoading(false);
+        break;
+    }
+  }, [user, authLoading, navigate]);
+
+  // EFFET POUR CHARGER LES DONNÉES PRESTATAIRE
+  useEffect(() => {
+    const loadProviderData = async () => {
+      if (!isProvider || !user) return;
+      
+      try {
+        setDataLoading(true);
+        
+        // Charger les entreprises
+        const entreprisesData = await entrepriseApi.getMesEntreprises();
+        setEntreprises(entreprisesData || []);
+        
+        // Charger les services
         const servicesData = await serviceApi.getMesServices();
-        setEntreprises(entreprisesData);
-        setServices(servicesData);
+        setServices(servicesData || []);
         
         // Calculer les stats
-        const validatedEntreprises = entreprisesData.filter(e => e.status === 'validated').length;
-        const pendingEntreprises = entreprisesData.filter(e => e.status === 'pending').length;
-        const servicesWithPrice = servicesData.filter(s => s.price).length;
-        const services24h = servicesData.filter(s => s.is_open_24h).length;
+        const validatedEntreprises = (entreprisesData || []).filter(e => e.status === 'validated').length;
+        const pendingEntreprises = (entreprisesData || []).filter(e => e.status === 'pending').length;
+        const servicesWithPrice = (servicesData || []).filter(s => s.price).length;
+        const services24h = (servicesData || []).filter(s => s.is_open_24h).length;
         
-        const monthlyRevenue = servicesData
+        const monthlyRevenue = (servicesData || [])
           .filter(s => s.price)
           .reduce((acc, s) => acc + (s.price * 3), 0);
 
         setStats({
-          totalEntreprises: entreprisesData.length,
+          totalEntreprises: (entreprisesData || []).length,
           validatedEntreprises,
           pendingEntreprises,
-          totalServices: servicesData.length,
+          totalServices: (servicesData || []).length,
           servicesWithPrice,
           services24h,
           activeClients: 24,
           monthlyRevenue
         });
-      } else {
-        // C'est un client
-        setIsProvider(false);
+      } catch (err) {
+        console.error('Erreur chargement données prestataire:', err);
+      } finally {
+        setDataLoading(false);
       }
-    } catch (err) {
-      console.error('Erreur vérification rôle:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const getInitials = (name) => {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
+    if (isProvider) {
+      loadProviderData();
+    }
+  }, [isProvider, user]);
+
+  // EFFET POUR METTRE À JOUR LE LOADING DES PRESTATAIRES
+  useEffect(() => {
+    if (isProvider && user) {
+      setDataLoading(true);
+    }
+  }, [isProvider, user]);
+
+  // Afficher le loader pendant le chargement
+  if (authLoading || (isProvider && dataLoading)) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p style={styles.loadingText}>
+          {authLoading ? 'Vérification de votre session...' : 'Chargement de votre espace...'}
+        </p>
+        <p style={styles.loadingSubtext}>
+          {authLoading ? 'Préparation de votre tableau de bord...' : 'Récupération de vos données...'}
+        </p>
+      </div>
+    );
+  }
+
+  // Si pas d'utilisateur (ne devrait pas arriver)
+  if (!user) {
+    return null;
+  }
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -119,29 +146,6 @@ export default function Dashboard() {
       minimumFractionDigits: 0
     }).format(price);
   };
-
-  // Admin loading
-  if (user && user.role === 'admin') {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p style={styles.loadingText}>Redirection vers le dashboard administrateur...</p>
-      </div>
-    );
-  }
-
-  // Loading général
-  if (loading) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner}></div>
-          <p style={styles.loadingText}>Chargement de votre espace...</p>
-          <p style={styles.loadingSubtext}>Préparation de vos données</p>
-        </div>
-      </div>
-    );
-  }
 
   // DASHBOARD CLIENT
   if (!isProvider) {
@@ -174,7 +178,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Carte de bienvenue avec bouton Devenir Prestataire */}
+          {/* Carte de bienvenue */}
           <div style={styles.welcomeCard}>
             <div style={styles.welcomeContent}>
               <h2 style={styles.welcomeTitle}>Bienvenue sur CarEasy !</h2>
@@ -220,9 +224,8 @@ export default function Dashboard() {
 
           {/* Contenu principal client */}
           <div style={styles.clientMainContent}>
-            {/* Colonne gauche - Rendez-vous et activités */}
+            {/* Colonne gauche */}
             <div style={styles.clientLeftColumn}>
-              {/* Prochains rendez-vous */}
               <div style={styles.sectionCard}>
                 <div style={styles.sectionHeader}>
                   <h3 style={styles.sectionTitle}>
@@ -243,9 +246,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Colonne droite - Favoris et recommandations */}
+            {/* Colonne droite */}
             <div style={styles.clientRightColumn}>
-              {/* Services favoris */}
               <div style={styles.sectionCard}>
                 <div style={styles.sectionHeader}>
                   <h3 style={styles.sectionTitle}>
@@ -371,9 +373,6 @@ export default function Dashboard() {
                   <FiSettings style={styles.headerActionIcon} />
                 </button>
               </Link>
-              <button style={styles.headerActionButton}>
-                <FiHelpCircle style={styles.headerActionIcon} />
-              </button>
             </div>
           </div>
         </div>
@@ -651,7 +650,7 @@ export default function Dashboard() {
             </div>
             <div style={styles.tipCard}>
               <div style={styles.tipIcon}>
-                <MdOutlineAttachMoney />
+                <FiDollarSign />
               </div>
               <h4 style={styles.tipCardTitle}>Tarifs transparents</h4>
               <p style={styles.tipCardText}>
@@ -660,7 +659,7 @@ export default function Dashboard() {
             </div>
             <div style={styles.tipCard}>
               <div style={styles.tipIcon}>
-                <MdOutlineAccessTime />
+                <FiCalendar />
               </div>
               <h4 style={styles.tipCardTitle}>Disponibilité</h4>
               <p style={styles.tipCardText}>
@@ -669,7 +668,7 @@ export default function Dashboard() {
             </div>
             <div style={styles.tipCard}>
               <div style={styles.tipIcon}>
-                <MdOutlineDescription />
+                <FiInfo />
               </div>
               <h4 style={styles.tipCardTitle}>Descriptions riches</h4>
               <p style={styles.tipCardText}>
@@ -683,7 +682,7 @@ export default function Dashboard() {
   );
 }
 
-// STYLES
+// STYLES (conservés identiques)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -700,24 +699,27 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '60vh',
+    minHeight: '100vh',
     gap: '1rem',
+    backgroundColor: '#f8fafc',
   },
   spinner: {
-    width: '50px',
-    height: '50px',
-    border: '4px solid #dbeafe',
+    width: '60px',
+    height: '60px',
+    border: '4px solid #e2e8f0',
     borderTop: '4px solid #ef4444',
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
+    marginBottom: '1rem',
   },
   loadingText: {
-    color: '#475569',
-    fontSize: '1.125rem',
+    color: '#1e293b',
+    fontSize: '1.25rem',
+    fontWeight: '600',
   },
   loadingSubtext: {
-    color: '#94a3b8',
-    fontSize: '0.875rem',
+    color: '#64748b',
+    fontSize: '0.95rem',
   },
   header: {
     marginBottom: '2rem',
@@ -978,7 +980,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: '1.25rem',
-    color: '#f63e3bff',
+    color: '#ef4444',
   },
   entrepriseName: {
     fontSize: '0.875rem',
@@ -1140,7 +1142,7 @@ const styles = {
     backgroundColor: '#dbeafe',
     borderRadius: '0.75rem',
     fontSize: '1.5rem',
-    color: '#f63b3bff',
+    color: '#ef4444',
     marginBottom: '1rem',
   },
   tipCardTitle: {
@@ -1157,7 +1159,7 @@ const styles = {
 
   // Styles client
   welcomeCard: {
-    background: 'linear-gradient(135deg, #e51818ff 0%)',
+    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
     borderRadius: '1.5rem',
     padding: '2rem',
     marginBottom: '2rem',
@@ -1165,7 +1167,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'space-between',
     color: '#fff',
-    boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
+    boxShadow: '0 10px 30px rgba(239, 68, 68, 0.3)',
   },
   welcomeContent: {
     flex: 1,
@@ -1184,7 +1186,7 @@ const styles = {
   },
   becomeProviderButton: {
     backgroundColor: '#fff',
-    color: '#667eea',
+    color: '#ef4444',
     border: 'none',
     padding: '1rem 2rem',
     borderRadius: '0.75rem',
@@ -1223,83 +1225,6 @@ const styles = {
     flexDirection: 'column',
     gap: '1.5rem',
   },
-  activitiesList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
-  },
-  activityItem: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '1rem',
-    padding: '1rem',
-    borderRadius: '0.75rem',
-    border: '1px solid #f1f5f9',
-  },
-  activityIcon: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '32px',
-    height: '32px',
-    backgroundColor: '#f0f9ff',
-    borderRadius: '0.5rem',
-    color: '#3b82f6',
-    fontSize: '1rem',
-  },
-  activityContent: {
-    flex: 1,
-  },
-  activityText: {
-    fontSize: '0.875rem',
-    color: '#1e293b',
-    marginBottom: '0.25rem',
-  },
-  activityTime: {
-    fontSize: '0.75rem',
-    color: '#94a3b8',
-  },
-  recommendedServices: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.75rem',
-  },
-  recommendedItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    padding: '0.75rem',
-    borderRadius: '0.75rem',
-    border: '1px solid #f1f5f9',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  recommendedIcon: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '40px',
-    height: '40px',
-    backgroundColor: '#f0f9ff',
-    borderRadius: '0.5rem',
-    color: '#3b82f6',
-    fontSize: '1.25rem',
-  },
-  recommendedContent: {
-    flex: 1,
-  },
-  recommendedTitle: {
-    fontSize: '0.875rem',
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: '0.125rem',
-  },
-  recommendedDesc: {
-    fontSize: '0.75rem',
-    color: '#64748b',
-  },
-
-  // Styles modal
   modalOverlay: {
     position: 'fixed',
     top: 0,
@@ -1446,54 +1371,14 @@ const styles = {
     textAlign: 'center',
     transition: 'all 0.2s',
   },
-
-  // Responsive
-  '@media (max-width: 1200px)': {
-    mainContent: {
-      gridTemplateColumns: '1fr',
-    },
-  },
-  '@media (max-width: 968px)': {
-    clientMainContent: {
-      gridTemplateColumns: '1fr',
-    },
-    welcomeCard: {
-      flexDirection: 'column',
-      textAlign: 'center',
-    },
-    welcomeContent: {
-      paddingRight: 0,
-      marginBottom: '1.5rem',
-    },
-  },
-  '@media (max-width: 768px)': {
-    content: {
-      padding: '0 1rem',
-    },
-    title: {
-      fontSize: '1.75rem',
-    },
-    statsGrid: {
-      gridTemplateColumns: 'repeat(2, 1fr)',
-    },
-    actionsGrid: {
-      gridTemplateColumns: '1fr',
-    },
-    tipsGrid: {
-      gridTemplateColumns: '1fr',
-    },
-  },
-  '@media (max-width: 480px)': {
-    statsGrid: {
-      gridTemplateColumns: '1fr',
-    },
-    headerMain: {
-      flexDirection: 'column',
-      alignItems: 'flex-start',
-      gap: '1rem',
-    },
-    headerActions: {
-      alignSelf: 'flex-end',
-    },
-  },
 };
+
+// Ajouter l'animation globale
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+document.head.appendChild(style);

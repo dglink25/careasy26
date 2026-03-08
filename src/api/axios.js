@@ -9,7 +9,6 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Liste des endpoints qui NE nécessitent PAS d'authentification
 const PUBLIC_ENDPOINTS = [
   '/conversation/start',    
   '/conversation/',         
