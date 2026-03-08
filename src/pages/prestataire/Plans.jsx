@@ -3,41 +3,36 @@ import { useNavigate } from 'react-router-dom';
 import planApi from '../../api/planApi';
 import { useAuth } from '../../contexts/AuthContext';
 import theme from '../../config/theme';
+import PaiementModal from '../../components/Paiement/PaiementModal';
 import {
     FiCheckCircle,
     FiXCircle,
-    FiDollarSign,
-    FiCalendar,
     FiBriefcase,
     FiUsers,
     FiZap,
     FiAward,
-    FiStar,
     FiInfo,
     FiChevronRight,
     FiRefreshCw,
     FiClock,
-    FiCpu,
     FiShield,
+    FiStar,
+    FiCpu,
     FiTool,
     FiTrendingUp
 } from 'react-icons/fi';
 import {
     FaCrown,
     FaRocket,
-    FaRegGem,
-    FaCheckCircle,
-    FaTimesCircle
+    FaRegGem
 } from 'react-icons/fa';
 import {
     MdOutlineCompareArrows,
-    MdOutlineVerified,
-    MdOutlineWarning,
-    MdOutlineInfo
+    MdOutlineVerified
 } from 'react-icons/md';
 
 export default function Plans() {
-    const { user } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -49,6 +44,8 @@ export default function Plans() {
     const [successMessage, setSuccessMessage] = useState('');
     const [showErrorToast, setShowErrorToast] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [planToSubscribe, setPlanToSubscribe] = useState(null);
 
     useEffect(() => {
         fetchPlans();
@@ -86,6 +83,27 @@ export default function Plans() {
         }
     };
 
+    const handleSubscribe = (plan) => {
+
+        // Ouvrir le modal de paiement
+        setPlanToSubscribe(plan);
+        setShowPaymentModal(true);
+    };
+
+    const handlePaymentSuccess = (data) => {
+        showSuccess('Paiement réussi ! Votre abonnement est activé.');
+        setShowPaymentModal(false);
+        setPlanToSubscribe(null);
+        
+        // Rafraîchir les plans si nécessaire
+        fetchPlans();
+    };
+
+    const handlePaymentClose = () => {
+        setShowPaymentModal(false);
+        setPlanToSubscribe(null);
+    };
+
     const showSuccess = (message) => {
         setSuccessMessage(message);
         setShowSuccessToast(true);
@@ -103,13 +121,6 @@ export default function Plans() {
         if (code?.includes('VP2')) return <FaCrown style={{ color: '#3b82f6' }} />;
         if (code?.includes('VP3')) return <FaRocket style={{ color: '#10b981' }} />;
         return <FaRegGem style={{ color: '#8b5cf6' }} />;
-    };
-
-    const getPlanColor = (code) => {
-        if (code?.includes('VP1')) return '#f59e0b';
-        if (code?.includes('VP2')) return '#3b82f6';
-        if (code?.includes('VP3')) return '#10b981';
-        return '#8b5cf6';
     };
 
     const getPlanGradient = (code) => {
@@ -199,7 +210,6 @@ export default function Plans() {
                                 key={plan.id}
                                 style={styles.planCard}
                                 className="plan-card"
-                                onClick={() => setSelectedPlan(plan)}
                             >
                                 <div style={{
                                     ...styles.planHeader,
@@ -265,20 +275,35 @@ export default function Plans() {
                                         </div>
                                     </div>
 
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedPlan(plan);
-                                        }}
-                                        style={styles.detailsButton}
-                                    >
-                                        Voir les détails
-                                        <FiChevronRight style={styles.detailsIcon} />
-                                    </button>
+                                    <div style={styles.buttonGroup}>
+                                        <button
+                                            onClick={() => setSelectedPlan(plan)}
+                                            style={styles.detailsButton}
+                                        >
+                                            <FiInfo style={styles.buttonIcon} />
+                                            Détails
+                                        </button>
+                                        <button
+                                            onClick={() => handleSubscribe(plan)}
+                                            style={styles.subscribeButton}
+                                        >
+                                            <FiStar style={styles.buttonIcon} />
+                                            Obtenir
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </div>
+                )}
+
+                {/* Modal de paiement */}
+                {showPaymentModal && planToSubscribe && (
+                    <PaiementModal
+                        plan={planToSubscribe}
+                        onClose={handlePaymentClose}
+                        onSuccess={handlePaymentSuccess}
+                    />
                 )}
 
                 {/* Modal de comparaison */}
@@ -384,7 +409,7 @@ export default function Plans() {
                                             ))}
                                         </tr>
                                         <tr>
-                                            <td style={styles.comparisonTd}>Accès Notification SMS</td>
+                                            <td style={styles.comparisonTd}>Notifications SMS Access</td>
                                             {comparisonData.map((plan) => (
                                                 <td key={plan.id} style={styles.comparisonTd}>
                                                     {plan.has_api_access ? (
@@ -460,7 +485,7 @@ export default function Plans() {
                                             <FiBriefcase style={styles.detailsStatIcon} />
                                             <div>
                                                 <div style={styles.detailsStatValue}>{selectedPlan.max_services}</div>
-                                                <div style={styles.detailsStatLabel}>Services maximum</div>
+                                                <div style={styles.detailsStatLabel}>Services max</div>
                                             </div>
                                         </div>
                                     )}
@@ -469,7 +494,7 @@ export default function Plans() {
                                             <FiUsers style={styles.detailsStatIcon} />
                                             <div>
                                                 <div style={styles.detailsStatValue}>{selectedPlan.max_employees}</div>
-                                                <div style={styles.detailsStatLabel}>Employés maximum</div>
+                                                <div style={styles.detailsStatLabel}>Employés max</div>
                                             </div>
                                         </div>
                                     )}
@@ -477,7 +502,7 @@ export default function Plans() {
                                         <FiClock style={styles.detailsStatIcon} />
                                         <div>
                                             <div style={styles.detailsStatValue}>{selectedPlan.duration_text}</div>
-                                            <div style={styles.detailsStatLabel}>Durée d'abonnement</div>
+                                            <div style={styles.detailsStatLabel}>Durée</div>
                                         </div>
                                     </div>
                                 </div>
@@ -513,6 +538,17 @@ export default function Plans() {
                                         </div>
                                     </div>
                                 )}
+
+                                <button
+                                    onClick={() => {
+                                        setSelectedPlan(null);
+                                        handleSubscribe(selectedPlan);
+                                    }}
+                                    style={styles.detailsSubscribeButton}
+                                >
+                                    <FiStar style={styles.buttonIcon} />
+                                    Souscrire à ce plan
+                                </button>
                             </div>
 
                             <div style={styles.detailsFooter}>
@@ -550,17 +586,11 @@ export default function Plans() {
                 
                 .plan-card {
                     animation: slideIn 0.3s ease;
-                    cursor: pointer;
                 }
                 
                 .plan-card:hover {
                     transform: translateY(-8px);
                     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-                }
-                
-                .plan-card:hover .details-button {
-                    background-color: ${theme.colors.primary};
-                    color: #fff;
                 }
                 
                 .toast {
@@ -736,7 +766,9 @@ const styles = {
         borderRadius: '1rem',
         overflow: 'hidden',
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-        transition: 'all 0.3s'
+        transition: 'all 0.3s',
+        display: 'flex',
+        flexDirection: 'column'
     },
     planHeader: {
         position: 'relative',
@@ -773,7 +805,10 @@ const styles = {
         fontWeight: '600'
     },
     planBody: {
-        padding: '2rem'
+        padding: '2rem',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column'
     },
     planPrice: {
         marginBottom: '1rem',
@@ -826,7 +861,8 @@ const styles = {
         color: '#64748b'
     },
     featuresSection: {
-        marginBottom: '1.5rem'
+        marginBottom: '1.5rem',
+        flex: 1
     },
     featuresTitle: {
         fontSize: '1rem',
@@ -851,12 +887,17 @@ const styles = {
         color: '#10b981',
         flexShrink: 0
     },
+    buttonGroup: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '0.75rem',
+        marginTop: 'auto'
+    },
     detailsButton: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: '0.5rem',
-        width: '100%',
         padding: '0.75rem',
         backgroundColor: '#fff',
         border: `2px solid ${theme.colors.primary}`,
@@ -867,7 +908,22 @@ const styles = {
         cursor: 'pointer',
         transition: 'all 0.2s'
     },
-    detailsIcon: {
+    subscribeButton: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        padding: '0.75rem',
+        backgroundColor: theme.colors.primary,
+        border: 'none',
+        borderRadius: '0.5rem',
+        color: '#fff',
+        fontSize: '0.95rem',
+        fontWeight: '600',
+        cursor: 'pointer',
+        transition: 'all 0.2s'
+    },
+    buttonIcon: {
         fontSize: '1rem'
     },
     modalOverlay: {
@@ -1176,6 +1232,23 @@ const styles = {
         fontSize: '1rem',
         color: '#ef4444',
         flexShrink: 0
+    },
+    detailsSubscribeButton: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        width: '100%',
+        padding: '1rem',
+        backgroundColor: theme.colors.primary,
+        border: 'none',
+        borderRadius: '0.5rem',
+        color: '#fff',
+        fontSize: '1rem',
+        fontWeight: '600',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        marginTop: '1.5rem'
     },
     detailsFooter: {
         padding: '1.5rem',

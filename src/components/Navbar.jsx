@@ -174,7 +174,8 @@ export default function Navbar() {
                           { to: '/mes-services', icon: FaTools, label: 'Services' },
                           { to: '/messages', icon: FiMessageSquare, label: 'Messages' },
                           { to: '/mes-rendez-vous', icon: FiCalendar, label: 'Rendez-vous' },
-                          { to: '/plans', icon: FiAward, label: 'Plans' }
+                          { to: '/plans', icon: FiAward, label: 'Plans' },
+                          { to: '/abonnements', icon: FiAward, label: 'Mes Abonnements' }
                         ].map(({ to, icon: Icon, label }) => (
                           <Link key={to} to={to} className="nav-link" style={{ ...navLink, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
                             <Icon style={{ fontSize: '1rem' }} />{label}
@@ -475,6 +476,10 @@ export default function Navbar() {
                           <MobileLink to="/dashboard" icon={MdDashboard} label="Dashboard Prestataire" onClick={closeMobileMenu} />
                           <MobileLink to="/mes-entreprises" icon={FaBuilding} label="Mes Entreprises" onClick={closeMobileMenu} />
                           <MobileLink to="/mes-services" icon={FaTools} label="Mes Services" onClick={closeMobileMenu} />
+                          <MobileLink to="/messages" icon={FiMessageSquare} label="Messages" onClick={closeMobileMenu} />
+                          <MobileLink to="/mes-rendez-vous" icon={FiCalendar} label="Rendez-vous" onClick={closeMobileMenu} />
+                          <MobileLink to="/plans" icon={FiAward} label="Plans" onClick={closeMobileMenu} />
+                          <MobileLink to="/abonnements" icon={FiAward} label="Mes Abonnements" onClick={closeMobileMenu} />
                         </>
                       ) : (
                         // Menu mobile Client

@@ -54,6 +54,12 @@ import PublicServiceDetails from './pages/public/PublicServiceDetails';
 import Partners from './pages/Partners';
 import PlanAdmin from './pages/admin/AdminPlans';
 import Plans from './pages/prestataire/Plans';
+import MesAbonnements from './pages/prestataire/MesAbonnements';
+
+import PaiementSuccess from './components/Paiement/PaiementSuccess';
+import PaiementCancel from './components/Paiement/PaiementCancel';
+
+
 
 function App() {
   return (
@@ -75,6 +81,7 @@ function App() {
                     <Route path="/entreprises/:id/edit" element={<ProtectedRoute><EditEntreprise /></ProtectedRoute>} />
                     <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
                     <Route path="/admin/plans" element={<AdminRoute><PlanAdmin /></AdminRoute>} />
+                    <Route path="/abonnements" element={<ProtectedRoute><MesAbonnements /></ProtectedRoute>} />
 
                     {/* Services */}
                     <Route path="/mes-services" element={<ProtectedRoute><MesServices /></ProtectedRoute>} />
@@ -113,6 +120,8 @@ function App() {
                   <Route path="/password-reset/:token" element={<ResetPassword />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/auth/google/callback" element={<GoogleCallback />} />
+                  <Route path="/paiement/success" element={<PaiementSuccess />} />
+                  <Route path="/paiement/cancel" element={<PaiementCancel />} />
                 </Routes>
                 <AIChatWidget />
               </div>
