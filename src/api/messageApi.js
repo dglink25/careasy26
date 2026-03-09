@@ -1,130 +1,75 @@
+// src/api/messageApi.js
+// API complète messagerie – compatible WebSocket temps réel
 import api from './axios';
 
 export const messageApi = {
-  /**
-   * Démarrer ou récupérer une conversation avec un utilisateur
-   */
+  /** Démarrer ou récupérer une conversation directe */
   startConversation: async (receiverId) => {
-    try {
-      console.log('Démarrage conversation avec:', receiverId);
-      const response = await api.post('/conversation/start', { receiver_id: receiverId });
-      return response.data;
-    } catch (error) {
-      console.error('Erreur startConversation:', error.response?.data || error.message);
-      throw error;
-    }
+    const { data } = await api.post('/conversation/start', { receiver_id: receiverId });
+    return data;
   },
 
-  /**
-   * Démarrer une conversation pour un service
-   */
-  startServiceConversation: async (serviceId, initialMessage = null) => {
-    try {
-      console.log('Démarrage conversation service:', serviceId);
-      const response = await api.post('/conversation/service', {
-        service_id: serviceId,
-        message: initialMessage
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Erreur startServiceConversation:', error.response?.data || error.message);
-      throw error;
-    }
+  /** Démarrer une conversation depuis une fiche service */
+  startServiceConversation: async (serviceId, message = null) => {
+    const { data } = await api.post('/conversation/service', {
+      service_id: serviceId,
+      message,
+    });
+    return data;
   },
 
-  /**
-   * Envoyer un message
-   */
-  sendMessage: async (conversationId, data) => {
-    try {
-      console.log('Envoi message à conversation:', conversationId);
-      
-      // Si c'est un FormData (fichier)
-      if (data instanceof FormData) {
-        const response = await api.post(`/conversation/${conversationId}/send`, data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        return response.data;
-      }
-      
-      // Message texte simple
-      const response = await api.post(`/conversation/${conversationId}/send`, {
-        type: data.type || 'text',
-        content: data.content || '',
-        latitude: data.latitude,
-        longitude: data.longitude,
-        temporary_id: data.temporary_id
-      });
-      return response.data;
-      
-    } catch (error) {
-      console.error('Erreur sendMessage:', error.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  /**
-   * Récupérer les messages d'une conversation
-   */
+  /** Récupérer les messages d'une conversation (marque aussi comme lus) */
   getMessages: async (conversationId) => {
-    try {
-      console.log('Récupération messages:', conversationId);
-      const response = await api.get(`/conversation/${conversationId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Erreur getMessages:', error.response?.data || error.message);
-      throw error;
-    }
+    const { data } = await api.get(`/conversation/${conversationId}`);
+    return data;
   },
 
-  /**
-   * Récupérer toutes les conversations
-   */
+  /** Envoyer un message (texte ou FormData pour fichiers) */
+  sendMessage: async (conversationId, payload) => {
+    const isFormData = payload instanceof FormData;
+    const { data } = await api.post(
+      `/conversation/${conversationId}/send`,
+      payload,
+      isFormData
+        ? { headers: { 'Content-Type': 'multipart/form-data' } }
+        : {}
+    );
+    return data;
+  },
+
+  /** Toutes les conversations de l'utilisateur connecté */
   getMyConversations: async () => {
-    try {
-      console.log('Récupération conversations');
-      const response = await api.get('/conversations');
-      return response.data;
-    } catch (error) {
-      console.error('Erreur getMyConversations:', error.response?.data || error.message);
-      throw error;
-    }
+    const { data } = await api.get('/conversations');
+    return data;
   },
 
-  /**
-   * Marquer les messages comme lus
-   */
+  /** Marquer les messages d'une conversation comme lus */
   markAsRead: async (conversationId) => {
-    try {
-      const response = await api.post(`/conversation/${conversationId}/mark-read`);
-      return response.data;
-    } catch (error) {
-      console.error('Erreur markAsRead:', error.response?.data || error.message);
-      throw error;
-    }
+    const { data } = await api.post(`/conversation/${conversationId}/mark-read`);
+    return data;
   },
-  
-  /**
-   * Vérifier le statut en ligne d'un utilisateur
-   */
-  checkOnlineStatus: async (userId) => {
+
+  /** Envoyer l'indicateur de frappe */
+  sendTyping: async (conversationId, isTyping) => {
     try {
-      const response = await api.get(`/user/${userId}/online-status`);
-      return response.data;
-    } catch (error) {
-      console.warn('Erreur checkOnlineStatus:', error.message);
-      return { is_online: false, last_seen_at: null };
+      await api.post(`/conversation/${conversationId}/typing`, { is_typing: isTyping });
+    } catch {
+      // Silencieux – non bloquant
     }
   },
 
-  /**
-   * Mettre à jour le statut en ligne
-   */
+  /** Vérifier le statut en ligne d'un utilisateur */
+  checkOnlineStatus: async (userId) => {
+    const { data } = await api.get(`/user/${userId}/online-status`);
+    return data;
+  },
+
+  /** Mettre à jour son propre statut en ligne */
   updateOnlineStatus: async () => {
     try {
-      await api.post('/user/online-status');
-    } catch (error) {
-      console.warn('Erreur updateOnlineStatus:', error.message);
+      await api.post('/user/update-online-status');
+    } catch {
+      // Silencieux
     }
-  }
+  },
 };

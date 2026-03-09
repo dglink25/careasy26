@@ -1,17 +1,17 @@
+// src/api/axios.js
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL:         import.meta.env.VITE_API_URL, // ex: http://localhost:8000/api
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    'Accept':       'application/json',
   },
   withCredentials: true,
 });
 
+// Endpoints accessibles sans token
 const PUBLIC_ENDPOINTS = [
-  '/conversation/start',    
-  '/conversation/',         
   '/entreprises',
   '/entreprises/form/data',
   '/services',
@@ -20,61 +20,36 @@ const PUBLIC_ENDPOINTS = [
   '/register',
   '/forgot-password',
   '/reset-password',
+  '/ai/',
 ];
 
-// Fonction pour vérifier si l'endpoint est public
-const isPublicEndpoint = (url) => {
-  if (!url) return false;
-  return PUBLIC_ENDPOINTS.some(endpoint => url.includes(endpoint));
-};
+const isPublic = (url) =>
+  url ? PUBLIC_ENDPOINTS.some((e) => url.includes(e)) : false;
 
-//  INTERCEPTEUR POUR AJOUTER LE TOKEN
+// ── Requête : injecter le token ──────────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    
-    // Ajouter le token seulement s'il existe
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('Token ajouté:', token.substring(0, 20) + '...');
-    } else {
-      console.warn(' Aucun token - Requête anonyme autorisée pour:', config.url);
     }
-    
-    console.log(' Requête:', config.method.toUpperCase(), config.url);
-    
     return config;
   },
-  (error) => {
-    console.error('Erreur intercepteur request:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// INTERCEPTEUR POUR GÉRER LES RÉPONSES
+// ── Réponse : gérer 401 ──────────────────────────────────────────────────────
 api.interceptors.response.use(
-  (response) => {
-    console.log(' Réponse reçue:', response.status, response.config.url);
-    return response;
-  },
+  (response) => response,
   (error) => {
-    console.error(' Erreur API:', error.response?.status, error.response?.data);
-    
-    //  Si 401 Unauthorized
     if (error.response?.status === 401) {
-      const requestUrl = error.config?.url || '';
-      
-      //  NE PAS rediriger vers login pour les endpoints publics
-      if (!isPublicEndpoint(requestUrl)) {
-        console.warn('Non authentifié - Redirection vers login');
+      const url = error.config?.url || '';
+      if (!isPublic(url)) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';
-      } else {
-        console.info('Requête anonyme autorisée:', requestUrl);
       }
     }
-    
     return Promise.reject(error);
   }
 );
