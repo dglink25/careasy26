@@ -40,11 +40,7 @@ axiosInstance.interceptors.response.use(
 );
 
 const planApi = {
-    // ========== ADMIN ENDPOINTS ==========
-    
-    /**
-     * Récupérer tous les plans (admin)
-     */
+   
     getPlans: async () => {
         try {
             const response = await axiosInstance.get('/admin/plans');

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import plan  from '../../api/planApi';
+import planApi  from '../../api/planApi';
 import { useAuth } from '../../contexts/AuthContext';
 import theme from '../../config/theme';
 import PaiementModal from '../../components/Paiement/PaiementModal';
 import {
+
     FiCheckCircle,
     FiXCircle,
     FiBriefcase,
