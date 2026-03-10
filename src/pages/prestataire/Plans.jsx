@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import theme from '../../config/theme';
 import PaiementModal from '../../components/Paiement/PaiementModal';
 import {
-
     FiCheckCircle,
     FiXCircle,
     FiBriefcase,
