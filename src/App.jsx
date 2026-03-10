@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { PrivacyProvider } from "./contexts/PrivacyContext";
@@ -30,7 +30,7 @@ import CreerService from './pages/services/CreerService';
 import DetailsService from './pages/services/DetailsService';
 import ModifierService from './pages/services/ModifierService';
 
-// Rendez-vous (NOUVEAU)
+// Rendez-vous
 import MesRendezVous from './pages/rendez-vous/MesRendezVous';
 import DemandeRendezVous from './pages/rendez-vous/DemandeRendezVous';
 import DetailsRendezVous from './pages/rendez-vous/DetailsRendezVous';
@@ -45,6 +45,7 @@ import Settings from './pages/Settings';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminEntreprises from './pages/admin/AdminEntreprises';
 import AdminEntrepriseDetails from './pages/admin/AdminEntrepriseDetails';
+import PlanAdmin from './pages/admin/AdminPlans';
 
 // Public
 import PublicEntreprises from './pages/public/PublicEntreprises';
@@ -52,14 +53,13 @@ import PublicEntrepriseDetails from './pages/public/PublicEntrepriseDetails';
 import PublicServices from './pages/public/PublicServices';
 import PublicServiceDetails from './pages/public/PublicServiceDetails';
 import Partners from './pages/Partners';
-import PlanAdmin from './pages/admin/AdminPlans';
-import Plans from './pages/prestataire/Plans';
-import MesAbonnements from './pages/prestataire/MesAbonnements';
 
+// Abonnements (unifié)
+import AbonnementsPage from './pages/prestataire/AbonnementsPage';
+
+// Paiement
 import PaiementSuccess from './components/Paiement/PaiementSuccess';
 import PaiementCancel from './components/Paiement/PaiementCancel';
-
-
 
 function App() {
   return (
@@ -79,9 +79,6 @@ function App() {
                     <Route path="/entreprises/creer" element={<ProtectedRoute><CreerEntreprise /></ProtectedRoute>} />
                     <Route path="/entreprises/:id" element={<ProtectedRoute><DetailsEntreprise /></ProtectedRoute>} />
                     <Route path="/entreprises/:id/edit" element={<ProtectedRoute><EditEntreprise /></ProtectedRoute>} />
-                    <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
-                    <Route path="/admin/plans" element={<AdminRoute><PlanAdmin /></AdminRoute>} />
-                    <Route path="/abonnements" element={<ProtectedRoute><MesAbonnements /></ProtectedRoute>} />
 
                     {/* Services */}
                     <Route path="/mes-services" element={<ProtectedRoute><MesServices /></ProtectedRoute>} />
@@ -89,6 +86,7 @@ function App() {
                     <Route path="/services/:id" element={<ProtectedRoute><DetailsService /></ProtectedRoute>} />
                     <Route path="/services/modifier/:id" element={<ProtectedRoute><ModifierService /></ProtectedRoute>} />
 
+                    {/* Rendez-vous */}
                     <Route path="/mes-rendez-vous" element={<ProtectedRoute><MesRendezVous /></ProtectedRoute>} />
                     <Route path="/rendez-vous/demande/:serviceId" element={<ProtectedRoute><DemandeRendezVous /></ProtectedRoute>} />
                     <Route path="/rendez-vous/:id" element={<ProtectedRoute><DetailsRendezVous /></ProtectedRoute>} />
@@ -103,6 +101,7 @@ function App() {
                     <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                     <Route path="/admin/entreprises" element={<AdminRoute><AdminEntreprises /></AdminRoute>} />
                     <Route path="/admin/entreprises/:id" element={<AdminRoute><AdminEntrepriseDetails /></AdminRoute>} />
+                    <Route path="/admin/plans" element={<AdminRoute><PlanAdmin /></AdminRoute>} />
 
                     {/* Public */}
                     <Route path="/entreprises" element={<PublicEntreprises />} />
@@ -111,6 +110,12 @@ function App() {
                     <Route path="/service/:id" element={<PublicServiceDetails />} />
                     <Route path="/partenaires" element={<Partners />} />
                     <Route path="/faq" element={<FAQ />} />
+
+                    {/* Abonnements - UNIFIÉ */}
+                    <Route path="/abonnements" element={<ProtectedRoute><AbonnementsPage /></ProtectedRoute>} />
+                    
+                    {/* Redirection de l'ancien chemin /plans */}
+                    <Route path="/plans" element={<Navigate to="/abonnements?tab=plans" replace />} />
                   </Route>
 
                   {/* Routes sans Layout */}

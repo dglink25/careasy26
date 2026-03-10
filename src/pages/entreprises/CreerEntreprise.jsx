@@ -909,7 +909,7 @@ export default function CreerEntreprise() {
       setSuccess('Entreprise créée avec succès ! Redirection en cours...');
       
       setTimeout(() => {
-        navigate('/mes-entreprises', { 
+        navigate('/dashboard', { 
           state: { 
             success: 'Votre entreprise a été créée avec succès et est en attente de validation.' 
           } 

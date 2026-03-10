@@ -12,7 +12,7 @@ import {
 import {
   FiMessageSquare, FiSettings, FiUser, FiLock,
   FiBell, FiMoon, FiShield, FiShoppingBag, FiHeart, FiCalendar, FiAward,
-  FiChevronDown as FiChevronDownIcon
+  FiChevronDown as FiChevronDownIcon, FiClock
 } from 'react-icons/fi';
 import {
   MdDashboard, MdOutlineStorefront
@@ -29,6 +29,7 @@ export default function Navbar() {
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isProvider, setIsProvider] = useState(false);
+  const [hasPendingEntreprise, setHasPendingEntreprise] = useState(false);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
   const [domaines, setDomaines] = useState([]);
   const [loadingDomaines, setLoadingDomaines] = useState(true);
@@ -38,17 +39,21 @@ export default function Navbar() {
   useEffect(() => {
     if (user) {
       setProfilePhotoUrl(user.profile_photo_url || null);
-      checkIfProvider();
+      checkEntrepriseStatus();
     }
   }, [user]);
 
-  const checkIfProvider = async () => {
+  const checkEntrepriseStatus = async () => {
     try {
       const entreprises = await entrepriseApi.getMesEntreprises();
-      setIsProvider(entreprises && entreprises.length > 0);
+      const validatedEntreprises = (entreprises || []).filter(e => e.status === 'validated');
+      const pendingEntreprises = (entreprises || []).filter(e => e.status === 'pending');
+      setIsProvider(validatedEntreprises.length > 0);
+      setHasPendingEntreprise(pendingEntreprises.length > 0 && validatedEntreprises.length === 0);
     } catch (err) {
-      console.error('Erreur vérification statut prestataire:', err);
+      console.error('Erreur vérification statut entreprise:', err);
       setIsProvider(false);
+      setHasPendingEntreprise(false);
     }
   };
 
@@ -130,10 +135,30 @@ export default function Navbar() {
     );
   };
 
+  // Liens prestataire (Plans + Abonnements fusionnés en un seul)
+  const providerLinks = [
+    { to: '/dashboard',         icon: MdDashboard,      label: 'Tableau de bord' },
+    { to: '/mes-entreprises',   icon: FaBuilding,       label: 'Entreprises'     },
+    { to: '/mes-services',      icon: FaTools,          label: 'Services'        },
+    { to: '/messages',          icon: FiMessageSquare,  label: 'Messages'        },
+    { to: '/mes-rendez-vous',   icon: FiCalendar,       label: 'Rendez-vous'     },
+    { to: '/abonnements',       icon: FiAward,          label: 'Abonnements'     },
+  ];
+
+  const clientLinks = [
+    { to: '/dashboard',       icon: FiShoppingBag,    label: 'Espace Client'   },
+    { to: '/mes-rendez-vous', icon: FiCalendar,       label: 'Mes Rendez-vous' },
+    { to: '/favoris',         icon: FiHeart,          label: 'Favoris'         },
+    { to: '/messages',        icon: FiMessageSquare,  label: 'Messages'        },
+    { to: '/services',        icon: FaSearch,         label: 'Explorer'        },
+  ];
+
   return (
     <>
       <nav style={{
         position: 'sticky', top: 0, zIndex: 1000,
+        /* ✅ CORRECTION 1 : width 100% sans max-width pour être vraiment full-width */
+        width: '100%',
         backgroundColor: 'var(--nav-bg)',
         backdropFilter: 'blur(12px)',
         padding: scrolled ? '0.75rem 0' : '1rem 0',
@@ -141,21 +166,34 @@ export default function Navbar() {
         boxShadow: scrolled ? 'var(--shadow-lg)' : 'none',
         transition: 'all 0.3s ease',
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* ✅ CORRECTION 2 : le conteneur interne est full-width avec padding latéral
+            au lieu de max-width:1200px qui créait la boîte étroite */}
+        <div style={{
+          width: '100%',
+          padding: '0 1.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
           <Logo size="md" showText={true} />
 
           {/* Desktop Menu */}
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }} className="desktop-nav">
+          <div style={{
+            display: 'flex',
+            gap: '0.75rem',        /* légèrement réduit par rapport à 1.5rem pour éviter le débordement */
+            alignItems: 'center',
+            flexWrap: 'nowrap',    /* ✅ CORRECTION 3 : nowrap — on ne veut pas que ça passe en 2 lignes */
+          }} className="desktop-nav">
             {user ? (
               <>
                 {user.role === 'admin' ? (
-                  // Menu Admin
                   <>
                     {[
                       { to: '/admin/dashboard', icon: FaUser, label: 'Dashboard' },
                       { to: '/admin/entreprises', icon: FaBuilding, label: 'Entreprises' },
                       { to: '/messages', icon: FiMessageSquare, label: 'Messages' },
-                       { to: '/admin/plans', icon: FiAward, label: 'Plans' }
+                      { to: '/admin/plans', icon: FiAward, label: 'Plans' }
                     ].map(({ to, icon: Icon, label }) => (
                       <Link key={to} to={to} className="nav-link" style={{ ...navLink, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
                         <Icon style={{ fontSize: '1rem' }} />{label}
@@ -163,40 +201,16 @@ export default function Navbar() {
                     ))}
                   </>
                 ) : (
-                  // Menu Utilisateur (Client ou Prestataire)
                   <>
-                    {isProvider ? (
-                     
-                      <>
-                        {[
-                          { to: '/dashboard', icon: MdDashboard, label: 'Tableau de bord' },
-                          { to: '/mes-entreprises', icon: FaBuilding, label: 'Entreprises' },
-                          { to: '/mes-services', icon: FaTools, label: 'Services' },
-                          { to: '/messages', icon: FiMessageSquare, label: 'Messages' },
-                          { to: '/mes-rendez-vous', icon: FiCalendar, label: 'Rendez-vous' },
-                          { to: '/plans', icon: FiAward, label: 'Plans' },
-                          { to: '/abonnements', icon: FiAward, label: 'Abonnements' }
-                        ].map(({ to, icon: Icon, label }) => (
-                          <Link key={to} to={to} className="nav-link" style={{ ...navLink, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
-                            <Icon style={{ fontSize: '1rem' }} />{label}
-                          </Link>
-                        ))}
-                      </>
-                    ) : (
-                      // Menu CLIENT
-                      <>
-                        {[
-                          { to: '/dashboard', icon: FiShoppingBag, label: 'Espace Client' },
-                          { to: '/mes-rendez-vous', icon: FiCalendar, label: 'Mes Rendez-vous' },
-                          { to: '/favoris', icon: FiHeart, label: 'Favoris' },
-                          { to: '/messages', icon: FiMessageSquare, label: 'Messages' },
-                          { to: '/services', icon: FaSearch, label: 'Explorer' },
-                        ].map(({ to, icon: Icon, label }) => (
-                          <Link key={to} to={to} className="nav-link" style={{ ...navLink, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
-                            <Icon style={{ fontSize: '1rem' }} />{label}
-                          </Link>
-                        ))}
-                      </>
+                    {(isProvider ? providerLinks : clientLinks).map(({ to, icon: Icon, label }) => (
+                      <Link key={to} to={to} className="nav-link" style={{ ...navLink, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
+                        <Icon style={{ fontSize: '1rem' }} />{label}
+                      </Link>
+                    ))}
+                    {hasPendingEntreprise && !isProvider && (
+                      <Link to="/dashboard" className="nav-link" style={{ ...navLink, color: '#f59e0b', backgroundColor: '#fef3c7', border: '1px solid #fbbf24', fontWeight: 600 }}>
+                        <FiClock style={{ fontSize: '1rem' }} />Validation en cours
+                      </Link>
                     )}
                   </>
                 )}
@@ -213,6 +227,7 @@ export default function Navbar() {
                       borderRadius: '0.75rem',
                       border: '2px solid var(--border-color)',
                       cursor: 'pointer', transition: 'all 0.3s',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -233,9 +248,14 @@ export default function Navbar() {
                         ADMIN
                       </span>
                     )}
-                    {isProvider && !user.role === 'admin' && (
+                    {isProvider && (
                       <span style={{ backgroundColor: '#10b981', color: '#fff', padding: '0.2rem 0.6rem', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700 }}>
                         PRESTATAIRE
+                      </span>
+                    )}
+                    {hasPendingEntreprise && !isProvider && (
+                      <span style={{ backgroundColor: '#f59e0b', color: '#fff', padding: '0.2rem 0.6rem', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700 }}>
+                        EN VALIDATION
                       </span>
                     )}
                     <FiChevronDownIcon style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', transition: 'transform 0.3s', transform: showSettingsDropdown ? 'rotate(180deg)' : 'rotate(0)' }} />
@@ -250,7 +270,6 @@ export default function Navbar() {
                       border: '2px solid var(--border-color)',
                       minWidth: 380, maxHeight: '70vh', overflow: 'auto', zIndex: 1001,
                     }}>
-                      {/* Header */}
                       <div style={{
                         padding: '1.25rem 1.5rem',
                         borderBottom: '2px solid var(--border-color)',
@@ -269,11 +288,15 @@ export default function Navbar() {
                                 Prestataire
                               </span>
                             )}
+                            {hasPendingEntreprise && !isProvider && (
+                              <span style={{ display: 'inline-block', backgroundColor: '#f59e0b', color: '#fff', padding: '0.2rem 0.6rem', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700, marginTop: '0.25rem' }}>
+                                ⏳ Validation en cours
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Items */}
                       <div style={{ padding: '0.75rem' }}>
                         {settingsSections.map(({ id, label, icon: Icon, description, color }) => (
                           <button key={id} onClick={() => handleSettingsClick(id)} className="settings-item" style={{
@@ -296,7 +319,6 @@ export default function Navbar() {
                         ))}
                       </div>
 
-                      {/* Footer */}
                       <div style={{ padding: '0.75rem 1.5rem 1.25rem', borderTop: '1px solid var(--border-color)' }}>
                         <button onClick={handleLogout} style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
@@ -313,7 +335,6 @@ export default function Navbar() {
                 </div>
               </>
             ) : (
-              // Menu public
               <>
                 {[
                   { to: '/', icon: FaHome, label: 'Accueil' },
@@ -324,7 +345,6 @@ export default function Navbar() {
                   </Link>
                 ))}
 
-                {/* Mega dropdown services */}
                 <div style={{ position: 'relative' }}
                   onMouseEnter={() => setShowServicesDropdown(true)}
                   onMouseLeave={() => setShowServicesDropdown(false)}
@@ -355,7 +375,6 @@ export default function Navbar() {
                       {loadingDomaines ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem', gap: '1rem' }}>
                           <div style={{ width: 30, height: 30, border: '3px solid var(--border-color)', borderTop: '3px solid var(--brand-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Chargement...</p>
                         </div>
                       ) : domaines.length > 0 ? (
                         <>
@@ -391,7 +410,7 @@ export default function Navbar() {
                   backgroundColor: 'transparent', color: 'var(--brand-primary)',
                   border: '2px solid var(--brand-primary)', padding: '0.625rem 1.5rem',
                   borderRadius: '0.75rem', fontWeight: 600, textDecoration: 'none',
-                  fontSize: '0.9rem', transition: 'all 0.3s',
+                  fontSize: '0.9rem', transition: 'all 0.3s', whiteSpace: 'nowrap',
                 }}>
                   Connexion
                 </Link>
@@ -399,7 +418,7 @@ export default function Navbar() {
                   backgroundColor: 'var(--brand-primary)', color: '#fff',
                   border: 'none', padding: '0.75rem 1.5rem',
                   borderRadius: '0.75rem', fontWeight: 600, textDecoration: 'none',
-                  fontSize: '0.9rem', boxShadow: 'var(--shadow-md)', transition: 'all 0.3s',
+                  fontSize: '0.9rem', boxShadow: 'var(--shadow-md)', transition: 'all 0.3s', whiteSpace: 'nowrap',
                 }}>
                   Inscription
                 </Link>
@@ -413,7 +432,8 @@ export default function Navbar() {
             className="mobile-menu-btn"
             style={{
               display: 'none', backgroundColor: 'transparent', border: 'none',
-              color: 'var(--brand-primary)', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.5rem',
+              color: 'var(--brand-primary)', cursor: 'pointer', padding: '0.5rem',
+              borderRadius: '0.5rem', flexShrink: 0,
             }}
           >
             {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
@@ -452,6 +472,11 @@ export default function Navbar() {
                       Prestataire
                     </span>
                   )}
+                  {hasPendingEntreprise && !isProvider && (
+                    <span style={{ display: 'inline-block', backgroundColor: '#f59e0b', color: '#fff', padding: '0.2rem 0.6rem', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700, marginTop: '0.25rem' }}>
+                      ⏳ Validation en cours
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -460,37 +485,20 @@ export default function Navbar() {
               {user ? (
                 <>
                   {user.role === 'admin' ? (
-                    // Menu mobile Admin
                     <>
-                      <MobileLink to="/admin/dashboard" icon={FaUser} label="Dashboard Admin" onClick={closeMobileMenu} />
-                      <MobileLink to="/admin/entreprises" icon={FaBuilding} label="Entreprises" onClick={closeMobileMenu} />
-                      <MobileLink to="/messages" icon={FiMessageSquare} label="Messages" onClick={closeMobileMenu} />
-                      <MobileLink to="/entreprises" icon={FaSearch} label="Site Public" onClick={closeMobileMenu} />
+                      <MobileLink to="/admin/dashboard"   icon={FaUser}          label="Dashboard Admin" onClick={closeMobileMenu} />
+                      <MobileLink to="/admin/entreprises" icon={FaBuilding}      label="Entreprises"     onClick={closeMobileMenu} />
+                      <MobileLink to="/messages"          icon={FiMessageSquare} label="Messages"        onClick={closeMobileMenu} />
+                      <MobileLink to="/admin/plans"       icon={FiAward}         label="Plans"           onClick={closeMobileMenu} />
                     </>
                   ) : (
-                    // Menu mobile Client/Prestataire
                     <>
-                      {isProvider ? (
-                        // Menu mobile Prestataire
-                        <>
-                          <MobileLink to="/dashboard" icon={MdDashboard} label="Dashboard Prestataire" onClick={closeMobileMenu} />
-                          <MobileLink to="/mes-entreprises" icon={FaBuilding} label="Mes Entreprises" onClick={closeMobileMenu} />
-                          <MobileLink to="/mes-services" icon={FaTools} label="Mes Services" onClick={closeMobileMenu} />
-                          <MobileLink to="/messages" icon={FiMessageSquare} label="Messages" onClick={closeMobileMenu} />
-                          <MobileLink to="/mes-rendez-vous" icon={FiCalendar} label="Rendez-vous" onClick={closeMobileMenu} />
-                          <MobileLink to="/plans" icon={FiAward} label="Plans" onClick={closeMobileMenu} />
-                          <MobileLink to="/abonnements" icon={FiAward} label="Abonnements" onClick={closeMobileMenu} />
-                        </>
-                      ) : (
-                        // Menu mobile Client
-                        <>
-                          <MobileLink to="/dashboard" icon={FiShoppingBag} label="Espace Client" onClick={closeMobileMenu} />
-                          <MobileLink to="/mes-rendez-vous" icon={FiCalendar} label="Mes Rendez-vous" onClick={closeMobileMenu} />
-                          <MobileLink to="/favoris" icon={FiHeart} label="Favoris" onClick={closeMobileMenu} />
-                        </>
+                      {(isProvider ? providerLinks : clientLinks).map(({ to, icon: Icon, label }) => (
+                        <MobileLink key={to} to={to} icon={Icon} label={label} onClick={closeMobileMenu} />
+                      ))}
+                      {hasPendingEntreprise && !isProvider && (
+                        <MobileLink to="/dashboard" icon={FiClock} label="⏳ Suivi de validation" onClick={closeMobileMenu} />
                       )}
-                      <MobileLink to="/messages" icon={FiMessageSquare} label="Messages" onClick={closeMobileMenu} />
-                      <MobileLink to="/entreprises" icon={FaSearch} label="Explorer" onClick={closeMobileMenu} />
                     </>
                   )}
                   <MobileLink to="/settings" icon={FiSettings} label="Paramètres" onClick={closeMobileMenu} />
@@ -505,13 +513,12 @@ export default function Navbar() {
                   </button>
                 </>
               ) : (
-                // Menu mobile public
                 <>
-                  <MobileLink to="/" icon={FaHome} label="Accueil" onClick={closeMobileMenu} />
+                  <MobileLink to="/"            icon={FaHome}    label="Accueil"     onClick={closeMobileMenu} />
                   <MobileLink to="/entreprises" icon={FaBuilding} label="Entreprises" onClick={closeMobileMenu} />
-                  <MobileLink to="/services" icon={FaTools} label="Services" onClick={closeMobileMenu} />
-                  <MobileLink to="/login" icon={FaUser} label="Connexion" onClick={closeMobileMenu} />
-                  <MobileLink to="/register" icon={FaUser} label="Inscription" onClick={closeMobileMenu} />
+                  <MobileLink to="/services"    icon={FaTools}   label="Services"    onClick={closeMobileMenu} />
+                  <MobileLink to="/login"       icon={FaUser}    label="Connexion"   onClick={closeMobileMenu} />
+                  <MobileLink to="/register"    icon={FaUser}    label="Inscription" onClick={closeMobileMenu} />
                 </>
               )}
             </div>
@@ -520,7 +527,16 @@ export default function Navbar() {
       )}
 
       <style>{`
+        /* ✅ CORRECTION 4 : breakpoint remonté à 1200px
+           Avant à 968px les liens débordaient encore sur les écrans 969px–1199px
+           Maintenant le burger apparaît bien avant que les liens ne se chevauchent */
         .desktop-nav { display: flex; }
+        .mobile-menu-btn { display: none !important; }
+
+        @media (max-width: 1200px) {
+          .desktop-nav { display: none !important; }
+          .mobile-menu-btn { display: flex !important; }
+        }
 
         .nav-link {
           text-decoration: none;
@@ -545,50 +561,20 @@ export default function Navbar() {
           transition: transform 0.3s ease;
         }
         .nav-link:hover::after { transform: translateX(-50%) scaleX(1); }
+        .settings-trigger:hover { background-color: var(--bg-tertiary) !important; }
+        .settings-item:hover { background-color: var(--bg-secondary) !important; transform: translateX(4px); }
+        .service-item:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); background-color: var(--bg-tertiary) !important; }
+        .mega-dropdown, .settings-dropdown-menu { animation: slideDown 0.25s ease; }
 
-        .settings-trigger:hover {
-          background-color: var(--bg-tertiary) !important;
-        }
-        .settings-item:hover {
-          background-color: var(--bg-secondary) !important;
-          transform: translateX(4px);
-        }
-        .service-item:hover {
-          transform: translateY(-3px);
-          box-shadow: var(--shadow-md);
-          background-color: var(--bg-tertiary) !important;
-        }
-
-        .mega-dropdown, .settings-dropdown-menu {
-          animation: slideDown 0.25s ease;
-        }
-
-        .mobile-menu-btn { display: none !important; }
-
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideInRight {
-          from { transform: translateX(100%); }
-          to   { transform: translateX(0); }
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50%      { opacity: 0.8; transform: scale(1.15); }
-        }
-
-        @media (max-width: 968px) {
-          .desktop-nav   { display: none !important; }
-          .mobile-menu-btn { display: flex !important; }
-        }
+        @keyframes slideDown    { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInRight { from { transform: translateX(100%); }             to { transform: translateX(0); } }
+        @keyframes spin         { to { transform: rotate(360deg); } }
+        @keyframes pulse        { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.15); } }
       `}</style>
     </>
   );
 }
 
-// Lien mobile réutilisable
 function MobileLink({ to, icon: Icon, label, onClick }) {
   return (
     <Link to={to} onClick={onClick} style={{
@@ -605,7 +591,6 @@ function MobileLink({ to, icon: Icon, label, onClick }) {
   );
 }
 
-// Style de base des liens desktop
 const navLink = {
   textDecoration: 'none',
   padding: '0.5rem 1rem',
