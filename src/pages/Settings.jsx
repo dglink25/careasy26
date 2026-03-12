@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { userSettingsApi } from '../api/userSettingsApi';
+import NotificationSettingsPanel from '../components/Settings/NotificationSettingsPanel'; // ← AJOUTÉ
 import {
   FiUser, FiMail, FiLock, FiBell, FiEye, FiMoon, FiSun, FiMonitor,
   FiCamera, FiSave, FiAlertCircle, FiCheckCircle, FiX, FiSettings,
@@ -42,8 +43,8 @@ export default function Settings() {
   const [message, setMessage] = useState(null);
 
   const [profileData, setProfileData] = useState({
-  name: '', email: '', phone: '', profile_photo: null, profile_photo_url: '',
-});
+    name: '', email: '', phone: '', profile_photo: null, profile_photo_url: '',
+  });
   const [passwordData, setPasswordData] = useState({
     current_password: '', new_password: '', new_password_confirmation: '',
   });
@@ -110,9 +111,9 @@ export default function Settings() {
       setSaving(true);
       if (profileData.profile_photo) await userSettingsApi.updateProfilePhoto(profileData.profile_photo);
       const res = await userSettingsApi.updateProfile({ 
-  name: profileData.name, 
-  phone: profileData.phone 
-});
+        name: profileData.name, 
+        phone: profileData.phone 
+      });
       updateUser(res.user);
       showMessage('Profil mis à jour');
     } catch (e) {
@@ -343,16 +344,16 @@ export default function Settings() {
                 <p style={s.hint}>Un email de vérification sera envoyé</p>
               </div>
               <div style={s.formGroup}>
-              <label style={s.label}>Téléphone</label>
-              <input
-                style={s.input}
-                type="tel"
-                value={profileData.phone}
-                onChange={e => setProfileData({ ...profileData, phone: e.target.value })}
-                placeholder="Ex : +229 97 00 00 00"
-              />
-              <p style={s.hint}>Utilisé pour les confirmations de rendez-vous par SMS</p>
-            </div>
+                <label style={s.label}>Téléphone</label>
+                <input
+                  style={s.input}
+                  type="tel"
+                  value={profileData.phone}
+                  onChange={e => setProfileData({ ...profileData, phone: e.target.value })}
+                  placeholder="Ex : +229 97 00 00 00"
+                />
+                <p style={s.hint}>Utilisé pour les confirmations de rendez-vous par SMS</p>
+              </div>
               <button onClick={handleSaveProfile} style={s.btnPrimary(saving)} disabled={saving}>
                 <FiSave />{saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
               </button>
@@ -384,24 +385,13 @@ export default function Settings() {
             </div>
           )}
 
-          {/* ── NOTIFICATIONS ── */}
+          {/* ── NOTIFICATIONS ── MODIFIÉ AVEC NotificationSettingsPanel */}
           {activeTab === 'notifications' && (
-            <div style={s.section}>
-              <h2 style={s.sectionTitle}>Préférences de notifications</h2>
-              {[
-                { key: 'email', title: 'Email', desc: 'Recevez des notifications par email' },
-                { key: 'push',  title: 'Push',  desc: 'Notifications dans le navigateur' },
-                { key: 'sms',   title: 'SMS',   desc: 'Notifications par SMS' },
-              ].map(({ key, title, desc }) => (
-                <div key={key} style={s.settingRow}>
-                  <div>
-                    <div style={s.settingName}>{title}</div>
-                    <div style={s.settingDesc}>{desc}</div>
-                  </div>
-                  <Toggle checked={notifications[key]} onChange={v => handleNotificationChange(key, v)} brand={c.brand} />
-                </div>
-              ))}
-            </div>
+            <NotificationSettingsPanel
+              colors={c}
+              notifications={notifications}
+              onNotificationChange={handleNotificationChange}
+            />
           )}
 
           {/* ── APPARENCE ── */}

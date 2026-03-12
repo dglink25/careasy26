@@ -5,9 +5,47 @@
     <link rel="icon" type="image/svg+xml" href="logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CarEasy</title>
+    
+    <!-- ← AJOUT : Lien vers le manifest PWA (pour les notifications et l'installation) -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- ← AJOUT : Thème couleur pour la barre d'adresse sur mobile -->
+    <meta name="theme-color" content="#ef4444" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- ← AJOUT : Enregistrement du Service Worker pour les notifications push -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('[SW] ✅ Service Worker enregistré avec succès:', registration.scope);
+              
+              // ← OPTIONNEL : Vérifier les mises à jour du Service Worker
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('[SW] 📦 Nouvelle version détectée');
+                
+                newWorker.addEventListener('statechange', () => {
+                  console.log('[SW] 🔄 Nouvel état:', newWorker.state);
+                });
+              });
+            })
+            .catch(error => {
+              console.error('[SW] ❌ Erreur lors de l\'enregistrement:', error);
+            });
+        });
+        
+        // ← OPTIONNEL : Gérer les messages du Service Worker
+        navigator.serviceWorker.addEventListener('message', event => {
+          console.log('[SW] 📨 Message reçu:', event.data);
+        });
+      } else {
+        console.log('[SW] ⚠️ Les Service Workers ne sont pas supportés par ce navigateur');
+      }
+    </script>
   </body>
 </html>

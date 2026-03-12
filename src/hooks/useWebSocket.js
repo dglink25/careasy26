@@ -1,5 +1,6 @@
 // src/hooks/useWebSocket.js — V3
 // Fix : authEndpoint absolu + gestion body vide + reconnexion propre
+// Ajout : window.__careasyPusher exposé globalement pour useRealtimeNotifications
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -11,6 +12,10 @@ function destroyPusher() {
     try { pusherInstance.disconnect(); } catch (_) {}
     pusherInstance = null;
     currentUserId  = null;
+    // ← AJOUT : Nettoyer également la référence globale
+    if (window.__careasyPusher) {
+      delete window.__careasyPusher;
+    }
   }
 }
 
@@ -45,6 +50,10 @@ function buildPusher(token) {
   instance.connection.bind('disconnected', () => console.warn('[WS] ⚠️ Déconnecté'));
   instance.connection.bind('error',        (e) => console.error('[WS] ❌', e));
 
+  // ← AJOUT : Exposer l'instance globalement pour les autres hooks (notifications)
+  window.__careasyPusher = instance;
+  console.log('[WS] ✅ Instance Pusher exposée globalement sur window.__careasyPusher');
+
   return instance;
 }
 
@@ -54,7 +63,10 @@ function loadSDK() {
     const s    = document.createElement('script');
     s.src      = 'https://js.pusher.com/8.2.0/pusher.min.js';
     s.async    = true;
-    s.onload   = () => { console.log('[WS] SDK chargé'); resolve(); };
+    s.onload   = () => { 
+      console.log('[WS] SDK chargé'); 
+      resolve(); 
+    };
     s.onerror  = () => console.error('[WS] Impossible de charger le SDK');
     document.head.appendChild(s);
   });
@@ -174,8 +186,16 @@ export function useWebSocket({
         Object.keys(channels.current).forEach(n => pusherInstance.unsubscribe(n));
       }
       channels.current = {};
+      
+      // ← AJOUT : Ne pas détruire pusherInstance ici car d'autres hooks peuvent en avoir besoin
+      // La destruction n'aura lieu que lors du changement d'utilisateur ou du démontage complet
     };
   }, []);
 
   return { wsConnected };
+}
+
+// ← AJOUT : Export de l'instance pour utilisation directe si nécessaire
+export function getPusherInstance() {
+  return pusherInstance;
 }
