@@ -488,6 +488,7 @@ export default function Navbar() {
                     )}
                   </>
                 )}
+                
 
                 <BellButton {...bellProps} />
 
