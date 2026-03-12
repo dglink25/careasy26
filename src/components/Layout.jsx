@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
+import Footer from './Footer';
 import { useRealtimeNotifications } from '../hooks/useRealtimeNotifications';
 
 // ✅ NavigationBridge ICI — à l'intérieur d'une <Route>, donc useNavigate() fonctionne
@@ -48,6 +49,7 @@ export default function Layout() {
       <main>
         <Outlet />
       </main>
+      <Footer />
     </>
   );
 }
