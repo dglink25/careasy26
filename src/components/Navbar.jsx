@@ -20,7 +20,7 @@ import {
 import { MdDashboard } from 'react-icons/md';
 
 // ═══════════════════════════════════════════════════════════════
-// CONSTANTES MODULE-LEVEL (jamais recréées)
+// CONSTANTES MODULE-LEVEL
 // ═══════════════════════════════════════════════════════════════
 const NOTIF_ICONS = {
   message:                { icon: '💬', color: '#3b82f6' },
@@ -56,6 +56,48 @@ function parseNotifData(notif) {
   return data || {};
 }
 
+// ✅ Résolution intelligente de l'URL — identique à Notifications.jsx
+function resolveNotifUrl(data) {
+  const type = data?.type || '';
+  let url = data?.url || data?.link || data?.action_url || '';
+
+  // Messages : /messages/123 → navigate('/messages', { state: { conversationId } })
+  if (type === 'message' || url.startsWith('/messages/')) {
+    const conversationId = data?.conversation_id
+      || url.replace('/messages/', '').replace('/messages', '').trim();
+    if (conversationId && conversationId !== '' && conversationId !== '/') {
+      return { path: '/messages', state: { conversationId: parseInt(conversationId) || conversationId } };
+    }
+    return { path: '/messages', state: null };
+  }
+
+  // Rendez-vous
+  if (type.startsWith('rdv_')) {
+    const rdvId = data?.rdv_id;
+    if (rdvId) return { path: `/rendez-vous/${rdvId}`, state: null };
+    return { path: '/mes-rendez-vous', state: null };
+  }
+
+  // Entreprises
+  if (type === 'entreprise_approved' || type === 'trial_started') {
+    return { path: '/mes-entreprises', state: null };
+  }
+  if (type === 'entreprise_rejected') {
+    return { path: '/entreprises/creer', state: null };
+  }
+  if (type === 'new_entreprise_pending') {
+    const id = data?.entreprise_id;
+    return { path: id ? `/admin/entreprises/${id}` : '/admin/entreprises', state: null };
+  }
+
+  // Fallback URL stockée
+  if (url && url !== '/' && url.startsWith('/')) {
+    return { path: url, state: null };
+  }
+
+  return null;
+}
+
 function getNotifMeta(notif) {
   const type = parseNotifData(notif)?.type || 'default';
   return NOTIF_ICONS[type] || NOTIF_ICONS.default;
@@ -75,21 +117,18 @@ function badgeStyle(color) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ✅ NotificationPanel — COMPOSANT EXTERNE
-//    Défini HORS de Navbar → stable entre les renders
-//    Les onClick passés en props fonctionnent correctement
+// NotificationPanel — COMPOSANT EXTERNE
 // ═══════════════════════════════════════════════════════════════
 function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick, onDeleteNotif, onMarkAllRead, onViewAll }) {
   return (
     <div style={{
-      position: 'absolute', top: 'calc(100% + 0.75rem)', right: 0,
       width: 380, maxHeight: '80vh',
       backgroundColor: 'var(--bg-card)',
       borderRadius: '1rem',
       boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
       border: '2px solid var(--border-color)',
       overflow: 'hidden', display: 'flex', flexDirection: 'column',
-      zIndex: 1002, animation: 'slideDown 0.25s ease',
+      animation: 'slideDown 0.25s ease',
     }}>
       {/* Header */}
       <div style={{ padding: '1rem 1.25rem', borderBottom: '2px solid var(--border-color)', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -103,7 +142,10 @@ function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick,
           )}
         </div>
         {unreadCount > 0 && (
-          <button onClick={onMarkAllRead} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-primary)', fontSize: '0.8rem', fontWeight: 600, padding: '0.3rem 0.6rem', borderRadius: '0.4rem' }}>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onMarkAllRead(); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-primary)', fontSize: '0.8rem', fontWeight: 600, padding: '0.3rem 0.6rem', borderRadius: '0.4rem' }}
+          >
             <FiCheckSquare size={14} /> Tout lire
           </button>
         )}
@@ -133,7 +175,11 @@ function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick,
             return (
               <div
                 key={notif.id}
-                onClick={() => onNotifClick(notif)}
+                onMouseDown={(e) => {
+                  // Si le clic vient du bouton supprimer, ne pas déclencher onNotifClick
+                  if (e.target.closest('[data-delete-btn]')) return;
+                  onNotifClick(notif);
+                }}
                 style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.9rem 1.1rem', cursor: 'pointer', backgroundColor: isRead ? 'transparent' : `${meta.color}08`, borderBottom: '1px solid var(--border-color)', transition: 'background .2s', position: 'relative' }}
                 onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'; }}
                 onMouseLeave={e => { e.currentTarget.style.backgroundColor = isRead ? 'transparent' : `${meta.color}08`; }}
@@ -157,11 +203,13 @@ function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick,
                     {formatNotifDate(notif.created_at)}
                   </div>
                 </div>
+                {/* ✅ data-delete-btn pour identifier ce bouton depuis le parent */}
                 <button
-                  onClick={e => { e.stopPropagation(); onDeleteNotif(notif.id); }}
+                  data-delete-btn="true"
+                  onMouseDown={(e) => { e.stopPropagation(); onDeleteNotif(notif.id); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.25rem', borderRadius: '0.3rem', fontSize: '0.9rem', flexShrink: 0, opacity: 0.6 }}
-                  onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
-                  onMouseLeave={e => { e.currentTarget.style.opacity = '0.6'; }}
+                  onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#ef4444'; }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                   title="Supprimer"
                 >
                   <FiTrash2 />
@@ -175,7 +223,10 @@ function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick,
       {/* Footer */}
       {dbNotifs.length > 0 && (
         <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', textAlign: 'center' }}>
-          <button onClick={onViewAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-primary)', fontWeight: 600, fontSize: '0.875rem' }}>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onViewAll(); }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-primary)', fontWeight: 600, fontSize: '0.875rem' }}
+          >
             Voir toutes les notifications →
           </button>
         </div>
@@ -185,10 +236,17 @@ function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick,
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ✅ BellButton — COMPOSANT EXTERNE
+// BellButton — COMPOSANT EXTERNE
+// ✅ STRATÉGIE FINALE :
+//    - Le panneau portal EST dans panelRef
+//    - On écoute 'mousedown' sur document pour fermer SI le clic
+//      est en dehors du bouton ET en dehors du panneau
+//    - Aucun stopPropagation sur le panneau lui-même → les boutons
+//      internes (supprimer, voir tout, notif click) fonctionnent
 // ═══════════════════════════════════════════════════════════════
-function BellButton({ unreadCount, showPanel, onToggle, panelRef, ...panelProps }) {
-  const btnRef  = useRef(null);
+function BellButton({ unreadCount, showPanel, onToggle, onClose, dbNotifs, loadingNotifs, onNotifClick, onDeleteNotif, onMarkAllRead, onViewAll }) {
+  const btnRef   = useRef(null);
+  const panelRef = useRef(null);
   const [pos, setPos] = useState(null);
 
   // Recalculer la position dès que le panneau s'ouvre
@@ -200,35 +258,81 @@ function BellButton({ unreadCount, showPanel, onToggle, panelRef, ...panelProps 
         top:   rect.bottom + 8,
         right: window.innerWidth - rect.right,
         zIndex: 99999,
-        // Empêcher que le panneau soit plus large que l'écran sur mobile
         maxWidth: 'min(380px, 96vw)',
       });
     }
   }, [showPanel]);
 
+  // Fermer au clic en dehors — on utilise 'mousedown' sur document
+  // Le délai 0 évite que le mousedown d'ouverture ferme immédiatement le panneau
+  useEffect(() => {
+    if (!showPanel) return;
+
+    const handleOutside = (e) => {
+      const inBtn   = btnRef.current?.contains(e.target);
+      const inPanel = panelRef.current?.contains(e.target);
+      if (!inBtn && !inPanel) {
+        onClose();
+      }
+    };
+
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleOutside);
+    }, 0);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleOutside);
+    };
+  }, [showPanel, onClose]);
+
   return (
-    <div ref={panelRef} style={{ position: 'relative' }}>
+    <>
       <button
         ref={btnRef}
         onClick={onToggle}
         className="bell-btn"
-        style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, backgroundColor: showPanel ? 'var(--brand-primary)' : 'var(--bg-secondary)', border: '2px solid var(--border-color)', borderRadius: '0.75rem', cursor: 'pointer', transition: 'all 0.2s', color: showPanel ? '#fff' : 'var(--text-primary)' }}
+        style={{
+          position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 42, height: 42,
+          backgroundColor: showPanel ? 'var(--brand-primary)' : 'var(--bg-secondary)',
+          border: '2px solid var(--border-color)', borderRadius: '0.75rem',
+          cursor: 'pointer', transition: 'all 0.2s',
+          color: showPanel ? '#fff' : 'var(--text-primary)'
+        }}
         title="Notifications"
       >
         <FiBell style={{ fontSize: '1.1rem' }} />
         {unreadCount > 0 && (
-          <span style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#ef4444', color: '#fff', borderRadius: 999, minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, border: '2px solid var(--bg-primary)', padding: '0 3px', animation: 'badgePop 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}>
+          <span style={{
+            position: 'absolute', top: -6, right: -6,
+            backgroundColor: '#ef4444', color: '#fff', borderRadius: 999,
+            minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '0.65rem', fontWeight: 800,
+            border: '2px solid var(--bg-primary)', padding: '0 3px',
+            animation: 'badgePop 0.3s cubic-bezier(0.34,1.56,0.64,1)'
+          }}>
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
+
+      {/* Portal — PAS de stopPropagation ici, les boutons internes gèrent eux-mêmes */}
       {showPanel && pos && createPortal(
-        <div ref={panelProps.portalRef} style={pos}>
-          <NotificationPanel unreadCount={unreadCount} {...panelProps} />
+        <div ref={panelRef} style={pos}>
+          <NotificationPanel
+            unreadCount={unreadCount}
+            dbNotifs={dbNotifs}
+            loadingNotifs={loadingNotifs}
+            onNotifClick={onNotifClick}
+            onDeleteNotif={onDeleteNotif}
+            onMarkAllRead={onMarkAllRead}
+            onViewAll={onViewAll}
+          />
         </div>,
         document.body
       )}
-    </div>
+    </>
   );
 }
 
@@ -256,7 +360,6 @@ export default function Navbar() {
   const [loadingNotifs,        setLoadingNotifs]        = useState(false);
 
   const settingsRef = useRef(null);
-  const notifRef    = useRef(null);
 
   // ── Fetch notifications ──────────────────────────────────
   const prevNotifsRef = useRef([]);
@@ -269,11 +372,9 @@ export default function Navbar() {
       const raw    = res.data?.notifications || res.data?.data || res.data || [];
       const notifs = Array.isArray(raw) ? raw : [];
 
-      // ✅ Détecter les NOUVELLES notifs non lues et déclencher son + native
       const prevIds = new Set(prevNotifsRef.current.map(n => n.id));
       const newUnread = notifs.filter(n => !n.read_at && !prevIds.has(n.id));
       if (newUnread.length > 0 && prevNotifsRef.current.length > 0) {
-        // Ne jouer qu'au refresh, pas au premier chargement
         const latest = newUnread[0];
         const data   = parseNotifData(latest);
         notify({
@@ -281,13 +382,12 @@ export default function Navbar() {
           body:       data.body  || '',
           type:       data.type  || 'default',
           url:        data.url   || '/',
-          showToast:  false, // déjà visible dans le panneau
+          showToast:  false,
           playSound:  true,
           showNative: true,
         });
       }
       prevNotifsRef.current = notifs;
-
       setDbNotifs(notifs);
       setUnreadCount(notifs.filter(n => !n.read_at).length);
     } catch { /* silencieux */ }
@@ -307,25 +407,29 @@ export default function Navbar() {
     }
   }, [toasts.length, fetchNotifications]);
 
-  // ── Handlers notifications (useCallback = référence stable) ──
+  // ── Handlers notifications ──
   const handleNotifClick = useCallback((notif) => {
-    // 1. Fermer panneau immédiatement
     setShowNotifPanel(false);
 
-    // 2. Naviguer IMMÉDIATEMENT (pas d'await, pas de blocage)
-    const data = parseNotifData(notif);
-    const url  = data?.url || data?.link || data?.action_url;
-    console.log('[Notif] click → url:', url, '| data:', data);
-    if (url) navigate(url);
+    const data        = parseNotifData(notif);
+    const destination = resolveNotifUrl(data);
 
-    // 3. Marquer comme lu EN ARRIÈRE-PLAN (fire & forget, ne bloque pas)
+    if (destination) {
+      if (destination.state) {
+        navigate(destination.path, { state: destination.state });
+      } else {
+        navigate(destination.path);
+      }
+    }
+
+    // Marquer comme lu en arrière-plan
     if (!notif.read_at) {
       api.post(`/notifications/${notif.id}/mark-read`)
         .then(() => {
           setDbNotifs(prev => prev.map(n => n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n));
           setUnreadCount(p => Math.max(0, p - 1));
         })
-        .catch(() => {}); // silencieux
+        .catch(() => {});
     }
   }, [navigate]);
 
@@ -356,24 +460,19 @@ export default function Navbar() {
     setShowSettingsDropdown(false);
   }, []);
 
-  // ── Fermer au clic extérieur ─────────────────────────────
-  // Ref pour le panneau Portal (rendu dans document.body)
-  const notifPanelPortalRef = useRef(null);
+  const handleCloseNotif = useCallback(() => {
+    setShowNotifPanel(false);
+  }, []);
 
+  // ── Fermer settings dropdown au clic extérieur ─────────────────────────────
   useEffect(() => {
     const fn = (e) => {
-      // ✅ Utiliser 'click' au lieu de 'mousedown'
-      // 'mousedown' se déclenche AVANT que le bouton dans le panneau reçoive le clic
-      // ce qui ferme le panneau avant que onClick soit appelé
-      const inBell  = notifRef.current?.contains(e.target);
-      const inPanel = notifPanelPortalRef.current?.contains(e.target);
-      if (!inBell && !inPanel) setShowNotifPanel(false);
-
-      if (settingsRef.current && !settingsRef.current.contains(e.target)) setShowSettingsDropdown(false);
+      if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+        setShowSettingsDropdown(false);
+      }
     };
-    // ✅ 'click' au lieu de 'mousedown' — le panneau reste ouvert le temps que le click se propage
-    document.addEventListener('click', fn);
-    return () => document.removeEventListener('click', fn);
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
   }, []);
 
   // ── Scroll ───────────────────────────────────────────────
@@ -444,13 +543,18 @@ export default function Navbar() {
     );
   };
 
-  // Prop communs pour BellButton
+  // Props communs pour BellButton
   const bellProps = {
-    unreadCount, showPanel: showNotifPanel, onToggle: handleToggleNotif, panelRef: notifRef,
-    portalRef: notifPanelPortalRef,
-    dbNotifs, loadingNotifs,
-    onNotifClick: handleNotifClick, onDeleteNotif: handleDeleteNotif,
-    onMarkAllRead: handleMarkAllRead, onViewAll: handleViewAll,
+    unreadCount,
+    showPanel: showNotifPanel,
+    onToggle: handleToggleNotif,
+    onClose: handleCloseNotif,
+    dbNotifs,
+    loadingNotifs,
+    onNotifClick: handleNotifClick,
+    onDeleteNotif: handleDeleteNotif,
+    onMarkAllRead: handleMarkAllRead,
+    onViewAll: handleViewAll,
   };
 
   return (
@@ -488,20 +592,23 @@ export default function Navbar() {
                     )}
                   </>
                 )}
-                
 
                 <BellButton {...bellProps} />
 
                 {/* User dropdown */}
                 <div ref={settingsRef} style={{ position: 'relative' }}>
-                  <button onClick={() => { setShowSettingsDropdown(p => !p); setShowNotifPanel(false); }} className="settings-trigger" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '2px solid var(--border-color)', cursor: 'pointer', transition: 'all 0.3s', whiteSpace: 'nowrap' }}>
+                  <button
+                    onClick={() => { setShowSettingsDropdown(p => !p); setShowNotifPanel(false); }}
+                    className="settings-trigger"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '2px solid var(--border-color)', cursor: 'pointer', transition: 'all 0.3s', whiteSpace: 'nowrap' }}
+                  >
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                       <UserAvatar size={35} />
                       <div style={{ position: 'absolute', bottom: 0, right: -2, width: 12, height: 12, borderRadius: '50%', backgroundColor: '#10b981', border: '2px solid var(--bg-primary)', animation: 'pulse 2s ease-in-out infinite' }} />
                     </div>
                     <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem' }}>{user.name.split(' ')[0]}</span>
-                    {user.role === 'admin'            && <span style={badgeStyle('#3b82f6')}>ADMIN</span>}
-                    {isProvider                       && <span style={badgeStyle('#10b981')}>PRESTATAIRE</span>}
+                    {user.role === 'admin'               && <span style={badgeStyle('#3b82f6')}>ADMIN</span>}
+                    {isProvider                          && <span style={badgeStyle('#10b981')}>PRESTATAIRE</span>}
                     {hasPendingEntreprise && !isProvider && <span style={badgeStyle('#f59e0b')}>EN VALIDATION</span>}
                     <FiChevronDownIcon style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', transition: 'transform 0.3s', transform: showSettingsDropdown ? 'rotate(180deg)' : 'rotate(0)' }} />
                   </button>
@@ -587,7 +694,11 @@ export default function Navbar() {
 
           {/* Mobile */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {user && <div className="mobile-bell" style={{ display: 'none' }}><BellButton {...bellProps} /></div>}
+            {user && (
+              <div className="mobile-bell" style={{ display: 'none' }}>
+                <BellButton {...bellProps} />
+              </div>
+            )}
             <button onClick={() => setMobileMenuOpen(p => !p)} className="mobile-menu-btn" style={{ display: 'none', backgroundColor: 'transparent', border: 'none', color: 'var(--brand-primary)', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.5rem', flexShrink: 0 }}>
               {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
             </button>
@@ -632,8 +743,10 @@ export default function Navbar() {
                     </>
                   )}
                   <MobileLink to="/settings" icon={FiSettings} label="Paramètres" onClick={() => setMobileMenuOpen(false)} />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: '0.5rem', backgroundColor: 'var(--bg-secondary)', cursor: 'pointer', border: '1px solid var(--border-color)' }}
-                    onClick={() => { setMobileMenuOpen(false); navigate('/notifications'); }}>
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: '0.5rem', backgroundColor: 'var(--bg-secondary)', cursor: 'pointer', border: '1px solid var(--border-color)' }}
+                    onClick={() => { setMobileMenuOpen(false); navigate('/notifications'); }}
+                  >
                     <FiBell style={{ color: 'var(--brand-primary)', fontSize: '1.1rem' }} />
                     <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>Notifications</span>
                     {unreadCount > 0 && <span style={{ marginLeft: 'auto', backgroundColor: '#ef4444', color: '#fff', borderRadius: 999, minWidth: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800 }}>{unreadCount}</span>}
@@ -685,7 +798,10 @@ export default function Navbar() {
 
 function MobileLink({ to, icon: Icon, label, onClick }) {
   return (
-    <Link to={to} onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', color: 'var(--text-primary)', textDecoration: 'none', borderRadius: '0.5rem', fontSize: '1rem', fontWeight: 500 }}
+    <Link
+      to={to}
+      onClick={onClick}
+      style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', color: 'var(--text-primary)', textDecoration: 'none', borderRadius: '0.5rem', fontSize: '1rem', fontWeight: 500 }}
       onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'; }}
       onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
     >

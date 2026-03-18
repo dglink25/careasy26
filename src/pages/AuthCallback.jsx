@@ -33,16 +33,16 @@ export default function AuthCallback() {
         try {
           const user = JSON.parse(decodeURIComponent(userParam));
           
-          // Stocker les données d'authentification
+          
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(user));
           
-          // Mettre à jour le contexte
+          
           if (setUser) {
             setUser(user);
           }
           
-          // Rediriger vers le dashboard
+          
           navigate('/dashboard');
         } catch (err) {
           console.error('Error parsing auth data:', err);

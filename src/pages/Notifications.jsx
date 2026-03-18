@@ -1,46 +1,107 @@
-// src/pages/Notifications.jsx
-// Page complète "Toutes mes notifications"
-// Route : /notifications
-
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import {
-  FiBell, FiTrash2, FiCheckSquare, FiFilter,
-  FiRefreshCw, FiArrowLeft, FiCheck
+  FiBell, FiTrash2, FiCheckSquare, FiRefreshCw, FiArrowLeft, FiCheck,
+  FiMessageSquare, FiCalendar, FiCheckCircle, FiXCircle, FiAward,
+  FiAlertTriangle, FiAlertCircle, FiZap,
 } from 'react-icons/fi';
+import { MdOutlineBusiness } from 'react-icons/md';
 
 const NOTIF_ICONS = {
-  message:                { icon: '💬', color: '#3b82f6' },
-  rdv_pending:            { icon: '📅', color: '#f59e0b' },
-  rdv_confirmed:          { icon: '✅', color: '#10b981' },
-  rdv_cancelled:          { icon: '❌', color: '#ef4444' },
-  rdv_completed:          { icon: '🎉', color: '#8b5cf6' },
-  entreprise_approved:    { icon: '🏢', color: '#10b981' },
-  entreprise_rejected:    { icon: '⚠️', color: '#ef4444' },
-  new_entreprise_pending: { icon: '🔔', color: '#f59e0b' },
-  default:                { icon: '🔔', color: '#6b7280' },
+  message:                { Icon: FiMessageSquare, color: '#3b82f6' },
+  rdv_pending:            { Icon: FiCalendar,      color: '#f59e0b' },
+  rdv_confirmed:          { Icon: FiCheckCircle,   color: '#10b981' },
+  rdv_cancelled:          { Icon: FiXCircle,       color: '#ef4444' },
+  rdv_completed:          { Icon: FiAward,         color: '#8b5cf6' },
+  entreprise_approved:    { Icon: MdOutlineBusiness, color: '#10b981' },
+  entreprise_rejected:    { Icon: FiAlertTriangle, color: '#ef4444' },
+  new_entreprise_pending: { Icon: FiAlertCircle,   color: '#f59e0b' },
+  trial_started:          { Icon: FiZap,           color: '#10b981' },
+  default:                { Icon: FiBell,          color: '#6b7280' },
 };
 
 const FILTERS = [
-  { key: 'all',          label: 'Toutes' },
-  { key: 'unread',       label: 'Non lues' },
-  { key: 'message',      label: '💬 Messages' },
-  { key: 'rdv',          label: '📅 RDV' },
-  { key: 'entreprise',   label: '🏢 Entreprises' },
+  { key: 'all',        label: 'Toutes',       FilterIcon: null },
+  { key: 'unread',     label: 'Non lues',     FilterIcon: null },
+  { key: 'message',    label: 'Messages',     FilterIcon: FiMessageSquare },
+  { key: 'rdv',        label: 'RDV',          FilterIcon: FiCalendar },
+  { key: 'entreprise', label: 'Entreprises',  FilterIcon: MdOutlineBusiness },
 ];
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
   const d   = new Date(dateStr);
-  const now = new Date();
-  const diff = Math.floor((now - d) / 1000);
-  if (diff < 60)    return 'À l\'instant';
-  if (diff < 3600)  return `Il y a ${Math.floor(diff / 60)} min`;
-  if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`;
-  if (diff < 604800)return `Il y a ${Math.floor(diff / 86400)} j`;
+  const diff = Math.floor((Date.now() - d) / 1000);
+  if (diff < 60)     return 'À l\'instant';
+  if (diff < 3600)   return `Il y a ${Math.floor(diff / 60)} min`;
+  if (diff < 86400)  return `Il y a ${Math.floor(diff / 3600)}h`;
+  if (diff < 604800) return `Il y a ${Math.floor(diff / 86400)} j`;
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
 };
+
+function parseNotifData(notif) {
+  let data = notif?.data;
+  if (typeof data === 'string') {
+    try { data = JSON.parse(data); } catch { data = {}; }
+  }
+  if (data?.data && typeof data.data === 'object' && !data.url && !data.title) {
+    data = { ...data, ...data.data };
+  }
+  return data || {};
+}
+
+function resolveNotifUrl(data, notif) {
+  const type = data?.type || '';
+
+  
+  let url = data?.url || data?.link || data?.action_url || '';
+ if (type === 'message' || url.startsWith('/messages/')) {
+    const conversationId = data?.conversation_id
+      || url.replace('/messages/', '').replace('/messages', '').trim();
+    if (conversationId && conversationId !== '' && conversationId !== '/') {
+      return { path: '/messages', state: { conversationId: parseInt(conversationId) || conversationId } };
+    }
+    return { path: '/messages', state: null };
+  }
+
+  
+  if (type === 'rdv_pending' || type === 'rdv_confirmed' || type === 'rdv_cancelled' || type === 'rdv_completed') {
+    const rdvId = data?.rdv_id;
+    if (rdvId) {
+      return { path: `/rendez-vous/${rdvId}`, state: null };
+    }
+   
+    if (url && url !== '/') return { path: url, state: null };
+    return { path: '/mes-rendez-vous', state: null };
+  }
+
+  
+  if (type === 'entreprise_approved' || type === 'entreprise_rejected') {
+    const entrepriseId = data?.entreprise_id;
+    if (type === 'entreprise_approved') {
+      return { path: '/mes-entreprises', state: null };
+    }
+    return { path: '/entreprises/creer', state: null };
+  }
+
+  if (type === 'new_entreprise_pending') {
+    const entrepriseId = data?.entreprise_id;
+    if (entrepriseId) return { path: `/admin/entreprises/${entrepriseId}`, state: null };
+    return { path: '/admin/entreprises', state: null };
+  }
+
+  if (type === 'trial_started') {
+    return { path: '/mes-entreprises', state: null };
+  }
+
+ 
+  if (url && url !== '/' && url.startsWith('/')) {
+    return { path: url, state: null };
+  }
+
+  return null; 
+}
 
 export default function Notifications() {
   const navigate = useNavigate();
@@ -63,20 +124,18 @@ export default function Notifications() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  // ── Filtres ───────────────────────────────────────────────────
-  const filtered = notifs.filter(n => {
-    const type = n.data?.type || '';
+ const filtered = notifs.filter(n => {
+    const data = parseNotifData(n);
+    const type = data?.type || '';
     if (filter === 'unread')     return !n.read_at;
     if (filter === 'message')    return type === 'message';
     if (filter === 'rdv')        return type.startsWith('rdv');
-    if (filter === 'entreprise') return type.includes('entreprise');
+    if (filter === 'entreprise') return type.includes('entreprise') || type === 'trial_started';
     return true;
   });
 
   const unreadCount = notifs.filter(n => !n.read_at).length;
 
-  // ── Actions ───────────────────────────────────────────────────
   const markAllRead = async () => {
     try {
       await api.post('/notifications/mark-all-read');
@@ -105,24 +164,21 @@ export default function Notifications() {
     setSelected([]);
   };
 
-  // ── Parser notif.data — objet ou string JSON selon Laravel/Pusher ──
-  const parseNotifData = (notif) => {
-    let data = notif.data;
-    if (typeof data === 'string') {
-      try { data = JSON.parse(data); } catch { data = {}; }
-    }
-    // Cas Pusher imbriqué : data.data contient le payload réel
-    if (data?.data && typeof data.data === 'object' && !data.url && !data.title) {
-      data = { ...data, ...data.data };
-    }
-    return data || {};
-  };
-
   const handleClick = async (notif) => {
-    if (!notif.read_at) await markRead(notif.id);
-    const data = parseNotifData(notif);
-    const url  = data?.url || data?.link || data?.action_url;
-    if (url) navigate(url);
+    if (!notif.read_at) {
+      markRead(notif.id); 
+    }
+
+    const data       = parseNotifData(notif);
+    const destination = resolveNotifUrl(data, notif);
+
+    if (!destination) return;
+
+    if (destination.state) {
+      navigate(destination.path, { state: destination.state });
+    } else {
+      navigate(destination.path);
+    }
   };
 
   const toggleSelect = (id) => {
@@ -158,7 +214,7 @@ export default function Notifications() {
             </h1>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button onClick={load} style={iconBtn}>
+            <button onClick={load} style={iconBtn} title="Actualiser">
               <FiRefreshCw />
             </button>
             {unreadCount > 0 && (
@@ -176,6 +232,7 @@ export default function Notifications() {
               key={f.key}
               onClick={() => setFilter(f.key)}
               style={{
+                display: 'flex', alignItems: 'center', gap: '0.35rem',
                 padding: '0.5rem 1rem', borderRadius: 999, border: '1.5px solid',
                 borderColor: filter === f.key ? 'var(--brand-primary, #3b82f6)' : 'var(--border-color, #e2e8f0)',
                 backgroundColor: filter === f.key ? 'var(--brand-primary, #3b82f6)' : 'transparent',
@@ -183,9 +240,10 @@ export default function Notifications() {
                 cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.2s',
               }}
             >
+              {f.FilterIcon && <f.FilterIcon size={13} />}
               {f.label}
               {f.key === 'unread' && unreadCount > 0 && (
-                <span style={{ marginLeft: '0.4rem', backgroundColor: filter === 'unread' ? 'rgba(255,255,255,0.3)' : '#ef4444', color: '#fff', borderRadius: 999, padding: '0.1rem 0.4rem', fontSize: '0.72rem' }}>
+                <span style={{ marginLeft: '0.2rem', backgroundColor: filter === 'unread' ? 'rgba(255,255,255,0.3)' : '#ef4444', color: '#fff', borderRadius: 999, padding: '0.1rem 0.4rem', fontSize: '0.72rem' }}>
                   {unreadCount}
                 </span>
               )}
@@ -193,7 +251,7 @@ export default function Notifications() {
           ))}
         </div>
 
-        {/* Actions sélection */}
+        {/* Barre d'actions sélection */}
         {selected.length > 0 && (
           <div style={{ backgroundColor: '#dbeafe', border: '1px solid #93c5fd', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
             <span style={{ color: '#1e40af', fontWeight: 600, fontSize: '0.9rem' }}>
@@ -230,35 +288,32 @@ export default function Notifications() {
           ) : (
             filtered.map((notif, idx) => {
               const meta   = getMeta(notif);
+              const { Icon: NotifIcon } = meta;
               const data   = parseNotifData(notif);
               const isRead = !!notif.read_at;
               const title  = data?.title || data?.message || 'Notification';
               const body   = data?.body  || data?.admin_note || data?.reason || '';
-              const url    = data?.url   || data?.link;
               const isSel  = selected.includes(notif.id);
+
+              
+              const destination = resolveNotifUrl(data, notif);
+              const isClickable = !!destination;
 
               return (
                 <div
                   key={notif.id}
                   style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '0.875rem',
+                    display: 'flex', alignItems: 'flex-start', gap: '0.875rem',
                     padding: '1rem 1.25rem',
-                    backgroundColor: isSel
-                      ? '#eff6ff'
-                      : isRead
-                        ? 'transparent'
-                        : `${meta.color}06`,
+                    backgroundColor: isSel ? '#eff6ff' : isRead ? 'transparent' : `${meta.color}06`,
                     borderBottom: idx < filtered.length - 1 ? '1px solid var(--border-color, #f1f5f9)' : 'none',
-                    cursor: 'pointer',
                     transition: 'background 0.2s',
                     position: 'relative',
                   }}
                   onMouseEnter={e => { if (!isSel) e.currentTarget.style.backgroundColor = 'var(--bg-secondary, #f8fafc)'; }}
                   onMouseLeave={e => { if (!isSel) e.currentTarget.style.backgroundColor = isRead ? 'transparent' : `${meta.color}06`; }}
                 >
-                  {/* Checkbox */}
+                  {/* Checkbox sélection */}
                   <div
                     onClick={(e) => { e.stopPropagation(); toggleSelect(notif.id); }}
                     style={{
@@ -266,44 +321,39 @@ export default function Notifications() {
                       border: `2px solid ${isSel ? 'var(--brand-primary, #3b82f6)' : 'var(--border-color, #cbd5e1)'}`,
                       backgroundColor: isSel ? 'var(--brand-primary, #3b82f6)' : 'transparent',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'all 0.2s', marginTop: '0.2rem',
+                      transition: 'all 0.2s', marginTop: '0.2rem', cursor: 'pointer',
                     }}
                   >
                     {isSel && <FiCheck size={12} color="#fff" />}
                   </div>
 
-                  {/* Indicateur non-lu */}
-                  {!isRead && (
-                    <div style={{
-                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                      backgroundColor: meta.color, marginTop: '0.5rem',
-                      boxShadow: `0 0 6px ${meta.color}80`,
-                    }} />
+                  {/* Point non-lu */}
+                  {!isRead ? (
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, backgroundColor: meta.color, marginTop: '0.5rem', boxShadow: `0 0 6px ${meta.color}80` }} />
+                  ) : (
+                    <div style={{ width: 8, flexShrink: 0 }} />
                   )}
-                  {isRead && <div style={{ width: 8, flexShrink: 0 }} />}
 
-                  {/* Icône */}
+                  {/* ✅ Icône React (pas emoji) — cliquable */}
                   <div
-                    onClick={() => handleClick(notif)}
+                    onClick={() => isClickable && handleClick(notif)}
                     style={{
                       width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-                      backgroundColor: `${meta.color}15`,
+                      backgroundColor: `${meta.color}18`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '1.3rem',
+                      cursor: isClickable ? 'pointer' : 'default',
                     }}
                   >
-                    {meta.icon}
+                    <NotifIcon size={20} color={meta.color} />
                   </div>
 
-                  {/* Contenu */}
-                  <div style={{ flex: 1, minWidth: 0 }} onClick={() => handleClick(notif)}>
+                  {/* Contenu — cliquable */}
+                  <div
+                    style={{ flex: 1, minWidth: 0, cursor: isClickable ? 'pointer' : 'default' }}
+                    onClick={() => isClickable && handleClick(notif)}
+                  >
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
-                      <div style={{
-                        fontSize: '0.9rem', fontWeight: isRead ? 500 : 700,
-                        color: 'var(--text-primary, #1e293b)',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        flex: 1,
-                      }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: isRead ? 500 : 700, color: 'var(--text-primary, #1e293b)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                         {title}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)', whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -312,24 +362,26 @@ export default function Notifications() {
                     </div>
 
                     {body && (
-                      <div style={{
-                        fontSize: '0.82rem', color: 'var(--text-secondary, #64748b)',
-                        marginTop: '0.25rem', lineHeight: 1.5,
-                        overflow: 'hidden', textOverflow: 'ellipsis',
-                        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                      }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary, #64748b)', marginTop: '0.25rem', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                         {body}
                       </div>
                     )}
 
-                    {url && (
-                      <div style={{ fontSize: '0.75rem', color: meta.color, marginTop: '0.3rem', fontWeight: 600 }}>
-                        Cliquer pour ouvrir →
+                    {/* ✅ Badge de destination avec icône React */}
+                    {isClickable && (
+                      <div style={{ fontSize: '0.72rem', color: meta.color, marginTop: '0.3rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <NotifIcon size={11} />
+                        {data?.type === 'message'           && 'Ouvrir la conversation'}
+                        {data?.type?.startsWith('rdv')      && 'Voir le rendez-vous'}
+                        {data?.type?.includes('entreprise') && "Voir l'entreprise"}
+                        {data?.type === 'trial_started'     && 'Mon espace prestataire'}
+                        {!['message'].includes(data?.type) && !data?.type?.startsWith('rdv') && !data?.type?.includes('entreprise') && data?.type !== 'trial_started' && 'Voir'}
+                        <span style={{ marginLeft: 1 }}>→</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Actions */}
+                  {/* Boutons actions */}
                   <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     {!isRead && (
                       <button
@@ -362,9 +414,7 @@ export default function Notifications() {
         )}
       </div>
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

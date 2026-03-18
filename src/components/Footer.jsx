@@ -1,4 +1,3 @@
-// src/components/Footer.jsx — VERSION RICHE & PROFESSIONNELLE
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import theme from '../config/theme';
