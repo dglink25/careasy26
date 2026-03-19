@@ -43,7 +43,6 @@ export default function Layout() {
 
   return (
     <>
-      {/* ✅ NavigationBridge monté DANS une Route — useNavigate() fonctionne */}
       <NavigationBridge />
       <Navbar />
       <main>
