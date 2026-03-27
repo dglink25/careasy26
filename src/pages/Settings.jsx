@@ -5,11 +5,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
 import { userSettingsApi } from '../api/userSettingsApi';
-import NotificationSettingsPanel from '../components/Settings/NotificationSettingsPanel'; // ← AJOUTÉ
+import NotificationSettingsPanel from '../components/Settings/NotificationSettingsPanel';
+import SessionsSecurityPanel from '../components/Settings/SessionsSecurityPanel';
 import {
   FiUser, FiMail, FiLock, FiBell, FiEye, FiMoon, FiSun, FiMonitor,
   FiCamera, FiSave, FiAlertCircle, FiCheckCircle, FiX, FiSettings,
-  FiShield, FiGlobe, FiPhone,
+  FiShield, FiGlobe, FiPhone, FiSmartphone,
 } from 'react-icons/fi';
 
 /* ─── helper : couleurs selon le thème actuel ─── */
@@ -272,12 +273,14 @@ export default function Settings() {
     </div>
   );
 
+  // TABS avec l'onglet 'sessions' ajouté
   const TABS = [
     { id: 'profile',       label: 'Profil',           Icon: FiUser },
-    { id: 'security',      label: 'Sécurité',          Icon: FiLock },
-    { id: 'notifications', label: 'Notifications',     Icon: FiBell },
-    { id: 'appearance',    label: 'Apparence',         Icon: FiMoon },
-    { id: 'privacy',       label: 'Confidentialité',   Icon: FiShield },
+    { id: 'security',      label: 'Sécurité',         Icon: FiLock },
+    { id: 'sessions',      label: 'Appareils',        Icon: FiShield },
+    { id: 'notifications', label: 'Notifications',    Icon: FiBell },
+    { id: 'appearance',    label: 'Apparence',        Icon: FiMoon },
+    { id: 'privacy',       label: 'Confidentialité',  Icon: FiShield },
   ];
 
   return (
@@ -385,7 +388,12 @@ export default function Settings() {
             </div>
           )}
 
-          {/* ── NOTIFICATIONS ── MODIFIÉ AVEC NotificationSettingsPanel */}
+          {/* ── APPAREILS (SESSIONS) ── NOUVEAU */}
+          {activeTab === 'sessions' && (
+            <SessionsSecurityPanel colors={c} />
+          )}
+
+          {/* ── NOTIFICATIONS ── */}
           {activeTab === 'notifications' && (
             <NotificationSettingsPanel
               colors={c}

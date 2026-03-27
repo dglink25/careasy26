@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { serviceApi } from '../../api/serviceApi';
 import { entrepriseApi } from '../../api/entrepriseApi';
+import ServiceVisibilityToggle from '../../components/Services/ServiceVisibilityToggle';
 import theme from '../../config/theme';
 
 // Import des icônes React Icons
@@ -14,6 +15,7 @@ import {
   FiDollarSign,
   FiClock,
   FiEye,
+  FiEyeOff,
   FiChevronRight,
   FiAlertCircle,
   FiRefreshCw,
@@ -245,6 +247,13 @@ export default function MesServices() {
       setLimitModalType('service');
       setShowLimitModal(true);
     }
+  };
+
+  // Fonction pour gérer le changement de visibilité
+  const handleVisibilityToggle = (serviceId, newValue) => {
+    setServices(prev =>
+      prev.map(s => s.id === serviceId ? { ...s, is_visibility: newValue } : s)
+    );
   };
 
   // Grouper par entreprise
@@ -660,6 +669,14 @@ export default function MesServices() {
                         style={styles.serviceCard}
                         className="service-card"
                       >
+                        {/* Badge visibilité si masqué */}
+                        {!service.is_visibility && (
+                          <div style={styles.visibilityBadge}>
+                            <FiEyeOff size={12} />
+                            <span>Masqué</span>
+                          </div>
+                        )}
+
                         {/* Badge promo si actif */}
                         {promoActive && (
                           <div style={styles.promoBadge}>
@@ -779,23 +796,31 @@ export default function MesServices() {
                           </div>
                         </div>
 
-                        {/* Footer avec actions */}
+                        {/* Footer avec actions et toggle de visibilité */}
                         <div style={styles.serviceFooter}>
-                          <div style={styles.serviceFooterActions}>
-                            <Link 
-                              to={`/services/${service.id}`}
-                              style={styles.viewButton}
-                            >
-                              <FiEye style={styles.viewButtonIcon} />
-                              Détails
-                            </Link>
-                            <Link 
-                              to={`/services/modifier/${service.id}`}
-                              style={styles.editButton}
-                            >
-                              <FiEdit style={styles.editButtonIcon} />
-                              Modifier
-                            </Link>
+                          <div style={{ ...styles.serviceFooterActions, justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                              <Link 
+                                to={`/services/${service.id}`}
+                                style={styles.viewButton}
+                              >
+                                <FiEye style={styles.viewButtonIcon} />
+                                Détails
+                              </Link>
+                              <Link 
+                                to={`/services/modifier/${service.id}`}
+                                style={styles.editButton}
+                              >
+                                <FiEdit style={styles.editButtonIcon} />
+                                Modifier
+                              </Link>
+                            </div>
+                            <ServiceVisibilityToggle
+                              serviceId={service.id}
+                              isVisible={service.is_visibility}
+                              onToggle={(val) => handleVisibilityToggle(service.id, val)}
+                              compact={true}
+                            />
                           </div>
                         </div>
                       </div>
@@ -1567,6 +1592,24 @@ const styles = {
     position: 'relative',
   },
   
+  // Visibility Badge
+  visibilityBadge: {
+    position: 'absolute',
+    top: '1rem',
+    left: '1rem',
+    zIndex: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    color: '#fff',
+    padding: '0.375rem 0.75rem',
+    borderRadius: '2rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.375rem',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    backdropFilter: 'blur(4px)',
+  },
+  
   // Promo Badge
   promoBadge: {
     position: 'absolute',
@@ -1655,6 +1698,9 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s',
+    ':hover': {
+      color: '#ef4444',
+    },
   },
   deleteIcon: {
     fontSize: '1.2rem',
@@ -1787,6 +1833,10 @@ const styles = {
     flex: 1,
     justifyContent: 'center',
     transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#dc2626',
+      transform: 'translateY(-2px)',
+    },
   },
   viewButtonIcon: {
     fontSize: '0.875rem',
@@ -1807,6 +1857,9 @@ const styles = {
     justifyContent: 'center',
     textDecoration: 'none',
     transition: 'all 0.2s',
+    ':hover': {
+      backgroundColor: '#e2e8f0',
+    },
   },
   editButtonIcon: {
     fontSize: '0.875rem',

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { serviceApi } from '../../api/serviceApi';
 import { entrepriseApi } from '../../api/entrepriseApi';
+import ServiceVisibilityToggle from '../../components/Services/ServiceVisibilityToggle';
 import theme from '../../config/theme';
 import { 
   FiDollarSign, 
@@ -16,7 +17,9 @@ import {
   FiAlertCircle,
   FiLock,
   FiGift,
-  FiActivity
+  FiActivity,
+  FiEye,
+  FiEyeOff
 } from 'react-icons/fi';
 import {
   MdBusiness,
@@ -385,6 +388,14 @@ export default function DetailsService() {
     }
   };
 
+  // Fonction pour gérer le changement de visibilité
+  const handleVisibilityToggle = (newVisibility) => {
+    setService(prev => ({
+      ...prev,
+      is_visibility: newVisibility
+    }));
+  };
+
   if (loading) {
     return (
       <div style={styles.container}>
@@ -425,6 +436,8 @@ export default function DetailsService() {
             </Link>
           </div>
           <div style={styles.headerActions}>
+           
+
             {/* Carte d'information du plan miniature */}
             <div style={styles.planMiniCard}>
               <FiGift style={styles.planMiniIcon} />
@@ -445,6 +458,13 @@ export default function DetailsService() {
                 </span>
               </div>
             </div>
+
+            {/* Toggle de visibilité */}
+            <ServiceVisibilityToggle
+              serviceId={service.id}
+              isVisible={service.is_visibility}
+              onToggle={handleVisibilityToggle}
+            />
 
             {/* Bouton Modifier avec vérification de limite */}
             <Link 
@@ -644,6 +664,14 @@ export default function DetailsService() {
                   </div>
                 )}
               </div>
+
+              {/* Badge de visibilité dans la carte (optionnel) */}
+              {!service.is_visibility && (
+                <div style={styles.visibilityWarning}>
+                  <FiEyeOff size={16} />
+                  <span>Ce service est actuellement masqué et n'apparaît pas dans les recherches</span>
+                </div>
+              )}
 
               {promoActive && (
                 <div style={styles.promoBanner}>
@@ -1049,6 +1077,34 @@ const styles = {
     display: 'flex',
     gap: '0.75rem',
     alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+
+  // Visibility Badge
+  visibilityBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.5rem 1rem',
+    backgroundColor: '#f1f5f9',
+    borderRadius: '2rem',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    color: '#475569',
+  },
+
+  // Visibility Warning
+  visibilityWarning: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    padding: '0.75rem 1rem',
+    backgroundColor: '#fef3c7',
+    border: '1px solid #fde68a',
+    borderRadius: '0.75rem',
+    marginBottom: '1.5rem',
+    fontSize: '0.875rem',
+    color: '#b45309',
   },
 
   // Plan mini card

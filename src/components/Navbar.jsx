@@ -19,9 +19,6 @@ import {
 } from 'react-icons/fi';
 import { MdDashboard } from 'react-icons/md';
 
-// ═══════════════════════════════════════════════════════════════
-// CONSTANTES MODULE-LEVEL
-// ═══════════════════════════════════════════════════════════════
 const NOTIF_ICONS = {
   message:                { icon: '💬', color: '#3b82f6' },
   rdv_pending:            { icon: '📅', color: '#f59e0b' },
@@ -42,9 +39,6 @@ const navLinkStyle = {
   fontSize: '0.95rem', transition: 'all 0.2s',
 };
 
-// ═══════════════════════════════════════════════════════════════
-// UTILITAIRES MODULE-LEVEL
-// ═══════════════════════════════════════════════════════════════
 function parseNotifData(notif) {
   let data = notif?.data;
   if (typeof data === 'string') {
@@ -56,12 +50,11 @@ function parseNotifData(notif) {
   return data || {};
 }
 
-// ✅ Résolution intelligente de l'URL — identique à Notifications.jsx
+
 function resolveNotifUrl(data) {
   const type = data?.type || '';
   let url = data?.url || data?.link || data?.action_url || '';
 
-  // Messages : /messages/123 → navigate('/messages', { state: { conversationId } })
   if (type === 'message' || url.startsWith('/messages/')) {
     const conversationId = data?.conversation_id
       || url.replace('/messages/', '').replace('/messages', '').trim();
@@ -71,14 +64,12 @@ function resolveNotifUrl(data) {
     return { path: '/messages', state: null };
   }
 
-  // Rendez-vous
   if (type.startsWith('rdv_')) {
     const rdvId = data?.rdv_id;
     if (rdvId) return { path: `/rendez-vous/${rdvId}`, state: null };
     return { path: '/mes-rendez-vous', state: null };
   }
 
-  // Entreprises
   if (type === 'entreprise_approved' || type === 'trial_started') {
     return { path: '/mes-entreprises', state: null };
   }
@@ -90,7 +81,6 @@ function resolveNotifUrl(data) {
     return { path: id ? `/admin/entreprises/${id}` : '/admin/entreprises', state: null };
   }
 
-  // Fallback URL stockée
   if (url && url !== '/' && url.startsWith('/')) {
     return { path: url, state: null };
   }
@@ -116,9 +106,6 @@ function badgeStyle(color) {
   return { backgroundColor: color, color: '#fff', padding: '0.2rem 0.6rem', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700 };
 }
 
-// ═══════════════════════════════════════════════════════════════
-// NotificationPanel — COMPOSANT EXTERNE
-// ═══════════════════════════════════════════════════════════════
 function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick, onDeleteNotif, onMarkAllRead, onViewAll }) {
   return (
     <div style={{
@@ -235,21 +222,11 @@ function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick,
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// BellButton — COMPOSANT EXTERNE
-// ✅ STRATÉGIE FINALE :
-//    - Le panneau portal EST dans panelRef
-//    - On écoute 'mousedown' sur document pour fermer SI le clic
-//      est en dehors du bouton ET en dehors du panneau
-//    - Aucun stopPropagation sur le panneau lui-même → les boutons
-//      internes (supprimer, voir tout, notif click) fonctionnent
-// ═══════════════════════════════════════════════════════════════
 function BellButton({ unreadCount, showPanel, onToggle, onClose, dbNotifs, loadingNotifs, onNotifClick, onDeleteNotif, onMarkAllRead, onViewAll }) {
   const btnRef   = useRef(null);
   const panelRef = useRef(null);
   const [pos, setPos] = useState(null);
 
-  // Recalculer la position dès que le panneau s'ouvre
   useEffect(() => {
     if (showPanel && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
@@ -263,8 +240,6 @@ function BellButton({ unreadCount, showPanel, onToggle, onClose, dbNotifs, loadi
     }
   }, [showPanel]);
 
-  // Fermer au clic en dehors — on utilise 'mousedown' sur document
-  // Le délai 0 évite que le mousedown d'ouverture ferme immédiatement le panneau
   useEffect(() => {
     if (!showPanel) return;
 
@@ -335,10 +310,6 @@ function BellButton({ unreadCount, showPanel, onToggle, onClose, dbNotifs, loadi
     </>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════
-// NAVBAR PRINCIPAL
-// ═══════════════════════════════════════════════════════════════
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { toasts, notify } = useNotifications();
@@ -526,7 +497,6 @@ export default function Navbar() {
   const clientLinks = [
     { to: '/dashboard',       icon: FiShoppingBag,   label: 'Espace Client'   },
     { to: '/mes-rendez-vous', icon: FiCalendar,      label: 'Mes Rendez-vous' },
-    { to: '/favoris',         icon: FiHeart,         label: 'Favoris'         },
     { to: '/messages',        icon: FiMessageSquare, label: 'Messages'        },
     { to: '/services',        icon: FaSearch,        label: 'Explorer'        },
   ];
