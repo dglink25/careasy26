@@ -7,6 +7,7 @@ import ContactModal from '../../components/ContactModal';
 import theme from '../../config/theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePendingAction } from '../../hooks/usePendingAction';
+import StarRating from '../../components/Services/StarRating';
 import { 
   FiArrowLeft, FiMapPin, FiClock, FiDollarSign, 
   FiPhone, FiMail, FiNavigation, FiShare2, FiHeart,
@@ -724,6 +725,10 @@ export default function PublicServiceDetails() {
                 </button>
               </div>
               {service.domaine && <div style={styles.domaineTag}>🏷️ {service.domaine.name}</div>}
+                    <StarRating
+                      rating={service.average_rating}
+                      total={service.total_reviews}
+                    />
               {service.descriptions && (
                 <div style={styles.descriptionSection}>
                   <h3 style={styles.sectionSubtitle}><MdOutlineDescription style={styles.sectionIcon} />Description</h3>

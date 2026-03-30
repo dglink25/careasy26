@@ -1287,7 +1287,7 @@ export default function CreerEntreprise() {
                 <div style={styles.formGroup}>
                   <label style={styles.label}>
                     <FaCertificate style={styles.labelIcon} />
-                    Numéro RCCM <span style={styles.required}>*</span>
+                    Numéro Pièces d'identité (Ex:CIP) <span style={styles.required}>*</span>
                   </label>
                   <input
                     type="text"
@@ -1295,7 +1295,7 @@ export default function CreerEntreprise() {
                     value={formData.rccm_number}
                     onChange={handleChange}
                     style={styles.input}
-                    placeholder="Ex: RB/COT/12/B/345"
+                    placeholder="Ex: XXXXXXX"
                     required
                   />
                 </div>
@@ -1303,7 +1303,7 @@ export default function CreerEntreprise() {
                 <div style={styles.formGroup}>
                   <label style={styles.label}>
                     <FaUpload style={styles.labelIcon} />
-                    Fichier RCCM (PDF/Image) <span style={styles.required}>*</span>
+                    Fichier Pièce d'identité (PDF/Image) <span style={styles.required}>*</span>
                   </label>
                   <div style={styles.fileUpload}>
                     <input

@@ -1,13 +1,4 @@
 // src/components/Settings/SessionsSecurityPanel.jsx
-// Gère : sessions actives, historique connexions, QR Login
-// Routes utilisées :
-//   GET  /user/sessions
-//   DELETE /user/sessions/{id}
-//   POST /user/logout-all
-//   GET  /user/login-history
-//   POST /user/sessions/share-token
-//   GET  /user/sessions/share-token/{token}/status
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../../api/axios';
 import {
@@ -15,14 +6,13 @@ import {
   FiRefreshCw, FiClock, FiCheckCircle, FiXCircle, FiAlertCircle,
   FiGrid,
 } from 'react-icons/fi';
-import { MdOutlineHistory, MdOutlineDevices } from 'react-icons/md';
+import { MdOutlineHistory, MdOutlineDevices, MdOutlineQrCode2 } from 'react-icons/md';
 
-/* ── Helpers ─────────────────────────────────────────────────────────── */
+/* ── helpers ─────────────────────────────────────────────────── */
 function deviceIcon(name = '') {
   const n = name.toLowerCase();
-  if (n.includes('android') || n.includes('iphone') || n.includes('ipad') || n.includes('mobile')) {
+  if (n.includes('android') || n.includes('iphone') || n.includes('ipad') || n.includes('mobile'))
     return <FiSmartphone />;
-  }
   if (n.includes('tablet')) return <FiTablet />;
   return <FiMonitor />;
 }
@@ -40,44 +30,70 @@ function methodLabel(m) {
   return map[m] || m;
 }
 
-/* ── Composant principal ─────────────────────────────────────────────── */
+/* ── composant principal ──────────────────────────────────────── */
 export default function SessionsSecurityPanel({ colors: c }) {
-  const [sessions, setSessions]         = useState([]);
-  const [history, setHistory]           = useState([]);
-  const [loadingSessions, setLS]        = useState(false);
-  const [loadingHistory, setLH]         = useState(false);
-  const [revoking, setRevoking]         = useState(null);
-  const [loggingOutAll, setLOA]         = useState(false);
-  const [msg, setMsg]                   = useState(null);
+  const [sessions,       setSessions]  = useState([]);
+  const [history,        setHistory]   = useState([]);
+  const [loadingSessions, setLS]       = useState(false);
+  const [loadingHistory,  setLH]       = useState(false);
+  const [revoking,       setRevoking]  = useState(null);
+  const [loggingOutAll,  setLOA]       = useState(false);
+  const [msg,            setMsg]       = useState(null);
 
   // QR Login
-  const [qrToken, setQrToken]           = useState(null);
-  const [qrStatus, setQrStatus]         = useState(null); // pending|used|expired
-  const [qrSecondsLeft, setQrSL]        = useState(0);
-  const [qrLoading, setQrLoading]       = useState(false);
-  const qrPollRef                       = useRef(null);
+  const [qrToken,      setQrToken]   = useState(null);
+  const [qrStatus,     setQrStatus]  = useState(null);
+  const [qrSecondsLeft, setQrSL]     = useState(0);
+  const [qrLoading,    setQrLoading] = useState(false);
+  const qrPollRef = useRef(null);
 
   const showMsg = (text, type = 'success') => {
     setMsg({ text, type });
     setTimeout(() => setMsg(null), 4000);
   };
 
-  /* ── Fetch sessions ─────────────────────────────────────────────── */
+  /* ── fetch ──────────────────────────────────────────────────── */
   const fetchSessions = useCallback(async () => {
-    try { setLS(true); const r = await api.get('/user/sessions'); setSessions(r.data || []); }
-    catch {}
+    try {
+      setLS(true);
+      const r = await api.get('/user/sessions');
+      // Le backend retourne { sessions: [...], total: N, max: N, current_token_id: N }
+      const raw = r.data;
+      const list = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.sessions)
+          ? raw.sessions
+          : [];
+      setSessions(list);
+    } catch (err) {
+      console.error('[Sessions] fetchSessions error:', err);
+      setSessions([]);
+    }
     finally { setLS(false); }
   }, []);
 
   const fetchHistory = useCallback(async () => {
-    try { setLH(true); const r = await api.get('/user/login-history'); setHistory(r.data?.history || r.data || []); }
-    catch {}
+    try {
+      setLH(true);
+      const r = await api.get('/user/login-history');
+      // Le backend retourne { history: [...], stats: {...} }
+      const raw = r.data;
+      const list = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.history)
+          ? raw.history
+          : [];
+      setHistory(list);
+    } catch (err) {
+      console.error('[Sessions] fetchHistory error:', err);
+      setHistory([]);
+    }
     finally { setLH(false); }
   }, []);
 
   useEffect(() => { fetchSessions(); fetchHistory(); }, []);
 
-  /* ── Révoquer session ───────────────────────────────────────────── */
+  /* ── révoquer ───────────────────────────────────────────────── */
   const revokeSession = async (id) => {
     try {
       setRevoking(id);
@@ -88,7 +104,6 @@ export default function SessionsSecurityPanel({ colors: c }) {
     finally { setRevoking(null); }
   };
 
-  /* ── Déconnecter tous ───────────────────────────────────────────── */
   const logoutAll = async () => {
     if (!window.confirm('Déconnecter tous les appareils sauf celui-ci ?')) return;
     try {
@@ -100,7 +115,7 @@ export default function SessionsSecurityPanel({ colors: c }) {
     finally { setLOA(false); }
   };
 
-  /* ── QR Login ───────────────────────────────────────────────────── */
+  /* ── QR Login ───────────────────────────────────────────────── */
   const generateQR = async () => {
     try {
       setQrLoading(true);
@@ -112,9 +127,7 @@ export default function SessionsSecurityPanel({ colors: c }) {
       startQrPolling(r.data.share_token);
     } catch (err) {
       showMsg(err.response?.data?.message || 'Impossible de générer le QR.', 'error');
-    } finally {
-      setQrLoading(false);
-    }
+    } finally { setQrLoading(false); }
   };
 
   const startQrPolling = (token) => {
@@ -137,34 +150,34 @@ export default function SessionsSecurityPanel({ colors: c }) {
 
   useEffect(() => () => clearInterval(qrPollRef.current), []);
 
-  /* ── QR URL (via api.qrserver.com, no auth needed) ─────────────── */
   const qrUrl = qrToken
     ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrToken)}`
     : null;
 
-  /* ── Styles ─────────────────────────────────────────────────────── */
+  /* ── styles ──────────────────────────────────────────────────── */
+  const clr = c || {};
   const s = {
-    section:   { display: 'flex', flexDirection: 'column', gap: '1.5rem' },
-    pageTitle: { fontSize: '1.5rem', fontWeight: 700, color: c?.text || 'var(--text-primary)', marginBottom: '.5rem' },
-    card:      { backgroundColor: c?.bgSec || 'var(--bg-secondary)', borderRadius: '.875rem', padding: '1.25rem', border: `1px solid ${c?.border || 'var(--border-color)'}` },
-    cardTitle: { display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '1rem', fontWeight: 700, color: c?.text || 'var(--text-primary)', marginBottom: '1rem' },
-    row:       { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '.875rem 0', borderBottom: `1px solid ${c?.border || 'var(--border-color)'}` },
-    deviceIcon:{ fontSize: '1.5rem', color: '#3b82f6', flexShrink: 0 },
-    deviceName:{ fontSize: '.95rem', fontWeight: 600, color: c?.text || 'var(--text-primary)' },
-    deviceMeta:{ fontSize: '.78rem', color: c?.textSec || 'var(--text-secondary)' },
-    currentBadge:{ backgroundColor: '#d1fae5', color: '#065f46', padding: '.2rem .6rem', borderRadius: 999, fontSize: '.7rem', fontWeight: 700 },
-    btn:       (color, bg) => ({ display: 'flex', alignItems: 'center', gap: '.4rem', padding: '.5rem 1rem', backgroundColor: bg || color, color: bg ? color : '#fff', border: bg ? `1.5px solid ${color}` : 'none', borderRadius: '.5rem', cursor: 'pointer', fontWeight: 600, fontSize: '.8rem', transition: 'all .2s', whiteSpace: 'nowrap' }),
-    historyItem: { display: 'flex', alignItems: 'center', gap: '1rem', padding: '.75rem 0', borderBottom: `1px solid ${c?.border || 'var(--border-color)'}` },
-    histIcon:  (ok) => ({ width: 32, height: 32, borderRadius: '50%', backgroundColor: ok ? '#d1fae5' : '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: ok ? '#059669' : '#dc2626' }),
-    qrBox:     { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '1.5rem 0' },
-    qrImg:     { width: 200, height: 200, borderRadius: '12px', border: '4px solid var(--border-color)' },
-    qrTimer:   (ok) => ({ fontSize: '.9rem', fontWeight: 700, color: ok ? '#ef4444' : '#10b981' }),
-    msgBox:    (t) => ({ display: 'flex', alignItems: 'center', gap: '.5rem', padding: '.875rem 1rem', borderRadius: '.5rem', backgroundColor: t === 'error' ? '#fee2e2' : '#d1fae5', color: t === 'error' ? '#dc2626' : '#059669', fontWeight: 600, fontSize: '.875rem' }),
+    section:      { display: 'flex', flexDirection: 'column', gap: '1.5rem' },
+    pageTitle:    { fontSize: '1.5rem', fontWeight: 700, color: clr.text || 'var(--text-primary)', marginBottom: '.5rem' },
+    card:         { backgroundColor: clr.bgSec || 'var(--bg-secondary)', borderRadius: '.875rem', padding: '1.25rem', border: `1px solid ${clr.border || 'var(--border-color)'}` },
+    cardTitle:    { display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '1rem', fontWeight: 700, color: clr.text || 'var(--text-primary)', marginBottom: '1rem' },
+    row:          { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '.875rem 0', borderBottom: `1px solid ${clr.border || 'var(--border-color)'}` },
+    deviceIcon:   { fontSize: '1.5rem', color: '#3b82f6', flexShrink: 0 },
+    deviceName:   { fontSize: '.95rem', fontWeight: 600, color: clr.text || 'var(--text-primary)' },
+    deviceMeta:   { fontSize: '.78rem', color: clr.textSec || 'var(--text-secondary)' },
+    currentBadge: { backgroundColor: '#d1fae5', color: '#065f46', padding: '.2rem .6rem', borderRadius: 999, fontSize: '.7rem', fontWeight: 700 },
+    btn:          (color, bg) => ({ display: 'flex', alignItems: 'center', gap: '.4rem', padding: '.5rem 1rem', backgroundColor: bg || color, color: bg ? color : '#fff', border: bg ? `1.5px solid ${color}` : 'none', borderRadius: '.5rem', cursor: 'pointer', fontWeight: 600, fontSize: '.8rem', transition: 'all .2s', whiteSpace: 'nowrap' }),
+    historyItem:  { display: 'flex', alignItems: 'center', gap: '1rem', padding: '.75rem 0', borderBottom: `1px solid ${clr.border || 'var(--border-color)'}` },
+    histIcon:     (ok) => ({ width: 32, height: 32, borderRadius: '50%', backgroundColor: ok ? '#d1fae5' : '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: ok ? '#059669' : '#dc2626' }),
+    qrBox:        { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '1.5rem 0' },
+    qrImg:        { width: 200, height: 200, borderRadius: '12px', border: '4px solid var(--border-color)' },
+    qrTimer:      (warn) => ({ fontSize: '.9rem', fontWeight: 700, color: warn ? '#ef4444' : '#10b981' }),
+    msgBox:       (t) => ({ display: 'flex', alignItems: 'center', gap: '.5rem', padding: '.875rem 1rem', borderRadius: '.5rem', backgroundColor: t === 'error' ? '#fee2e2' : '#d1fae5', color: t === 'error' ? '#dc2626' : '#059669', fontWeight: 600, fontSize: '.875rem' }),
   };
 
   return (
     <div style={s.section}>
-      <h2 style={s.pageTitle}>Sessions & Sécurité</h2>
+      <h2 style={s.pageTitle}>Sessions &amp; Sécurité</h2>
 
       {msg && (
         <div style={s.msgBox(msg.type)}>
@@ -172,10 +185,13 @@ export default function SessionsSecurityPanel({ colors: c }) {
         </div>
       )}
 
-      {/* ── Sessions actives ───────────────────────────────────────── */}
+      {/* ── Sessions actives ──────────────────────────────────── */}
       <div style={s.card}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <div style={s.cardTitle}><MdOutlineDevices style={{ fontSize: '1.25rem', color: '#3b82f6' }} /> Appareils connectés</div>
+          <div style={s.cardTitle}>
+            <MdOutlineDevices style={{ fontSize: '1.25rem', color: '#3b82f6' }} />
+            Appareils connectés
+          </div>
           <button onClick={logoutAll} disabled={loggingOutAll} style={s.btn('#ef4444', '#fee2e2')}>
             <FiLogOut size={14} /> {loggingOutAll ? 'Déconnexion...' : 'Tout déconnecter'}
           </button>
@@ -222,16 +238,19 @@ export default function SessionsSecurityPanel({ colors: c }) {
         </div>
       </div>
 
-      {/* ── QR Login ───────────────────────────────────────────────── */}
+      {/* ── QR Login ──────────────────────────────────────────── */}
       <div style={s.card}>
-        <div style={s.cardTitle}><FiQrCode style={{ fontSize: '1.25rem', color: '#8b5cf6' }} /> Connexion par QR Code</div>
+        <div style={s.cardTitle}>
+          <MdOutlineQrCode2 style={{ fontSize: '1.25rem', color: '#8b5cf6' }} />
+          Connexion par QR Code
+        </div>
         <p style={{ fontSize: '.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-          Connectez un nouvel appareil sans saisir vos identifiants. Générez un QR Code et scannez-le depuis l'application mobile.
+          Connectez un nouvel appareil sans saisir vos identifiants. Scannez le QR Code depuis l'application mobile.
         </p>
 
         {!qrToken ? (
           <button onClick={generateQR} disabled={qrLoading} style={s.btn('#8b5cf6')}>
-            <FiQrCode /> {qrLoading ? 'Génération...' : 'Générer un QR Code'}
+            <MdOutlineQrCode2 /> {qrLoading ? 'Génération...' : 'Générer un QR Code'}
           </button>
         ) : (
           <div style={s.qrBox}>
@@ -239,9 +258,7 @@ export default function SessionsSecurityPanel({ colors: c }) {
               <>
                 <img src={qrUrl} alt="QR Login" style={s.qrImg} />
                 <p style={s.qrTimer(qrSecondsLeft < 30)}>
-                  {qrStatus === 'pending' && qrSecondsLeft > 0
-                    ? `⏱ Expire dans ${qrSecondsLeft}s`
-                    : '⏱ Expiration imminente'}
+                  {qrSecondsLeft > 0 ? `⏱ Expire dans ${qrSecondsLeft}s` : '⏱ Expiration imminente'}
                 </p>
                 <p style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
                   Scannez ce code depuis l'application CarEasy
@@ -265,9 +282,12 @@ export default function SessionsSecurityPanel({ colors: c }) {
         )}
       </div>
 
-      {/* ── Historique connexions ───────────────────────────────────── */}
+      {/* ── Historique connexions ──────────────────────────────── */}
       <div style={s.card}>
-        <div style={s.cardTitle}><MdOutlineHistory style={{ fontSize: '1.25rem', color: '#10b981' }} /> Historique de connexions</div>
+        <div style={s.cardTitle}>
+          <MdOutlineHistory style={{ fontSize: '1.25rem', color: '#10b981' }} />
+          Historique de connexions
+        </div>
 
         {loadingHistory ? (
           <p style={{ color: 'var(--text-secondary)', fontSize: '.875rem', padding: '.5rem 0' }}>Chargement...</p>
@@ -282,7 +302,11 @@ export default function SessionsSecurityPanel({ colors: c }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                   {entry.success ? 'Connexion réussie' : 'Échec de connexion'}
-                  {entry.method && <span style={{ fontSize: '.75rem', color: 'var(--text-secondary)', fontWeight: 400, marginLeft: '.5rem' }}>via {methodLabel(entry.method)}</span>}
+                  {entry.method && (
+                    <span style={{ fontSize: '.75rem', color: 'var(--text-secondary)', fontWeight: 400, marginLeft: '.5rem' }}>
+                      via {methodLabel(entry.method)}
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: '.15rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {entry.device || 'Appareil inconnu'} • {entry.ip_address || ''} • {formatDate(entry.created_at)}
@@ -295,6 +319,8 @@ export default function SessionsSecurityPanel({ colors: c }) {
           ))
         )}
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

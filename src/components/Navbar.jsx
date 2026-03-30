@@ -478,12 +478,13 @@ export default function Navbar() {
   const isActive = (p) => location.pathname === p;
 
   const settingsSections = [
-    { id: 'profile',       label: 'Profil',         icon: FiUser,   description: 'Gérer vos informations',       color: '#3b82f6' },
-    { id: 'security',      label: 'Sécurité',        icon: FiLock,   description: 'Mot de passe',                 color: '#ef4444' },
-    { id: 'notifications', label: 'Notifications',   icon: FiBell,   description: 'Préférences de notifications', color: '#f59e0b' },
-    { id: 'appearance',    label: 'Apparence',        icon: FiMoon,   description: 'Thème et affichage',           color: '#8b5cf6' },
-    { id: 'privacy',       label: 'Confidentialité', icon: FiShield, description: 'Vie privée',                   color: '#10b981' },
-  ];
+  { id: 'profile',       label: 'Profil',         icon: FiUser,   description: 'Gérer vos informations',       color: '#3b82f6' },
+  { id: 'security',      label: 'Sécurité',        icon: FiLock,   description: 'Mot de passe',                 color: '#ef4444' },
+  { id: 'sessions',      label: 'Appareils',       icon: FiShield, description: 'Sessions & appareils connectés', color: '#8b5cf6' },
+  { id: 'notifications', label: 'Notifications',   icon: FiBell,   description: 'Préférences de notifications', color: '#f59e0b' },
+  { id: 'appearance',    label: 'Apparence',        icon: FiMoon,   description: 'Thème et affichage',           color: '#8b5cf6' },
+  { id: 'privacy',       label: 'Confidentialité', icon: FiShield, description: 'Vie privée',                   color: '#10b981' },
+];
 
   const providerLinks = [
     { to: '/dashboard',       icon: MdDashboard,     label: 'Tableau de bord' },

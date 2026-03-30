@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ChatModal from '../components/Chat/ChatModal';
 import { publicApi } from './../api/publicApi';
+import StarRating from '../components/Services/StarRating';
 import theme from './../config/theme';
 
 import {
@@ -728,6 +729,7 @@ const ServiceCard = ({
           <PriceDisplay service={service} promoActive={promoActive} />
         </div>
 
+        
         {/* Période promo */}
         {promoActive && promoPeriod && (
           <div style={styles.promoPeriod}>
@@ -745,6 +747,12 @@ const ServiceCard = ({
         ) : null}
 
         <div style={styles.divider} />
+
+          <StarRating
+            rating={service.average_rating}
+            total={service.total_reviews}
+            compact={true}
+          />
 
         {/* Entreprise + horaires aujourd'hui */}
         <div style={styles.serviceInfo}>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import StarRating from '../../components/Services/StarRating'
 import { publicApi } from '../../api/publicApi';
 
 import { 
@@ -632,6 +633,13 @@ const ServiceCard = ({ service, status, imageIndex, onNextImage, onPrevImage, on
             {service.domaine.name}
           </div>
         )}
+
+        {/* ← AJOUTER ICI */}
+          <StarRating
+            rating={service.average_rating}
+            total={service.total_reviews}
+            compact={true}
+            />
 
         {/* Période de promotion */}
         {hasActivePromo && promoPeriod && (
