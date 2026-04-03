@@ -1,6 +1,7 @@
 // careasy-frontend/src/pages/admin/AdminDashboard.jsx
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { adminApi } from '../../api/adminApi';
 import { useAuth } from '../../contexts/AuthContext';
 import theme from '../../config/theme';
@@ -35,7 +36,7 @@ import {
   FiMapPin,
   FiPhone,
   FiGlobe,
-  FiZap // J'ai vérifié - FiZap existe bien dans react-icons/fi
+  FiZap
 } from 'react-icons/fi';
 import {
   MdBusiness,
@@ -50,6 +51,7 @@ import { HiOutlineDocumentText } from 'react-icons/hi';
 import { BsCardChecklist } from 'react-icons/bs';
 
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
@@ -128,7 +130,7 @@ export default function AdminDashboard() {
       <div style={styles.container}>
         <div style={styles.loadingContainer}>
           <div style={styles.spinner}></div>
-          <p style={styles.loadingText}>Chargement du dashboard...</p>
+          <p style={styles.loadingText}>{t('admin.loading')}</p>
         </div>
       </div>
     );
@@ -142,10 +144,10 @@ export default function AdminDashboard() {
           <div>
             <h1 style={styles.title}>
               <MdDashboard style={styles.titleIcon} />
-              Dashboard Administrateur
+              {t('admin.dashboard.title')}
             </h1>
             <p style={styles.subtitle}>
-              Bienvenue, <span style={styles.userName}>{user?.name}</span> - Gérez les demandes d'entreprises
+              {t('admin.dashboard.welcome')}, <span style={styles.userName}>{user?.name}</span> - {t('admin.dashboard.subtitle')}
             </p>
           </div>
           <div style={styles.headerActions}>
@@ -155,7 +157,7 @@ export default function AdminDashboard() {
               disabled={refreshing}
             >
               <FiRefreshCw style={refreshing ? styles.refreshingIcon : styles.refreshIcon} />
-              {refreshing ? 'Rafraîchissement...' : 'Rafraîchir'}
+              {refreshing ? t('admin.dashboard.refreshing') : t('admin.dashboard.refresh')}
             </button>
             <button style={styles.notificationButton}>
               <FiBell style={styles.notificationIcon} />
@@ -172,15 +174,15 @@ export default function AdminDashboard() {
             <FiAlertCircle style={styles.alertIcon} />
             <div style={styles.alertContent}>
               <div style={styles.alertTitle}>
-                {stats.pending} demande{stats.pending > 1 ? 's' : ''} en attente de validation
+                {stats.pending} {stats.pending > 1 ? t('admin.dashboard.pendingRequestsPlural') : t('admin.dashboard.pendingRequestsSingular')}
               </div>
               <p style={styles.alertText}>
-                Des entreprises attendent votre examen. Veuillez les traiter rapidement.
+                {t('admin.dashboard.pendingAlertText')}
               </p>
             </div>
             <Link to="/admin/entreprises?status=pending" style={styles.alertButton}>
               <MdArrowForward style={styles.alertButtonIcon} />
-              Examiner maintenant
+              {t('admin.dashboard.examineNow')}
             </Link>
           </div>
         )}
@@ -197,7 +199,7 @@ export default function AdminDashboard() {
             </div>
             <div style={styles.statContent}>
               <div style={styles.statNumber}>{stats.total}</div>
-              <div style={styles.statLabel}>Total entreprises</div>
+              <div style={styles.statLabel}>{t('admin.dashboard.totalCompanies')}</div>
             </div>
             <FiChevronRight style={styles.statArrow} />
           </div>
@@ -214,7 +216,7 @@ export default function AdminDashboard() {
               <div style={{...styles.statNumber, color: theme.colors.warning}}>
                 {stats.pending}
               </div>
-              <div style={styles.statLabel}>En attente</div>
+              <div style={styles.statLabel}>{t('admin.dashboard.pending')}</div>
             </div>
             <FiChevronRight style={styles.statArrow} />
           </div>
@@ -231,7 +233,7 @@ export default function AdminDashboard() {
               <div style={{...styles.statNumber, color: theme.colors.success}}>
                 {stats.validated}
               </div>
-              <div style={styles.statLabel}>Validées</div>
+              <div style={styles.statLabel}>{t('admin.dashboard.validated')}</div>
             </div>
             <FiChevronRight style={styles.statArrow} />
           </div>
@@ -248,7 +250,7 @@ export default function AdminDashboard() {
               <div style={{...styles.statNumber, color: theme.colors.error}}>
                 {stats.rejected}
               </div>
-              <div style={styles.statLabel}>Rejetées</div>
+              <div style={styles.statLabel}>{t('admin.dashboard.rejected')}</div>
             </div>
             <FiChevronRight style={styles.statArrow} />
           </div>
@@ -259,7 +261,7 @@ export default function AdminDashboard() {
           <div style={styles.sectionHeader}>
             <h2 style={styles.sectionTitle}>
               <FiZap style={styles.sectionTitleIcon} />
-              Actions rapides
+              {t('admin.dashboard.quickActions')}
             </h2>
             <div style={styles.sectionActions}>
               <button 
@@ -267,7 +269,7 @@ export default function AdminDashboard() {
                 onClick={() => navigate('/admin/entreprises')}
               >
                 <FiList style={styles.viewAllIcon} />
-                Liste complète
+                {t('admin.dashboard.fullList')}
               </button>
             </div>
           </div>
@@ -282,8 +284,8 @@ export default function AdminDashboard() {
                 <FiClock style={{...styles.actionIcon, color: theme.colors.warning}} />
               </div>
               <div style={styles.actionContent}>
-                <div style={styles.actionTitle}>Demandes en attente</div>
-                <div style={styles.actionDesc}>Valider ou rejeter les nouvelles entreprises</div>
+                <div style={styles.actionTitle}>{t('admin.dashboard.pendingRequests')}</div>
+                <div style={styles.actionDesc}>{t('admin.dashboard.pendingDesc')}</div>
               </div>
               <FiChevronRight style={styles.actionArrow} />
             </div>
@@ -297,8 +299,8 @@ export default function AdminDashboard() {
                 <FiUsers style={{...styles.actionIcon, color: theme.colors.primary}} />
               </div>
               <div style={styles.actionContent}>
-                <div style={styles.actionTitle}>Toutes les entreprises</div>
-                <div style={styles.actionDesc}>Consulter l'historique complet</div>
+                <div style={styles.actionTitle}>{t('admin.dashboard.allCompanies')}</div>
+                <div style={styles.actionDesc}>{t('admin.dashboard.allCompaniesDesc')}</div>
               </div>
               <FiChevronRight style={styles.actionArrow} />
             </div>
@@ -311,14 +313,14 @@ export default function AdminDashboard() {
             <div style={styles.sectionHeader}>
               <h2 style={styles.sectionTitle}>
                 <HiOutlineDocumentText style={styles.sectionTitleIcon} />
-                Demandes récentes
+                {t('admin.dashboard.recentRequests')}
                 <span style={styles.badge}>{recentEntreprises.length}</span>
               </h2>
               <button 
                 style={styles.viewAllButton}
                 onClick={() => navigate('/admin/entreprises?status=pending')}
               >
-                Voir tout
+                {t('admin.dashboard.viewAll')}
                 <FiChevronRight style={styles.viewAllIcon} />
               </button>
             </div>
@@ -329,23 +331,23 @@ export default function AdminDashboard() {
                   <tr style={styles.tableHeader}>
                     <th style={styles.th}>
                       <FiBriefcase style={styles.thIcon} />
-                      Entreprise
+                      {t('admin.dashboard.company')}
                     </th>
                     <th style={styles.th}>
                       <FaUserCheck style={styles.thIcon} />
-                      Prestataire
+                      {t('admin.dashboard.provider')}
                     </th>
                     <th style={styles.th}>
                       <FiCalendar style={styles.thIcon} />
-                      Date
+                      {t('admin.dashboard.date')}
                     </th>
                     <th style={styles.th}>
                       <FiClock style={styles.thIcon} />
-                      Statut
+                      {t('admin.dashboard.status')}
                     </th>
                     <th style={styles.th}>
                       <FiEye style={styles.thIcon} />
-                      Actions
+                      {t('admin.dashboard.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -376,20 +378,20 @@ export default function AdminDashboard() {
                           )}
                           <div style={styles.entrepriseInfo}>
                             <span style={styles.entrepriseName}>{entreprise.name}</span>
-                            <span style={styles.entrepriseEmail}>{entreprise.email || 'Non renseigné'}</span>
+                            <span style={styles.entrepriseEmail}>{entreprise.email || t('admin.dashboard.notProvided')}</span>
                           </div>
                         </div>
-                      </td>
+                       </td>
                       <td style={styles.td}>
                         <div style={styles.prestataireCell}>
                           <div style={styles.prestataireAvatar}>
                             {entreprise.prestataire?.name?.charAt(0) || 'P'}
                           </div>
                           <span style={styles.prestataireName}>
-                            {entreprise.prestataire?.name || 'Non assigné'}
+                            {entreprise.prestataire?.name || t('admin.dashboard.notAssigned')}
                           </span>
                         </div>
-                      </td>
+                       </td>
                       <td style={styles.td}>
                         <div style={styles.dateCell}>
                           <FiCalendar style={styles.dateIcon} />
@@ -399,13 +401,13 @@ export default function AdminDashboard() {
                             year: 'numeric'
                           })}
                         </div>
-                      </td>
+                       </td>
                       <td style={styles.td}>
                         <div style={styles.statusBadge}>
                           <FiClock style={styles.statusIcon} />
-                          En attente
+                          {t('admin.dashboard.pendingStatus')}
                         </div>
-                      </td>
+                       </td>
                       <td style={styles.td}>
                         <button 
                           style={styles.actionButton}
@@ -415,9 +417,9 @@ export default function AdminDashboard() {
                           }}
                         >
                           <FiEye style={styles.actionButtonIcon} />
-                          Voir détails
+                          {t('admin.dashboard.viewDetails')}
                         </button>
-                      </td>
+                       </td>
                     </tr>
                   ))}
                 </tbody>
@@ -431,24 +433,24 @@ export default function AdminDashboard() {
           <div style={styles.infoCard}>
             <div style={styles.infoCardHeader}>
               <FiHelpCircle style={styles.infoCardIcon} />
-              <h3 style={styles.infoCardTitle}>Guide de validation</h3>
+              <h3 style={styles.infoCardTitle}>{t('admin.dashboard.validationGuide')}</h3>
             </div>
             <ul style={styles.infoList}>
               <li style={styles.infoListItem}>
                 <FiCheckSquare style={styles.listIcon} />
-                Vérifier les documents légaux (IFU, RCCM)
+                {t('admin.dashboard.guideItem1')}
               </li>
               <li style={styles.infoListItem}>
                 <FiCheckSquare style={styles.listIcon} />
-                Confirmer l'adresse email et téléphone
+                {t('admin.dashboard.guideItem2')}
               </li>
               <li style={styles.infoListItem}>
                 <FiCheckSquare style={styles.listIcon} />
-                Valider le statut juridique
+                {t('admin.dashboard.guideItem3')}
               </li>
               <li style={styles.infoListItem}>
                 <FiCheckSquare style={styles.listIcon} />
-                Examiner les informations du prestataire
+                {t('admin.dashboard.guideItem4')}
               </li>
             </ul>
           </div>
@@ -456,20 +458,19 @@ export default function AdminDashboard() {
           <div style={styles.infoCard}>
             <div style={styles.infoCardHeader}>
               <FiShield style={styles.infoCardIcon} />
-              <h3 style={styles.infoCardTitle}>Sécurité des données</h3>
+              <h3 style={styles.infoCardTitle}>{t('admin.dashboard.dataSecurity')}</h3>
             </div>
             <p style={styles.infoCardText}>
-              Toutes les données sont cryptées et protégées conformément au RGPD.
-              Les documents sensibles sont automatiquement supprimés après 6 mois.
+              {t('admin.dashboard.securityText')}
             </p>
             <div style={styles.infoCardStats}>
               <div style={styles.infoStat}>
                 <div style={styles.infoStatNumber}>100%</div>
-                <div style={styles.infoStatLabel}>Données cryptées</div>
+                <div style={styles.infoStatLabel}>{t('admin.dashboard.encryptedData')}</div>
               </div>
               <div style={styles.infoStat}>
                 <div style={styles.infoStatNumber}>ISO 27001</div>
-                <div style={styles.infoStatLabel}>Certifié</div>
+                <div style={styles.infoStatLabel}>{t('admin.dashboard.certified')}</div>
               </div>
             </div>
           </div>
@@ -479,16 +480,16 @@ export default function AdminDashboard() {
         <div style={styles.footer}>
           <div style={styles.footerText}>
             <FiGlobe style={styles.footerIcon} />
-            Dernière mise à jour : {new Date().toLocaleDateString('fr-FR')}
+            {t('admin.dashboard.lastUpdate')} : {new Date().toLocaleDateString('fr-FR')}
           </div>
           <div style={styles.footerLinks}>
             <Link to="/admin/docs" style={styles.footerLink}>
               <FiFileText style={styles.footerLinkIcon} />
-              Documentation
+              {t('admin.dashboard.documentation')}
             </Link>
             <Link to="/admin/support" style={styles.footerLink}>
               <FiMail style={styles.footerLinkIcon} />
-              Support
+              {t('admin.dashboard.support')}
             </Link>
           </div>
         </div>
@@ -543,7 +544,7 @@ export default function AdminDashboard() {
   );
 }
 
-// Styles object reste identique - je vais juste ajouter les styles manquants
+// Styles object (inchangé)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -886,7 +887,6 @@ const styles = {
     color: '#475569',
     fontSize: '0.875rem',
     borderBottom: `1px solid #e2e8f0`,
-   // display: 'flex',
     alignItems: 'center',
     gap: '0.5rem',
   },

@@ -1,0 +1,372 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "companies": "Entreprises",
+    "services": "Services",
+    "login": "Connexion",
+    "register": "Inscription",
+    "dashboard": "Tableau de bord",
+    "myCompanies": "Entreprises",
+    "myServices": "Services",
+    "messages": "Messages",
+    "appointments": "Rendez-vous",
+    "subscriptions": "Abonnements",
+    "settings": "Paramètres",
+    "notifications": "Notifications",
+    "logout": "Déconnexion",
+    "adminDashboard": "Dashboard Admin",
+    "plans": "Plans",
+    "validationInProgress": "Validation en cours",
+    "clientSpace": "Espace Client",
+    "myAppointments": "Mes Rendez-vous",
+    "explore": "Explorer",
+    "allNotificationsRead": "Tout lire",
+    "admin": {
+      "dashboard": "Dashboard Admin",
+      "companies": "Entreprises",
+      "messages": "Messages",
+      "plans": "Plans"
+    },
+    "badges": {
+      "admin": "ADMIN",
+      "provider": "PRESTATAIRE",
+      "validation": "EN VALIDATION"
+    },
+    "guest": {
+      "home": "Accueil",
+      "companies": "Entreprises",
+      "services": "Services",
+      "login": "Connexion",
+      "register": "Inscription"
+    },
+    "servicesDropdown": {
+      "title": "Nos Services",
+      "loading": "Chargement...",
+      "domainesAvailable": "domaines disponibles",
+      "viewAll": "Voir tous les services →"
+    }
+  },
+  "hero": {
+    "startNow": "Commencer maintenant",
+    "exploreServices": "Explorer les services"
+  },
+  "home": {
+    "expertiseDomains": "Domaines d'Expertise",
+    "expertiseSubtitle": "Plus de 20 catégories de services pour tous vos besoins automobiles",
+    "recentServices": "Services Récents",
+    "recentServicesSubtitle": "Découvrez les derniers services ajoutés par nos prestataires",
+    "viewAllServices": "Voir tous les services",
+    "trustedCompanies": "Nos Entreprises de Confiance",
+    "readyToStart": "Prêt à démarrer ?",
+    "readySubtitle": "Rejoignez des milliers de Béninois qui font confiance à CarEasy",
+    "createFreeAccount": "Créer un compte gratuitement",
+    "contact": "Contacter",
+    "leaveMessage": "Laisser un message",
+    "seeMore": "Voir plus",
+    "quoteOnly": "Sur devis",
+    "alwaysOpen": "Ouvert 24h/24",
+    "openNow": "Ouvert maintenant",
+    "currentlyClosed": "Actuellement fermé",
+    "closedToday": "Fermé aujourd'hui",
+    "unknownHours": "Horaires non renseignés",
+    "tomorrow": "Demain",
+    "weekSchedule": "Horaires de la semaine"
+  },
+  "footer": {
+    "description": "CarEasy est la plateforme automobile de référence au Bénin. Nous connectons des milliers d'automobilistes avec des prestataires certifiés partout dans le pays, pour tous vos besoins de mobilité.",
+    "followUs": "Suivez-nous",
+    "ourServices": "Nos Services",
+    "mechanics": "Mécanique automobile",
+    "bodywork": "Peinture & Carrosserie",
+    "tires": "Pneumatique & Jantes",
+    "aircon": "Climatisation auto",
+    "drivingSchool": "Auto-école",
+    "insurance": "Assurance automobile",
+    "electrical": "Électricité auto",
+    "viewAllServices": "Voir tous les services →",
+    "platform": "Plateforme",
+    "findCompany": "Trouver une entreprise",
+    "exploreServices": "Explorer les services",
+    "ourPartners": "Nos partenaires",
+    "createAccount": "Créer un compte",
+    "login": "Se connecter",
+    "mobileApp": "Application mobile",
+    "downloadOnGooglePlay": "Télécharger sur Google Play",
+    "providers": "Prestataires",
+    "registerMyCompany": "Inscrire mon entreprise",
+    "manageMyCompanies": "Gérer mes entreprises",
+    "manageMyServices": "Gérer mes services",
+    "myMessages": "Mes messages",
+    "myDashboard": "Mon tableau de bord",
+    "helpSupport": "Aide & Support",
+    "helpCenter": "Centre d'aide / FAQ",
+    "providerGuide": "Guide du prestataire",
+    "suggestFeature": "Suggérer une fonctionnalité",
+    "privacyPolicy": "Politique de confidentialité",
+    "termsOfUse": "Conditions d'utilisation",
+    "directContact": "Contact direct",
+    "email": "Email",
+    "headquarters": "Siège social",
+    "supportHours": "Horaires support",
+    "supportHoursValue": "Lundi – Samedi : 7h00 – 20h00",
+    "copyright": "Tous droits réservés",
+    "privacy": "Confidentialité",
+    "terms": "CGU",
+    "cookies": "Cookies",
+    "help": "Aide",
+    "legalNotice": "Mentions légales"
+  },
+  "services": {
+    "mechanics": "Mécanique",
+    "bodywork": "Peinture",
+    "tires": "Pneumatique",
+    "aircon": "Climatisation",
+    "drivingSchool": "Auto-école",
+    "insurance": "Assurance",
+    "mechanicsDesc": "Réparation moteur, boîte de vitesses, suspension",
+    "bodyworkDesc": "Carrosserie, débosselage, peinture complète",
+    "tiresDesc": "Pneus, jantes, équilibrage, vulcanisation",
+    "airconDesc": "Recharge gaz, réparation système AC",
+    "drivingSchoolDesc": "Permis B, formation complète",
+    "insuranceDesc": "Tous types d'assurances auto",
+    "viewMore": "Voir plus"
+  },
+  "contact": {
+    "chooseMethod": "Choisissez votre méthode de contact préférée :",
+    "call": "Appeler",
+    "whatsapp": "WhatsApp",
+    "messaging": "Messagerie",
+    "instantMessage": "Message instantané",
+    "chatLive": "Discuter en direct",
+    "recommended": "Recommandé :",
+    "recommendedText": "La messagerie permet de suivre vos conversations et partager des photos/vidéos.",
+    "notAvailable": "Non disponible"
+  },
+  "language": {
+    "french": "Français",
+    "english": "English",
+    "selectLanguage": "Langue"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "noNotifications": "Aucune notification",
+    "upToDate": "Vous êtes à jour !",
+    "loading": "Chargement...",
+    "viewAll": "Voir toutes les notifications →",
+    "markAllRead": "Tout lire",
+    "delete": "Supprimer",
+    "justNow": "À l'instant"
+  },
+  "auth": {
+    "accessDenied": "Accès refusé",
+    "adminOnly": "Cette page est réservée aux administrateurs.",
+    "backToDashboard": "Retour au dashboard"
+  },
+  "faq": {
+    "title": "Foire Aux Questions",
+    "subtitle": "Trouvez rapidement des réponses à vos questions"
+  },
+  "partners": {
+    "title": "Nos Partenaires"
+  },
+  "admin": {
+    "loading": "Chargement du dashboard...",
+    "dashboard": {
+      "title": "Dashboard Administrateur",
+      "welcome": "Bienvenue",
+      "subtitle": "Gérez les demandes d'entreprises",
+      "refresh": "Rafraîchir",
+      "refreshing": "Rafraîchissement...",
+      "pendingRequestsSingular": "demande en attente de validation",
+      "pendingRequestsPlural": "demandes en attente de validation",
+      "pendingAlertText": "Des entreprises attendent votre examen. Veuillez les traiter rapidement.",
+      "examineNow": "Examiner maintenant",
+      "totalCompanies": "Total entreprises",
+      "pending": "En attente",
+      "validated": "Validées",
+      "rejected": "Rejetées",
+      "quickActions": "Actions rapides",
+      "fullList": "Liste complète",
+      "pendingRequests": "Demandes en attente",
+      "pendingDesc": "Valider ou rejeter les nouvelles entreprises",
+      "allCompanies": "Toutes les entreprises",
+      "allCompaniesDesc": "Consulter l'historique complet",
+      "recentRequests": "Demandes récentes",
+      "viewAll": "Voir tout",
+      "company": "Entreprise",
+      "provider": "Prestataire",
+      "date": "Date",
+      "status": "Statut",
+      "actions": "Actions",
+      "notProvided": "Non renseigné",
+      "notAssigned": "Non assigné",
+      "pendingStatus": "En attente",
+      "viewDetails": "Voir détails",
+      "validationGuide": "Guide de validation",
+      "guideItem1": "Vérifier les documents légaux (IFU, RCCM)",
+      "guideItem2": "Confirmer l'adresse email et téléphone",
+      "guideItem3": "Valider le statut juridique",
+      "guideItem4": "Examiner les informations du prestataire",
+      "dataSecurity": "Sécurité des données",
+      "securityText": "Toutes les données sont cryptées et protégées conformément au RGPD. Les documents sensibles sont automatiquement supprimés après 6 mois.",
+      "encryptedData": "Données cryptées",
+      "certified": "Certifié",
+      "lastUpdate": "Dernière mise à jour",
+      "documentation": "Documentation",
+      "support": "Support"
+    },
+    "entrepriseDetails": {
+      "company": "Entreprise",
+      "loading": {
+        "title": "Chargement des détails...",
+        "subtext": "Veuillez patienter"
+      },
+      "errors": {
+        "notFound": "Entreprise non trouvée",
+        "notFoundText": "L'entreprise que vous cherchez n'existe pas ou a été supprimée.",
+        "backToList": "Retour à la liste",
+        "retry": "Réessayer",
+        "actionError": "Erreur d'action",
+        "approveFailed": "Erreur lors de la validation",
+        "rejectFailed": "Erreur lors du rejet",
+        "rejectReasonRequired": "⚠️ Veuillez fournir une raison détaillée (minimum 10 caractères)"
+      },
+      "header": {
+        "backToList": "Liste des entreprises",
+        "refresh": "Rafraîchir",
+        "refreshing": "Rafraîchissement...",
+        "print": "Imprimer",
+        "share": "Partager",
+        "createdOn": "Créée le"
+      },
+      "tabs": {
+        "info": "Informations",
+        "documents": "Documents",
+        "provider": "Prestataire",
+        "history": "Historique"
+      },
+      "actions": {
+        "reject": "Rejeter",
+        "approve": "Valider",
+        "rejectRequest": "Rejeter la demande",
+        "approveCompany": "Valider l'entreprise"
+      },
+      "status": {
+        "pending": {
+          "title": "En attente de validation",
+          "description": "Cette demande nécessite votre examen"
+        },
+        "validated": {
+          "title": "Validée avec succès",
+          "description": "Entreprise activée sur la plateforme"
+        },
+        "rejected": {
+          "title": "Demande rejetée",
+          "description": "Demande refusée par l'administrateur",
+          "reason": "Raison"
+        }
+      },
+      "info": {
+        "companyIdentity": "Identité de l'entreprise",
+        "companyName": "Nom de l'entreprise",
+        "legalStatus": "Statut juridique",
+        "headquarters": "Siège social",
+        "manager": "Dirigeant principal",
+        "fullName": "Nom complet",
+        "profession": "Profession",
+        "contact": "Contact",
+        "media": "Médias & Visuels",
+        "logo": "Logo officiel",
+        "logoAlt": "Logo de l'entreprise",
+        "shopImage": "Image boutique",
+        "shopAlt": "Boutique de l'entreprise",
+        "businessAreas": "Domaines d'activité",
+        "legalNumbers": "Numéros légaux",
+        "ifuNumber": "Numéro IFU",
+        "rccmNumber": "Numéro RCCM",
+        "certificateNumber": "Certificat",
+        "notSpecified": "Non spécifié",
+        "notProvided": "Non renseigné",
+        "noLogo": "Aucun logo",
+        "noImage": "Aucune image"
+      },
+      "documents": {
+        "legalDocuments": "Documents légaux obligatoires",
+        "ifuCertificate": "Attestation IFU",
+        "rccmRegister": "Registre RCCM",
+        "complianceCertificate": "Certificat de conformité",
+        "number": "Numéro",
+        "downloadIFU": "Télécharger l'IFU",
+        "downloadRCCM": "Télécharger le RCCM",
+        "downloadCertificate": "Télécharger le certificat",
+        "notProvided": "Document non fourni",
+        "openInNewTab": "Ouvrir dans un nouvel onglet",
+        "view": "Visualiser",
+        "copyLink": "Copier le lien",
+        "download": "Télécharger",
+        "documentValidation": "Validation des documents",
+        "validation": {
+          "checkDates": "Vérifiez la validité des dates",
+          "checkClarity": "Confirmez la clarté des documents",
+          "checkConsistency": "Vérifiez la cohérence des informations",
+          "checkLegality": "Assurez-vous de la légalité"
+        },
+        "documentSecurity": "Sécurité des documents",
+        "encryptedDocuments": "Documents chiffrés",
+        "secureAccess": "Accès sécurisé",
+        "protectedStorage": "Stockage protégé"
+      },
+      "provider": {
+        "associatedProvider": "Prestataire associé",
+        "professionalEmail": "Email professionnel",
+        "registrationDate": "Date d'inscription",
+        "accountStatus": "Statut du compte",
+        "activeAccount": "Compte actif",
+        "whatsapp": "WhatsApp",
+        "callPhone": "Téléphone appel",
+        "contact": "Contacter",
+        "viewFullProfile": "Voir profil complet",
+        "noProvider": "Aucun prestataire associé",
+        "noProviderText": "Cette entreprise n'est pas encore associée à un prestataire.",
+        "notAvailable": "Non disponible",
+        "notProvided": "Non renseigné"
+      },
+      "history": {
+        "actionHistory": "Historique des actions",
+        "requestCreated": "Demande créée",
+        "lastModified": "Dernière modification",
+        "adminValidation": "Validation par l'admin",
+        "adminRejection": "Rejet par l'admin",
+        "statistics": "Statistiques",
+        "version": "Version",
+        "domains": "Domaines",
+        "documents": "Documents"
+      },
+      "share": {
+        "title": "Détails entreprise",
+        "text": "Consultez les détails de {{name}} sur Careasy",
+        "linkCopied": "Lien copié dans le presse-papier !"
+      },
+      "modals": {
+        "cancel": "Annuler",
+        "approve": {
+          "title": "Valider l'entreprise",
+          "text": "Confirmez-vous la validation de <strong>{{name}}</strong> ? Le prestataire sera notifié par email.",
+          "comment": "Commentaire (optionnel)",
+          "placeholder": "Ajouter un commentaire pour le prestataire...",
+          "processing": "Validation...",
+          "confirm": "Confirmer la validation"
+        },
+        "reject": {
+          "title": "Rejeter l'entreprise",
+          "text": "Vous êtes sur le point de rejeter <strong>{{name}}</strong>. Cette action sera notifiée au prestataire.",
+          "reason": "Raison du rejet",
+          "placeholder": "Expliquez en détail pourquoi cette entreprise est rejetée...",
+          "hint": "Minimum 10 caractères. Ce message sera envoyé au prestataire.",
+          "processing": "Rejet en cours...",
+          "confirm": "Confirmer le rejet"
+        }
+      }
+    }
+  }
+}

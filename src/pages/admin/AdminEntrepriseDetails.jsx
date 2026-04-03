@@ -1,6 +1,7 @@
 // careasy-frontend/src/pages/admin/AdminEntrepriseDetails.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { adminApi } from '../../api/adminApi';
 import theme from '../../config/theme';
 
@@ -78,6 +79,7 @@ import { BsBuilding, BsCardChecklist, BsPersonBadge, BsFileEarmarkText } from 'r
 import { BiSearchAlt, BiCategoryAlt } from 'react-icons/bi';
 
 export default function AdminEntrepriseDetails() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   
@@ -100,13 +102,13 @@ export default function AdminEntrepriseDetails() {
       setEntreprise(data);
     } catch (err) {
       console.error('Erreur chargement entreprise:', err);
-      setError('Entreprise non trouvée');
+      setError(t('admin.entrepriseDetails.errors.notFound'));
       setTimeout(() => navigate('/admin/entreprises'), 2000);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id, navigate]);
+  }, [id, navigate, t]);
 
   useEffect(() => {
     fetchEntreprise();
@@ -125,7 +127,7 @@ export default function AdminEntrepriseDetails() {
       alert(response.message);
       navigate('/admin/entreprises');
     } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message || 'Erreur lors de la validation';
+      const errorMsg = err.response?.data?.message || err.message || t('admin.entrepriseDetails.errors.approveFailed');
       setError(errorMsg);
       alert(errorMsg);
     } finally {
@@ -136,7 +138,7 @@ export default function AdminEntrepriseDetails() {
 
   const handleReject = async () => {
     if (!adminNote.trim() || adminNote.length < 10) {
-      alert('⚠️ Veuillez fournir une raison détaillée (minimum 10 caractères)');
+      alert(t('admin.entrepriseDetails.errors.rejectReasonRequired'));
       return;
     }
     
@@ -147,7 +149,7 @@ export default function AdminEntrepriseDetails() {
       alert(response.message);
       navigate('/admin/entreprises');
     } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message || 'Erreur lors du rejet';
+      const errorMsg = err.response?.data?.message || err.message || t('admin.entrepriseDetails.errors.rejectFailed');
       setError(errorMsg);
       alert(errorMsg);
     } finally {
@@ -160,24 +162,24 @@ export default function AdminEntrepriseDetails() {
     const badges = {
       pending: { 
         icon: <FaRegClock style={styles.statusBadgeIcon} />, 
-        text: 'En attente de validation', 
+        text: t('admin.entrepriseDetails.status.pending.title'), 
         color: theme.colors.warning, 
         bg: '#FEF3C7',
-        description: 'Cette demande nécessite votre examen'
+        description: t('admin.entrepriseDetails.status.pending.description')
       },
       validated: { 
         icon: <MdVerified style={styles.statusBadgeIcon} />, 
-        text: 'Validée avec succès', 
+        text: t('admin.entrepriseDetails.status.validated.title'), 
         color: theme.colors.success, 
         bg: '#D1FAE5',
-        description: 'Entreprise activée sur la plateforme'
+        description: t('admin.entrepriseDetails.status.validated.description')
       },
       rejected: { 
         icon: <FaRegTimesCircle style={styles.statusBadgeIcon} />, 
-        text: 'Demande rejetée', 
+        text: t('admin.entrepriseDetails.status.rejected.title'), 
         color: theme.colors.error, 
         bg: '#FEE2E2',
-        description: 'Demande refusée par l\'administrateur'
+        description: t('admin.entrepriseDetails.status.rejected.description')
       },
     };
     const badge = badges[status] || badges.pending;
@@ -197,7 +199,7 @@ export default function AdminEntrepriseDetails() {
               {status === 'rejected' && entreprise?.admin_note && (
                 <div style={styles.rejectionReason}>
                   <FiInfo style={styles.rejectionReasonIcon} />
-                  <strong>Raison :</strong> {entreprise.admin_note}
+                  <strong>{t('admin.entrepriseDetails.status.rejected.reason')} :</strong> {entreprise.admin_note}
                 </div>
               )}
             </div>
@@ -209,14 +211,14 @@ export default function AdminEntrepriseDetails() {
                 style={styles.quickRejectButton}
               >
                 <FiX style={styles.quickActionIcon} />
-                Rejeter
+                {t('admin.entrepriseDetails.actions.reject')}
               </button>
               <button 
                 onClick={() => setShowApproveModal(true)}
                 style={styles.quickApproveButton}
               >
                 <FiCheck style={styles.quickActionIcon} />
-                Valider
+                {t('admin.entrepriseDetails.actions.approve')}
               </button>
             </div>
           )}
@@ -230,28 +232,21 @@ export default function AdminEntrepriseDetails() {
       return (
         <div style={styles.noFile}>
           <BsFileEarmarkText style={styles.noFileIcon} />
-          <span style={styles.noFileText}>Document non fourni</span>
+          <span style={styles.noFileText}>{t('admin.entrepriseDetails.documents.notProvided')}</span>
         </div>
       );
     }
     
-    // CORRECTION: Nettoyer l'URL - supprimer le préfixe http://localhost:8000/storage
-    // et utiliser directement l'URL Cloudinary si c'est une URL Cloudinary
     let fullUrl = filePath;
     
-    // Si l'URL commence par http://localhost:8000/storage, on le retire
     if (filePath.startsWith('http://localhost:8000/storage')) {
-      // Si c'est une URL Cloudinary après le préfixe, on prend la partie après '/storage'
       const cloudinaryUrl = filePath.replace('http://localhost:8000/storage', '');
       fullUrl = cloudinaryUrl;
     } 
-    // Si c'est déjà une URL complète (Cloudinary), on l'utilise directement
     else if (filePath.startsWith('http')) {
       fullUrl = filePath;
     }
-    // Sinon, c'est peut-être un chemin relatif
     else {
-      // Si le chemin commence par /storage, on le retire pour éviter la duplication
       const cleanPath = filePath.replace(/^\/?storage\//, '');
       fullUrl = `${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${cleanPath}`;
     }
@@ -263,7 +258,7 @@ export default function AdminEntrepriseDetails() {
           target="_blank" 
           rel="noopener noreferrer" 
           style={styles.fileLink}
-          title="Ouvrir dans un nouvel onglet"
+          title={t('admin.entrepriseDetails.documents.openInNewTab')}
         >
           <div style={styles.fileLinkContent}>
             {icon}
@@ -275,14 +270,14 @@ export default function AdminEntrepriseDetails() {
           <button 
             onClick={() => window.open(fullUrl, '_blank')}
             style={styles.fileActionButton}
-            title="Visualiser"
+            title={t('admin.entrepriseDetails.documents.view')}
           >
             <FiEye />
           </button>
           <button 
             onClick={() => navigator.clipboard.writeText(fullUrl)}
             style={styles.fileActionButton}
-            title="Copier le lien"
+            title={t('admin.entrepriseDetails.documents.copyLink')}
           >
             <FiCopy />
           </button>
@@ -290,7 +285,7 @@ export default function AdminEntrepriseDetails() {
             href={fullUrl} 
             download
             style={styles.fileActionButton}
-            title="Télécharger"
+            title={t('admin.entrepriseDetails.documents.download')}
           >
             <FiDownload />
           </a>
@@ -306,13 +301,13 @@ export default function AdminEntrepriseDetails() {
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: `Détails entreprise - ${entreprise.name}`,
-        text: `Consultez les détails de ${entreprise.name} sur Careasy`,
+        title: `${t('admin.entrepriseDetails.share.title')} - ${entreprise.name}`,
+        text: t('admin.entrepriseDetails.share.text', { name: entreprise.name }),
         url: window.location.href,
       });
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert('Lien copié dans le presse-papier !');
+      alert(t('admin.entrepriseDetails.share.linkCopied'));
     }
   };
 
@@ -321,8 +316,8 @@ export default function AdminEntrepriseDetails() {
       <div style={styles.container}>
         <div style={styles.loadingContainer}>
           <div style={styles.spinner}></div>
-          <p style={styles.loadingText}>Chargement des détails...</p>
-          <p style={styles.loadingSubtext}>Veuillez patienter</p>
+          <p style={styles.loadingText}>{t('admin.entrepriseDetails.loading.title')}</p>
+          <p style={styles.loadingSubtext}>{t('admin.entrepriseDetails.loading.subtext')}</p>
         </div>
       </div>
     );
@@ -333,9 +328,9 @@ export default function AdminEntrepriseDetails() {
       <div style={styles.container}>
         <div style={styles.errorContainer}>
           <HiOutlineExclamationCircle style={styles.errorIcon} />
-          <h2 style={styles.errorTitle}>{error || 'Entreprise introuvable'}</h2>
+          <h2 style={styles.errorTitle}>{error || t('admin.entrepriseDetails.errors.notFound')}</h2>
           <p style={styles.errorText}>
-            L'entreprise que vous cherchez n'existe pas ou a été supprimée.
+            {t('admin.entrepriseDetails.errors.notFoundText')}
           </p>
           <div style={styles.errorActions}>
             <button 
@@ -343,14 +338,14 @@ export default function AdminEntrepriseDetails() {
               style={styles.errorButton}
             >
               <FiArrowLeft style={styles.errorButtonIcon} />
-              Retour à la liste
+              {t('admin.entrepriseDetails.errors.backToList')}
             </button>
             <button 
               onClick={fetchEntreprise}
               style={styles.errorRetryButton}
             >
               <FiRefreshCw style={styles.errorRetryIcon} />
-              Réessayer
+              {t('admin.entrepriseDetails.errors.retry')}
             </button>
           </div>
         </div>
@@ -369,7 +364,7 @@ export default function AdminEntrepriseDetails() {
               style={styles.backButton}
             >
               <FiArrowLeft style={styles.backButtonIcon} />
-              Liste des entreprises
+              {t('admin.entrepriseDetails.header.backToList')}
             </button>
             <div style={styles.headerActions}>
               <button 
@@ -378,21 +373,21 @@ export default function AdminEntrepriseDetails() {
                 disabled={refreshing}
               >
                 <FiRefreshCw style={refreshing ? styles.refreshingIcon : styles.headerActionIcon} />
-                {refreshing ? 'Rafraîchissement...' : 'Rafraîchir'}
+                {refreshing ? t('admin.entrepriseDetails.header.refreshing') : t('admin.entrepriseDetails.header.refresh')}
               </button>
               <button 
                 onClick={handlePrint}
                 style={styles.headerActionButton}
               >
                 <FiPrinter style={styles.headerActionIcon} />
-                Imprimer
+                {t('admin.entrepriseDetails.header.print')}
               </button>
               <button 
                 onClick={handleShare}
                 style={styles.headerActionButton}
               >
                 <FiShare2 style={styles.headerActionIcon} />
-                Partager
+                {t('admin.entrepriseDetails.header.share')}
               </button>
             </div>
           </div>
@@ -416,11 +411,11 @@ export default function AdminEntrepriseDetails() {
                     <h1 style={styles.title}>{entreprise.name}</h1>
                     <div style={styles.subtitle}>
                       <FiBriefcase style={styles.subtitleIcon} />
-                      <span>{entreprise.role_user || 'Entreprise'}</span>
+                      <span>{entreprise.role_user || t('admin.entrepriseDetails.company')}</span>
                       <span style={styles.separator}>•</span>
                       <FiCalendar style={styles.subtitleIcon} />
                       <span>
-                        Créée le {new Date(entreprise.created_at).toLocaleDateString('fr-FR', {
+                        {t('admin.entrepriseDetails.header.createdOn')} {new Date(entreprise.created_at).toLocaleDateString('fr-FR', {
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric',
@@ -443,7 +438,7 @@ export default function AdminEntrepriseDetails() {
                   }}
                 >
                   <FiInfo style={styles.tabIcon} />
-                  Informations
+                  {t('admin.entrepriseDetails.tabs.info')}
                 </button>
                 <button 
                   onClick={() => setActiveTab('documents')}
@@ -453,7 +448,7 @@ export default function AdminEntrepriseDetails() {
                   }}
                 >
                   <FiFileText style={styles.tabIcon} />
-                  Documents
+                  {t('admin.entrepriseDetails.tabs.documents')}
                 </button>
                 <button 
                   onClick={() => setActiveTab('prestataire')}
@@ -463,7 +458,7 @@ export default function AdminEntrepriseDetails() {
                   }}
                 >
                   <FiUser style={styles.tabIcon} />
-                  Prestataire
+                  {t('admin.entrepriseDetails.tabs.provider')}
                 </button>
                 <button 
                   onClick={() => setActiveTab('stats')}
@@ -473,7 +468,7 @@ export default function AdminEntrepriseDetails() {
                   }}
                 >
                   <FaChartLine style={styles.tabIcon} />
-                  Historique
+                  {t('admin.entrepriseDetails.tabs.history')}
                 </button>
               </div>
             </div>
@@ -487,7 +482,7 @@ export default function AdminEntrepriseDetails() {
                   disabled={actionLoading}
                 >
                   <FiXCircle style={styles.actionButtonIcon} />
-                  Rejeter la demande
+                  {t('admin.entrepriseDetails.actions.rejectRequest')}
                 </button>
                 <button 
                   onClick={() => setShowApproveModal(true)}
@@ -495,7 +490,7 @@ export default function AdminEntrepriseDetails() {
                   disabled={actionLoading}
                 >
                   <FiCheckCircle style={styles.actionButtonIcon} />
-                  Valider l'entreprise
+                  {t('admin.entrepriseDetails.actions.approveCompany')}
                 </button>
               </div>
             )}
@@ -510,7 +505,7 @@ export default function AdminEntrepriseDetails() {
           <div style={styles.errorAlert}>
             <FiAlertCircle style={styles.errorAlertIcon} />
             <div style={styles.errorAlertContent}>
-              <div style={styles.errorAlertTitle}>Erreur d'action</div>
+              <div style={styles.errorAlertTitle}>{t('admin.entrepriseDetails.errors.actionError')}</div>
               <p style={styles.errorAlertText}>{error}</p>
             </div>
             <button 
@@ -533,33 +528,33 @@ export default function AdminEntrepriseDetails() {
                 <div style={styles.infoCard}>
                   <div style={styles.infoCardHeader}>
                     <MdOutlineBusinessCenter style={styles.infoCardIcon} />
-                    <h3 style={styles.infoCardTitle}>Identité de l'entreprise</h3>
+                    <h3 style={styles.infoCardTitle}>{t('admin.entrepriseDetails.info.companyIdentity')}</h3>
                   </div>
                   <div style={styles.infoList}>
                     <div style={styles.infoItem}>
                       <div style={styles.infoItemLabel}>
                         <FiBriefcase style={styles.infoItemIcon} />
-                        Nom de l'entreprise
+                        {t('admin.entrepriseDetails.info.companyName')}
                       </div>
                       <div style={styles.infoItemValue}>{entreprise.name}</div>
                     </div>
                     <div style={styles.infoItem}>
                       <div style={styles.infoItemLabel}>
                         <FiGlobe style={styles.infoItemIcon} />
-                        Statut juridique
+                        {t('admin.entrepriseDetails.info.legalStatus')}
                       </div>
                       <div style={styles.infoItemValue}>
                         <span style={styles.statusTag}>
-                          {entreprise.role_user || 'Non spécifié'}
+                          {entreprise.role_user || t('admin.entrepriseDetails.info.notSpecified')}
                         </span>
                       </div>
                     </div>
                     <div style={styles.infoItem}>
                       <div style={styles.infoItemLabel}>
                         <FiMapPin style={styles.infoItemIcon} />
-                        Siège social
+                        {t('admin.entrepriseDetails.info.headquarters')}
                       </div>
-                      <div style={styles.infoItemValue}>{entreprise.siege || 'Non renseigné'}</div>
+                      <div style={styles.infoItemValue}>{entreprise.siege || t('admin.entrepriseDetails.info.notProvided')}</div>
                     </div>
                   </div>
                 </div>
@@ -568,34 +563,34 @@ export default function AdminEntrepriseDetails() {
                 <div style={styles.infoCard}>
                   <div style={styles.infoCardHeader}>
                     <MdOutlinePerson style={styles.infoCardIcon} />
-                    <h3 style={styles.infoCardTitle}>Dirigeant principal</h3>
+                    <h3 style={styles.infoCardTitle}>{t('admin.entrepriseDetails.info.manager')}</h3>
                   </div>
                   <div style={styles.infoList}>
                     <div style={styles.infoItem}>
                       <div style={styles.infoItemLabel}>
                         <FaUserTie style={styles.infoItemIcon} />
-                        Nom complet
+                        {t('admin.entrepriseDetails.info.fullName')}
                       </div>
                       <div style={styles.infoItemValue}>{entreprise.pdg_full_name}</div>
                     </div>
                     <div style={styles.infoItem}>
                       <div style={styles.infoItemLabel}>
                         <MdOutlineWork style={styles.infoItemIcon} />
-                        Profession
+                        {t('admin.entrepriseDetails.info.profession')}
                       </div>
                       <div style={styles.infoItemValue}>{entreprise.pdg_full_profession}</div>
                     </div>
                     <div style={styles.infoItem}>
                       <div style={styles.infoItemLabel}>
                         <FiMail style={styles.infoItemIcon} />
-                        Contact
+                        {t('admin.entrepriseDetails.info.contact')}
                       </div>
                       <div style={styles.infoItemValue}>
                         {entreprise.email ? (
                           <a href={`mailto:${entreprise.email}`} style={styles.contactLink}>
                             {entreprise.email}
                           </a>
-                        ) : 'Non renseigné'}
+                        ) : t('admin.entrepriseDetails.info.notProvided')}
                       </div>
                     </div>
                   </div>
@@ -605,18 +600,18 @@ export default function AdminEntrepriseDetails() {
                 <div style={styles.infoCard}>
                   <div style={styles.infoCardHeader}>
                     <FiImage style={styles.infoCardIcon} />
-                    <h3 style={styles.infoCardTitle}>Médias & Visuels</h3>
+                    <h3 style={styles.infoCardTitle}>{t('admin.entrepriseDetails.info.media')}</h3>
                   </div>
                   <div style={styles.mediaSection}>
                     <div style={styles.mediaItem}>
                       <div style={styles.mediaLabel}>
                         <FaRegBuilding style={styles.mediaIcon} />
-                        Logo officiel
+                        {t('admin.entrepriseDetails.info.logo')}
                       </div>
                       {entreprise.logo ? (
                         <img 
                           src={entreprise.logo}
-                          alt="Logo de l'entreprise"
+                          alt={t('admin.entrepriseDetails.info.logoAlt')}
                           style={styles.mediaPreview}
                           onError={(e) => {
                             e.target.onerror = null;
@@ -627,19 +622,19 @@ export default function AdminEntrepriseDetails() {
                       ) : (
                         <div style={styles.mediaPlaceholder}>
                           <FaRegBuilding style={styles.mediaPlaceholderIcon} />
-                          <span>Aucun logo</span>
+                          <span>{t('admin.entrepriseDetails.info.noLogo')}</span>
                         </div>
                       )}
                     </div>
                     <div style={styles.mediaItem}>
                       <div style={styles.mediaLabel}>
                         <FiHome style={styles.mediaIcon} />
-                        Image boutique
+                        {t('admin.entrepriseDetails.info.shopImage')}
                       </div>
                       {entreprise.image_boutique ? (
                         <img 
                           src={entreprise.image_boutique}
-                          alt="Boutique de l'entreprise"
+                          alt={t('admin.entrepriseDetails.info.shopAlt')}
                           style={styles.mediaPreview}
                           onError={(e) => {
                             e.target.onerror = null;
@@ -650,7 +645,7 @@ export default function AdminEntrepriseDetails() {
                       ) : (
                         <div style={styles.mediaPlaceholder}>
                           <FiHome style={styles.mediaPlaceholderIcon} />
-                          <span>Aucune image</span>
+                          <span>{t('admin.entrepriseDetails.info.noImage')}</span>
                         </div>
                       )}
                     </div>
@@ -662,7 +657,7 @@ export default function AdminEntrepriseDetails() {
                   <div style={styles.infoCard}>
                     <div style={styles.infoCardHeader}>
                       <BiCategoryAlt style={styles.infoCardIcon} />
-                      <h3 style={styles.infoCardTitle}>Domaines d'activité</h3>
+                      <h3 style={styles.infoCardTitle}>{t('admin.entrepriseDetails.info.businessAreas')}</h3>
                     </div>
                     <div style={styles.domainesGrid}>
                       {entreprise.domaines.map((domaine) => (
@@ -679,27 +674,27 @@ export default function AdminEntrepriseDetails() {
                 <div style={styles.infoCard}>
                   <div style={styles.infoCardHeader}>
                     <MdOutlineDocumentScanner style={styles.infoCardIcon} />
-                    <h3 style={styles.infoCardTitle}>Numéros légaux</h3>
+                    <h3 style={styles.infoCardTitle}>{t('admin.entrepriseDetails.info.legalNumbers')}</h3>
                   </div>
                   <div style={styles.legalNumbers}>
                     <div style={styles.legalNumberItem}>
                       <div style={styles.legalNumberLabel}>
                         <FaIdCard style={styles.legalNumberIcon} />
-                        Numéro IFU
+                        {t('admin.entrepriseDetails.info.ifuNumber')}
                       </div>
                       <code style={styles.legalNumberValue}>{entreprise.ifu_number || 'N/A'}</code>
                     </div>
                     <div style={styles.legalNumberItem}>
                       <div style={styles.legalNumberLabel}>
                         <FaBalanceScale style={styles.legalNumberIcon} />
-                        Numéro RCCM
+                        {t('admin.entrepriseDetails.info.rccmNumber')}
                       </div>
                       <code style={styles.legalNumberValue}>{entreprise.rccm_number || 'N/A'}</code>
                     </div>
                     <div style={styles.legalNumberItem}>
                       <div style={styles.legalNumberLabel}>
                         <FaCertificate style={styles.legalNumberIcon} />
-                        Certificat
+                        {t('admin.entrepriseDetails.info.certificateNumber')}
                       </div>
                       <code style={styles.legalNumberValue}>{entreprise.certificate_number || 'N/A'}</code>
                     </div>
@@ -717,48 +712,48 @@ export default function AdminEntrepriseDetails() {
                 <div style={styles.documentsCard}>
                   <div style={styles.documentsCardHeader}>
                     <MdOutlineSecurity style={styles.documentsCardIcon} />
-                    <h3 style={styles.documentsCardTitle}>Documents légaux obligatoires</h3>
+                    <h3 style={styles.documentsCardTitle}>{t('admin.entrepriseDetails.documents.legalDocuments')}</h3>
                   </div>
                   <div style={styles.documentsList}>
                     <div style={styles.documentItem}>
                       <div style={styles.documentHeader}>
                         <FaFileInvoice style={styles.documentIcon} />
                         <div>
-                          <div style={styles.documentTitle}>Attestation IFU</div>
+                          <div style={styles.documentTitle}>{t('admin.entrepriseDetails.documents.ifuCertificate')}</div>
                           <div style={styles.documentSubtitle}>
-                            Numéro : <code style={styles.documentCode}>{entreprise.ifu_number}</code>
+                            {t('admin.entrepriseDetails.documents.number')} : <code style={styles.documentCode}>{entreprise.ifu_number}</code>
                           </div>
                         </div>
                       </div>
-                      {renderFileLink(entreprise.ifu_file, 'Télécharger l\'IFU', <FaFileInvoice />)}
+                      {renderFileLink(entreprise.ifu_file, t('admin.entrepriseDetails.documents.downloadIFU'), <FaFileInvoice />)}
                     </div>
 
                     <div style={styles.documentItem}>
                       <div style={styles.documentHeader}>
                         <FaFileContract style={styles.documentIcon} />
                         <div>
-                          <div style={styles.documentTitle}>Registre RCCM</div>
+                          <div style={styles.documentTitle}>{t('admin.entrepriseDetails.documents.rccmRegister')}</div>
                           <div style={styles.documentSubtitle}>
-                            Numéro : <code style={styles.documentCode}>{entreprise.rccm_number}</code>
+                            {t('admin.entrepriseDetails.documents.number')} : <code style={styles.documentCode}>{entreprise.rccm_number}</code>
                           </div>
                         </div>
                       </div>
-                      {renderFileLink(entreprise.rccm_file, 'Télécharger le RCCM', <FaFileContract />)}
+                      {renderFileLink(entreprise.rccm_file, t('admin.entrepriseDetails.documents.downloadRCCM'), <FaFileContract />)}
                     </div>
 
                     <div style={styles.documentItem}>
                       <div style={styles.documentHeader}>
                         <FaRegHandshake style={styles.documentIcon} />
                         <div>
-                          <div style={styles.documentTitle}>Certificat de conformité</div>
+                          <div style={styles.documentTitle}>{t('admin.entrepriseDetails.documents.complianceCertificate')}</div>
                           <div style={styles.documentSubtitle}>
-                            Numéro : <code style={styles.documentCode}>{entreprise.certificate_number}</code>
+                            {t('admin.entrepriseDetails.documents.number')} : <code style={styles.documentCode}>{entreprise.certificate_number}</code>
                           </div>
                         </div>
                       </div>
                       {renderFileLink(
                         entreprise.certificate_file, 
-                        'Télécharger le certificat', 
+                        t('admin.entrepriseDetails.documents.downloadCertificate'), 
                         <FaRegHandshake />
                       )}
                     </div>
@@ -770,24 +765,24 @@ export default function AdminEntrepriseDetails() {
                   <div style={styles.sidebarCard}>
                     <div style={styles.sidebarCardHeader}>
                       <FiInfo style={styles.sidebarCardIcon} />
-                      <h4 style={styles.sidebarCardTitle}>Validation des documents</h4>
+                      <h4 style={styles.sidebarCardTitle}>{t('admin.entrepriseDetails.documents.documentValidation')}</h4>
                     </div>
                     <ul style={styles.validationList}>
                       <li style={styles.validationItem}>
                         <FiCheckCircle style={styles.validationIcon} />
-                        Vérifiez la validité des dates
+                        {t('admin.entrepriseDetails.documents.validation.checkDates')}
                       </li>
                       <li style={styles.validationItem}>
                         <FiCheckCircle style={styles.validationIcon} />
-                        Confirmez la clarté des documents
+                        {t('admin.entrepriseDetails.documents.validation.checkClarity')}
                       </li>
                       <li style={styles.validationItem}>
                         <FiCheckCircle style={styles.validationIcon} />
-                        Vérifiez la cohérence des informations
+                        {t('admin.entrepriseDetails.documents.validation.checkConsistency')}
                       </li>
                       <li style={styles.validationItem}>
                         <FiCheckCircle style={styles.validationIcon} />
-                        Assurez-vous de la légalité
+                        {t('admin.entrepriseDetails.documents.validation.checkLegality')}
                       </li>
                     </ul>
                   </div>
@@ -795,20 +790,20 @@ export default function AdminEntrepriseDetails() {
                   <div style={styles.sidebarCard}>
                     <div style={styles.sidebarCardHeader}>
                       <FiShield style={styles.sidebarCardIcon} />
-                      <h4 style={styles.sidebarCardTitle}>Sécurité des documents</h4>
+                      <h4 style={styles.sidebarCardTitle}>{t('admin.entrepriseDetails.documents.documentSecurity')}</h4>
                     </div>
                     <div style={styles.securityInfo}>
                       <div style={styles.securityItem}>
                         <MdOutlineVerifiedUser style={styles.securityIcon} />
-                        <span style={styles.securityText}>Documents chiffrés</span>
+                        <span style={styles.securityText}>{t('admin.entrepriseDetails.documents.encryptedDocuments')}</span>
                       </div>
                       <div style={styles.securityItem}>
                         <FiLock style={styles.securityIcon} />
-                        <span style={styles.securityText}>Accès sécurisé</span>
+                        <span style={styles.securityText}>{t('admin.entrepriseDetails.documents.secureAccess')}</span>
                       </div>
                       <div style={styles.securityItem}>
                         <MdOutlineStorage style={styles.securityIcon} />
-                        <span style={styles.securityText}>Stockage protégé</span>
+                        <span style={styles.securityText}>{t('admin.entrepriseDetails.documents.protectedStorage')}</span>
                       </div>
                     </div>
                   </div>
@@ -831,7 +826,7 @@ export default function AdminEntrepriseDetails() {
                         <h3 style={styles.prestataireName}>{entreprise.prestataire.name}</h3>
                         <div style={styles.prestataireBadge}>
                           <FiUser style={styles.prestataireBadgeIcon} />
-                          Prestataire associé
+                          {t('admin.entrepriseDetails.provider.associatedProvider')}
                         </div>
                       </div>
                     </div>
@@ -840,7 +835,7 @@ export default function AdminEntrepriseDetails() {
                       <div style={styles.prestataireDetailItem}>
                         <div style={styles.prestataireDetailLabel}>
                           <FiMail style={styles.prestataireDetailIcon} />
-                          Email professionnel
+                          {t('admin.entrepriseDetails.provider.professionalEmail')}
                         </div>
                         <a 
                           href={`mailto:${entreprise.prestataire.email}`}
@@ -853,12 +848,12 @@ export default function AdminEntrepriseDetails() {
                       <div style={styles.prestataireDetailItem}>
                         <div style={styles.prestataireDetailLabel}>
                           <FiCalendar style={styles.prestataireDetailIcon} />
-                          Date d'inscription
+                          {t('admin.entrepriseDetails.provider.registrationDate')}
                         </div>
                         <div style={styles.prestataireDetailValue}>
                           {entreprise.prestataire.created_at 
                             ? new Date(entreprise.prestataire.created_at).toLocaleDateString('fr-FR')
-                            : 'Non disponible'
+                            : t('admin.entrepriseDetails.provider.notAvailable')
                           }
                         </div>
                       </div>
@@ -866,12 +861,12 @@ export default function AdminEntrepriseDetails() {
                       <div style={styles.prestataireDetailItem}>
                         <div style={styles.prestataireDetailLabel}>
                           <FiBriefcase style={styles.prestataireDetailIcon} />
-                          Statut du compte
+                          {t('admin.entrepriseDetails.provider.accountStatus')}
                         </div>
                         <div style={styles.prestataireDetailValue}>
                           <span style={styles.prestataireStatusActive}>
                             <FiCheckCircle style={styles.statusIcon} />
-                            Compte actif
+                            {t('admin.entrepriseDetails.provider.activeAccount')}
                           </span>
                         </div>
                       </div>
@@ -880,7 +875,7 @@ export default function AdminEntrepriseDetails() {
                       <div style={styles.prestataireDetailItem}>
                         <div style={styles.prestataireDetailLabel}>
                           <FiPhone style={styles.prestataireDetailIcon} />
-                          WhatsApp
+                          {t('admin.entrepriseDetails.provider.whatsapp')}
                         </div>
                         <div style={styles.prestataireDetailValue}>
                           {entreprise.whatsapp_phone ? (
@@ -892,17 +887,17 @@ export default function AdminEntrepriseDetails() {
                             >
                               {entreprise.whatsapp_phone}
                             </a>
-                          ) : 'Non renseigné'}
+                          ) : t('admin.entrepriseDetails.provider.notProvided')}
                         </div>
                       </div>
 
                       <div style={styles.prestataireDetailItem}>
                         <div style={styles.prestataireDetailLabel}>
                           <FiPhone style={styles.prestataireDetailIcon} />
-                          Téléphone appel
+                          {t('admin.entrepriseDetails.provider.callPhone')}
                         </div>
                         <div style={styles.prestataireDetailValue}>
-                          {entreprise.call_phone || 'Non renseigné'}
+                          {entreprise.call_phone || t('admin.entrepriseDetails.provider.notProvided')}
                         </div>
                       </div>
                     </div>
@@ -913,23 +908,23 @@ export default function AdminEntrepriseDetails() {
                         style={styles.contactButton}
                       >
                         <FiMail style={styles.contactButtonIcon} />
-                        Contacter
+                        {t('admin.entrepriseDetails.provider.contact')}
                       </button>
                       <button 
                         onClick={() => navigate(`/admin/prestataires/${entreprise.prestataire.id}`)}
                         style={styles.viewProfileButton}
                       >
                         <FiExternalLink style={styles.viewProfileIcon} />
-                        Voir profil complet
+                        {t('admin.entrepriseDetails.provider.viewFullProfile')}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div style={styles.noPrestataire}>
                     <FiUser style={styles.noPrestataireIcon} />
-                    <h3 style={styles.noPrestataireTitle}>Aucun prestataire associé</h3>
+                    <h3 style={styles.noPrestataireTitle}>{t('admin.entrepriseDetails.provider.noProvider')}</h3>
                     <p style={styles.noPrestataireText}>
-                      Cette entreprise n'est pas encore associée à un prestataire.
+                      {t('admin.entrepriseDetails.provider.noProviderText')}
                     </p>
                   </div>
                 )}
@@ -944,7 +939,7 @@ export default function AdminEntrepriseDetails() {
                 <div style={styles.historyCard}>
                   <div style={styles.historyCardHeader}>
                     <FaChartLine style={styles.historyCardIcon} />
-                    <h3 style={styles.historyCardTitle}>Historique des actions</h3>
+                    <h3 style={styles.historyCardTitle}>{t('admin.entrepriseDetails.history.actionHistory')}</h3>
                   </div>
                   <div style={styles.historyTimeline}>
                     <div style={styles.historyItem}>
@@ -952,7 +947,7 @@ export default function AdminEntrepriseDetails() {
                         <FiCalendar />
                       </div>
                       <div style={styles.historyItemContent}>
-                        <div style={styles.historyItemTitle}>Demande créée</div>
+                        <div style={styles.historyItemTitle}>{t('admin.entrepriseDetails.history.requestCreated')}</div>
                         <div style={styles.historyItemDate}>
                           {new Date(entreprise.created_at).toLocaleDateString('fr-FR', {
                             year: 'numeric',
@@ -971,7 +966,7 @@ export default function AdminEntrepriseDetails() {
                           <FiEdit />
                         </div>
                         <div style={styles.historyItemContent}>
-                          <div style={styles.historyItemTitle}>Dernière modification</div>
+                          <div style={styles.historyItemTitle}>{t('admin.entrepriseDetails.history.lastModified')}</div>
                           <div style={styles.historyItemDate}>
                             {new Date(entreprise.updated_at).toLocaleDateString('fr-FR', {
                               year: 'numeric',
@@ -995,7 +990,10 @@ export default function AdminEntrepriseDetails() {
                         </div>
                         <div style={styles.historyItemContent}>
                           <div style={styles.historyItemTitle}>
-                            {entreprise.status === 'validated' ? 'Validation' : 'Rejet'} par l'admin
+                            {entreprise.status === 'validated' 
+                              ? t('admin.entrepriseDetails.history.adminValidation')
+                              : t('admin.entrepriseDetails.history.adminRejection')
+                            }
                           </div>
                           <div style={styles.historyItemDate}>
                             {new Date(entreprise.updated_at).toLocaleDateString('fr-FR')}
@@ -1014,18 +1012,18 @@ export default function AdminEntrepriseDetails() {
                 <div style={styles.statsCard}>
                   <div style={styles.statsCardHeader}>
                     <FaPercentage style={styles.statsCardIcon} />
-                    <h3 style={styles.statsCardTitle}>Statistiques</h3>
+                    <h3 style={styles.statsCardTitle}>{t('admin.entrepriseDetails.history.statistics')}</h3>
                   </div>
                   <div style={styles.statsGrid}>
                     <div style={styles.statItem}>
                       <div style={styles.statNumber}>1</div>
-                      <div style={styles.statLabel}>Version</div>
+                      <div style={styles.statLabel}>{t('admin.entrepriseDetails.history.version')}</div>
                     </div>
                     <div style={styles.statItem}>
                       <div style={styles.statNumber}>
                         {entreprise.domaines?.length || 0}
                       </div>
-                      <div style={styles.statLabel}>Domaines</div>
+                      <div style={styles.statLabel}>{t('admin.entrepriseDetails.history.domains')}</div>
                     </div>
                     <div style={styles.statItem}>
                       <div style={styles.statNumber}>
@@ -1033,7 +1031,7 @@ export default function AdminEntrepriseDetails() {
                          (entreprise.rccm_file ? 1 : 0) + 
                          (entreprise.certificate_file ? 1 : 0)}
                       </div>
-                      <div style={styles.statLabel}>Documents</div>
+                      <div style={styles.statLabel}>{t('admin.entrepriseDetails.history.documents')}</div>
                     </div>
                   </div>
                 </div>
@@ -1049,24 +1047,23 @@ export default function AdminEntrepriseDetails() {
           <div style={styles.modal}>
             <div style={styles.modalHeader}>
               <FiCheckCircle style={styles.modalIconApprove} />
-              <h3 style={styles.modalTitle}>Valider l'entreprise</h3>
+              <h3 style={styles.modalTitle}>{t('admin.entrepriseDetails.modals.approve.title')}</h3>
             </div>
             <div style={styles.modalBody}>
               <p style={styles.modalText}>
-                Confirmez-vous la validation de <strong>{entreprise.name}</strong> ?
-                Le prestataire sera notifié par email.
+                {t('admin.entrepriseDetails.modals.approve.text', { name: entreprise.name })}
               </p>
               <div style={styles.modalFormGroup}>
                 <label style={styles.modalLabel}>
                   <FiEdit style={styles.modalLabelIcon} />
-                  Commentaire (optionnel)
+                  {t('admin.entrepriseDetails.modals.approve.comment')}
                 </label>
                 <textarea
                   value={adminNote}
                   onChange={(e) => setAdminNote(e.target.value)}
                   style={styles.modalTextarea}
                   rows="3"
-                  placeholder="Ajouter un commentaire pour le prestataire..."
+                  placeholder={t('admin.entrepriseDetails.modals.approve.placeholder')}
                   disabled={actionLoading}
                 />
               </div>
@@ -1077,14 +1074,14 @@ export default function AdminEntrepriseDetails() {
                 style={styles.modalButtonCancel}
                 disabled={actionLoading}
               >
-                Annuler
+                {t('admin.entrepriseDetails.modals.cancel')}
               </button>
               <button 
                 onClick={handleApprove}
                 disabled={actionLoading}
                 style={styles.modalButtonApprove}
               >
-                {actionLoading ? 'Validation...' : 'Confirmer la validation'}
+                {actionLoading ? t('admin.entrepriseDetails.modals.approve.processing') : t('admin.entrepriseDetails.modals.approve.confirm')}
               </button>
             </div>
           </div>
@@ -1096,29 +1093,28 @@ export default function AdminEntrepriseDetails() {
           <div style={styles.modal}>
             <div style={styles.modalHeader}>
               <FiXCircle style={styles.modalIconReject} />
-              <h3 style={styles.modalTitle}>Rejeter l'entreprise</h3>
+              <h3 style={styles.modalTitle}>{t('admin.entrepriseDetails.modals.reject.title')}</h3>
             </div>
             <div style={styles.modalBody}>
               <p style={styles.modalText}>
-                Vous êtes sur le point de rejeter <strong>{entreprise.name}</strong>.
-                Cette action sera notifiée au prestataire.
+                {t('admin.entrepriseDetails.modals.reject.text', { name: entreprise.name })}
               </p>
               <div style={styles.modalFormGroup}>
                 <label style={styles.modalLabel}>
                   <FiAlertCircle style={styles.modalLabelIcon} />
-                  Raison du rejet <span style={styles.required}>*</span>
+                  {t('admin.entrepriseDetails.modals.reject.reason')} <span style={styles.required}>*</span>
                 </label>
                 <textarea
                   value={adminNote}
                   onChange={(e) => setAdminNote(e.target.value)}
                   style={styles.modalTextarea}
                   rows="4"
-                  placeholder="Expliquez en détail pourquoi cette entreprise est rejetée..."
+                  placeholder={t('admin.entrepriseDetails.modals.reject.placeholder')}
                   required
                   disabled={actionLoading}
                 />
                 <div style={styles.modalHint}>
-                  Minimum 10 caractères. Ce message sera envoyé au prestataire.
+                  {t('admin.entrepriseDetails.modals.reject.hint')}
                 </div>
               </div>
             </div>
@@ -1128,14 +1124,14 @@ export default function AdminEntrepriseDetails() {
                 style={styles.modalButtonCancel}
                 disabled={actionLoading}
               >
-                Annuler
+                {t('admin.entrepriseDetails.modals.cancel')}
               </button>
               <button 
                 onClick={handleReject}
                 disabled={actionLoading || !adminNote.trim() || adminNote.length < 10}
                 style={styles.modalButtonReject}
               >
-                {actionLoading ? 'Rejet en cours...' : 'Confirmer le rejet'}
+                {actionLoading ? t('admin.entrepriseDetails.modals.reject.processing') : t('admin.entrepriseDetails.modals.reject.confirm')}
               </button>
             </div>
           </div>
@@ -1193,7 +1189,6 @@ export default function AdminEntrepriseDetails() {
     </div>
   );
 }
-
 // Les styles restent exactement les mêmes
 const styles = {
   container: {

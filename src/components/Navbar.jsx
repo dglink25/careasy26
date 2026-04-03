@@ -6,6 +6,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { entrepriseApi } from '../api/entrepriseApi';
 import { publicApi } from '../api/publicApi';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from './LanguageSwitcher';
 import api from '../api/axios';
 import Logo from './Logo';
 import {
@@ -312,6 +314,7 @@ function BellButton({ unreadCount, showPanel, onToggle, onClose, dbNotifs, loadi
 }
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const { toasts, notify } = useNotifications();
   const navigate         = useNavigate();
   const location         = useLocation();
@@ -487,19 +490,19 @@ export default function Navbar() {
 ];
 
   const providerLinks = [
-    { to: '/dashboard',       icon: MdDashboard,     label: 'Tableau de bord' },
-    { to: '/mes-entreprises', icon: FaBuilding,      label: 'Entreprises'     },
-    { to: '/mes-services',    icon: FaTools,         label: 'Services'        },
-    { to: '/messages',        icon: FiMessageSquare, label: 'Messages'        },
-    { to: '/mes-rendez-vous', icon: FiCalendar,      label: 'Rendez-vous'     },
-    { to: '/abonnements',     icon: FiAward,         label: 'Abonnements'     },
+    { to: '/dashboard',       icon: MdDashboard,     label: t('nav.dashboard') },
+    { to: '/mes-entreprises', icon: FaBuilding,      label: t('nav.myCompanies') },
+    { to: '/mes-services',    icon: FaTools,         label: t('nav.myServices') },
+    { to: '/messages',        icon: FiMessageSquare, label: t('nav.messages') },
+    { to: '/mes-rendez-vous', icon: FiCalendar,      label: t('nav.appointments') },
+    { to: '/abonnements',     icon: FiAward,         label: t('nav.subscriptions') },
   ];
 
   const clientLinks = [
-    { to: '/dashboard',       icon: FiShoppingBag,   label: 'Espace Client'   },
-    { to: '/mes-rendez-vous', icon: FiCalendar,      label: 'Mes Rendez-vous' },
-    { to: '/messages',        icon: FiMessageSquare, label: 'Messages'        },
-    { to: '/services',        icon: FaSearch,        label: 'Explorer'        },
+    { to: '/dashboard',       icon: FiShoppingBag,   label: t('nav.clientSpace') },
+    { to: '/mes-rendez-vous', icon: FiCalendar,      label: t('nav.myAppointments') },
+    { to: '/messages',        icon: FiMessageSquare, label: t('nav.messages') },
+    { to: '/services',        icon: FaSearch,        label: t('nav.explore') },
   ];
 
   const UserAvatar = ({ size = 35 }) => {
@@ -563,7 +566,8 @@ export default function Navbar() {
                     )}
                   </>
                 )}
-
+                {/* MODIFICATION 3: LanguageSwitcher ajouté avant BellButton 
+                <LanguageSwitcher /> */}
                 <BellButton {...bellProps} />
 
                 {/* User dropdown */}
@@ -611,7 +615,7 @@ export default function Navbar() {
                       </div>
                       <div style={{ padding: '0.75rem 1.5rem 1.25rem', borderTop: '1px solid var(--border-color)' }}>
                         <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.75rem', backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>
-                          <FaSignOutAlt />Déconnexion
+                          <FaSignOutAlt />{t('nav.logout')}
                         </button>
                       </div>
                     </div>
@@ -681,6 +685,10 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div onClick={() => setMobileMenuOpen(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--overlay)', zIndex: 999, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(4px)' }}>
           <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'var(--bg-card)', width: '80%', maxWidth: 400, height: '100%', padding: '2rem 1.5rem', overflowY: 'auto', boxShadow: '-4px 0 20px rgba(0,0,0,0.3)', animation: 'slideInRight 0.3s ease' }}>
+            {/* MODIFICATION 4: LanguageSwitcher ajouté en premier enfant dans le menu mobile */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+              <LanguageSwitcher />
+            </div>
             {user && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid var(--border-color)' }}>
                 <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -723,7 +731,7 @@ export default function Navbar() {
                     {unreadCount > 0 && <span style={{ marginLeft: 'auto', backgroundColor: '#ef4444', color: '#fff', borderRadius: 999, minWidth: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800 }}>{unreadCount}</span>}
                   </div>
                   <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '1rem', marginTop: '1rem', backgroundColor: 'var(--brand-primary)', color: '#fff', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
-                    <FaSignOutAlt />Déconnexion
+                    <FaSignOutAlt />{t('nav.logout')}
                   </button>
                 </>
               ) : (
