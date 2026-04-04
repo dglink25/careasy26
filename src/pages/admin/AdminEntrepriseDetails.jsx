@@ -225,6 +225,9 @@ export default function AdminEntrepriseDetails() {
     );
   };
 
+  // =========================================================================
+  // REMPLACER la fonction renderFileLink par celle-ci
+  // =========================================================================
   const renderFileLink = (filePath, label, icon) => {
     if (!filePath) {
       return (
@@ -234,34 +237,22 @@ export default function AdminEntrepriseDetails() {
         </div>
       );
     }
-    
-    // CORRECTION: Nettoyer l'URL - supprimer le préfixe http://localhost:8000/storage
-    // et utiliser directement l'URL Cloudinary si c'est une URL Cloudinary
-    let fullUrl = filePath;
-    
-    // Si l'URL commence par http://localhost:8000/storage, on le retire
-    if (filePath.startsWith('http://localhost:8000/storage')) {
-      // Si c'est une URL Cloudinary après le préfixe, on prend la partie après '/storage'
-      const cloudinaryUrl = filePath.replace('http://localhost:8000/storage', '');
-      fullUrl = cloudinaryUrl;
-    } 
-    // Si c'est déjà une URL complète (Cloudinary), on l'utilise directement
-    else if (filePath.startsWith('http')) {
-      fullUrl = filePath;
-    }
-    // Sinon, c'est peut-être un chemin relatif
-    else {
-      // Si le chemin commence par /storage, on le retire pour éviter la duplication
-      const cleanPath = filePath.replace(/^\/?storage\//, '');
-      fullUrl = `${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${cleanPath}`;
-    }
-    
+
+    // Les fichiers sont stockés sur Cloudinary → l'URL est déjà complète
+    // On l'utilise directement, sans aucune transformation
+    const fullUrl = filePath;
+
+    // Déterminer si c'est un PDF pour forcer l'affichage dans un onglet
+    const isPdf = filePath.toLowerCase().includes('.pdf') ||
+                  filePath.toLowerCase().includes('/pdf') ||
+                  filePath.toLowerCase().includes('application/pdf');
+
     return (
       <div style={styles.fileLinkContainer}>
-        <a 
-          href={fullUrl} 
-          target="_blank" 
-          rel="noopener noreferrer" 
+        <a
+          href={fullUrl}
+          target="_blank"
+          rel="noopener noreferrer"
           style={styles.fileLink}
           title="Ouvrir dans un nouvel onglet"
         >
@@ -272,23 +263,32 @@ export default function AdminEntrepriseDetails() {
           <FiExternalLink style={styles.externalLinkIcon} />
         </a>
         <div style={styles.fileActions}>
-          <button 
-            onClick={() => window.open(fullUrl, '_blank')}
+          {/* Visualiser : pour PDF ouvre directement, pour image idem */}
+          <a
+            href={fullUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             style={styles.fileActionButton}
             title="Visualiser"
           >
             <FiEye />
-          </button>
-          <button 
-            onClick={() => navigator.clipboard.writeText(fullUrl)}
+          </a>
+          {/* Copier le lien */}
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(fullUrl);
+              alert('Lien copié !');
+            }}
             style={styles.fileActionButton}
             title="Copier le lien"
           >
             <FiCopy />
           </button>
-          <a 
-            href={fullUrl} 
-            download
+          {/* Télécharger — pour Cloudinary on passe par fl_attachment */}
+          <a
+            href={fullUrl.replace('/upload/', '/upload/fl_attachment/')}
+            target="_blank"
+            rel="noopener noreferrer"
             style={styles.fileActionButton}
             title="Télécharger"
           >

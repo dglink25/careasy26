@@ -37,7 +37,7 @@ export default function Layout() {
     if (isLocalhost) return;
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
-      .then(reg => console.log('[SW] ✅ Enregistré:', reg.scope))
+      .then(reg => console.log('[SW] Enregistré:', reg.scope))
       .catch(err => console.warn('[SW] Erreur:', err.message));
   }, []);
 
