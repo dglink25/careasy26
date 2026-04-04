@@ -238,28 +238,14 @@ export default function AdminEntrepriseDetails() {
       );
     }
 
+    // Construire l'URL complète
+    let fullUrl;
 
-    // Les fichiers sont stockés sur Cloudinary → l'URL est déjà complète
-    // On l'utilise directement, sans aucune transformation
-    const fullUrl = filePath;
-
-    // Déterminer si c'est un PDF pour forcer l'affichage dans un onglet
-    const isPdf = filePath.toLowerCase().includes('.pdf') ||
-                  filePath.toLowerCase().includes('/pdf') ||
-                  filePath.toLowerCase().includes('application/pdf');
-
-
-    
-    let fullUrl = filePath;
-    
     if (filePath.startsWith('https://careasy26.alwaysdata.net/storage')) {
-      const cloudinaryUrl = filePath.replace('https://careasy26.alwaysdata.net/storage', '');
-      fullUrl = cloudinaryUrl;
-    } 
-    else if (filePath.startsWith('http')) {
+      fullUrl = filePath.replace('https://careasy26.alwaysdata.net/storage', '');
+    } else if (filePath.startsWith('http')) {
       fullUrl = filePath;
-    }
-    else {
+    } else {
       const cleanPath = filePath.replace(/^\/?storage\//, '');
       fullUrl = `${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${cleanPath}`;
     }
@@ -280,7 +266,7 @@ export default function AdminEntrepriseDetails() {
           <FiExternalLink style={styles.externalLinkIcon} />
         </a>
         <div style={styles.fileActions}>
-          {/* Visualiser : pour PDF ouvre directement, pour image idem */}
+          {/* Visualiser */}
           <a
             href={fullUrl}
             target="_blank"
@@ -1211,7 +1197,7 @@ export default function AdminEntrepriseDetails() {
     </div>
   );
 }
-// Les styles restent exactement les mêmes
+
 const styles = {
   container: {
     minHeight: '100vh',
