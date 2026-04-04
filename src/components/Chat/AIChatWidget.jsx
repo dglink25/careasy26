@@ -242,7 +242,7 @@ export default function AIChatWidget() {
     navigator.geolocation.getCurrentPosition(
       pos => {
         setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocationLabel('Position détectée');
+        setLocationLabel('');
       },
       () => setLocationLabel(''),
       { timeout: 5000, enableHighAccuracy: true }
