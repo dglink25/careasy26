@@ -1,7 +1,4 @@
-// src/api/aiApi.js — CareEasy AI API v3 CORRIGÉE
-// Gère: texte, photo, audio entrant, réponse audio sortante
-
-const AI_BASE = import.meta.env.VITE_AI_URL || 'http://localhost:5000';
+const AI_BASE = import.meta.env.VITE_AI_URL || 'https://careasyaiservice.onrender.com';
 
 export const aiApi = {
 

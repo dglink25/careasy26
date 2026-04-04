@@ -326,7 +326,7 @@ export default function AIChatWidget() {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const response = await fetch('http://localhost:5000/status', {
+        const response = await fetch('https://careasyaiservice.onrender.com/status', {
           signal: AbortSignal.timeout(3000)
         });
         setAiOnline(response.ok);
@@ -536,7 +536,8 @@ export default function AIChatWidget() {
       formData.append('return_audio', returnAudio ? 'true' : 'false');
       formData.append('lang', 'fr');
 
-      const response = await fetch('http://localhost:5000/chat', {
+      const response = await fetch('https://careasyaiservice.onrender.com/chat', {
+
         method: 'POST',
         body: formData,
         signal: abortControllerRef.current.signal
@@ -550,7 +551,7 @@ export default function AIChatWidget() {
 
       // URL audio IA
       const aiAudioUrl = result.audio_url
-        ? (result.audio_url.startsWith('http') ? result.audio_url : `http://localhost:5000${result.audio_url}`)
+        ? (result.audio_url.startsWith('http') ? result.audio_url : `https://careasyaiservice.onrender.com${result.audio_url}`)
         : null;
 
       // Message IA
