@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ImageModal, AudioMessage, VideoMessage } from './MediaMessage';
 import ServiceMap from './ServiceMap';
+import { useAuth } from '../../contexts/AuthContext';
 
 const IcRobot = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="22" height="22">
@@ -90,6 +91,9 @@ function MessageBubble({ msg, isNew, onDeleteMedia, userLocation }) {
   const isThinking = msg.thinking;
   const [showImageModal, setShowImageModal] = useState(false);
   const isWelcomeMessage = msg.id === 'welcome-message';
+
+  const { user } = useAuth();
+  const token = localStorage.getItem('token');
 
   const urgencyColors = {
     critical: '#ef4444',
@@ -536,10 +540,19 @@ export default function AIChatWidget() {
       formData.append('return_audio', returnAudio ? 'true' : 'false');
       formData.append('lang', 'fr');
 
-      const response = await fetch('https://careasyaiservice.onrender.com/chat', {
-
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/carai/chat`, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: text,
+          conversation_id: conversationId, // il faut gérer ça
+          latitude: userLocation?.lat || null,
+          longitude: userLocation?.lng || null,
+          language: 'fr',
+        }),
         signal: abortControllerRef.current.signal
       });
 
@@ -590,7 +603,7 @@ export default function AIChatWidget() {
           role: 'assistant',
           thinking: false,
           time: getTime(),
-          content: '**Connexion impossible**\n\nVérifiez que le serveur Flask est lancé sur le port 5000.',
+          content: '**Connexion impossible**\n\nVérifiez votre connexion internet.',
         }
       ]);
     } finally {
