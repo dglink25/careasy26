@@ -1,0 +1,372 @@
+{
+  "nav": {
+    "home": "Home",
+    "companies": "Companies",
+    "services": "Services",
+    "login": "Login",
+    "register": "Sign Up",
+    "dashboard": "Dashboard",
+    "myCompanies": "Companies",
+    "myServices": "Services",
+    "messages": "Messages",
+    "appointments": "Appointments",
+    "subscriptions": "Subscriptions",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "logout": "Logout",
+    "adminDashboard": "Admin Dashboard",
+    "plans": "Plans",
+    "validationInProgress": "Validation in progress",
+    "clientSpace": "Client Space",
+    "myAppointments": "My Appointments",
+    "explore": "Explore",
+    "allNotificationsRead": "Mark all read",
+    "admin": {
+      "dashboard": "Admin Dashboard",
+      "companies": "Companies",
+      "messages": "Messages",
+      "plans": "Plans"
+    },
+    "badges": {
+      "admin": "ADMIN",
+      "provider": "PROVIDER",
+      "validation": "PENDING"
+    },
+    "guest": {
+      "home": "Home",
+      "companies": "Companies",
+      "services": "Services",
+      "login": "Login",
+      "register": "Sign Up"
+    },
+    "servicesDropdown": {
+      "title": "Our Services",
+      "loading": "Loading...",
+      "domainesAvailable": "domains available",
+      "viewAll": "View all services →"
+    }
+  },
+  "hero": {
+    "startNow": "Get started",
+    "exploreServices": "Explore services"
+  },
+  "home": {
+    "expertiseDomains": "Areas of Expertise",
+    "expertiseSubtitle": "Over 20 service categories for all your automotive needs",
+    "recentServices": "Recent Services",
+    "recentServicesSubtitle": "Discover the latest services added by our providers",
+    "viewAllServices": "View all services",
+    "trustedCompanies": "Our Trusted Companies",
+    "readyToStart": "Ready to get started?",
+    "readySubtitle": "Join thousands of people in Benin who trust CarEasy",
+    "createFreeAccount": "Create a free account",
+    "contact": "Contact",
+    "leaveMessage": "Leave a message",
+    "seeMore": "See more",
+    "quoteOnly": "Quote only",
+    "alwaysOpen": "Open 24/7",
+    "openNow": "Open now",
+    "currentlyClosed": "Currently closed",
+    "closedToday": "Closed today",
+    "unknownHours": "Hours not specified",
+    "tomorrow": "Tomorrow",
+    "weekSchedule": "Weekly schedule"
+  },
+  "footer": {
+    "description": "CarEasy is Benin's leading automotive platform. We connect thousands of drivers with certified providers across the country, for all your mobility needs.",
+    "followUs": "Follow us",
+    "ourServices": "Our Services",
+    "mechanics": "Auto mechanics",
+    "bodywork": "Paint & Bodywork",
+    "tires": "Tires & Rims",
+    "aircon": "Auto air conditioning",
+    "drivingSchool": "Driving school",
+    "insurance": "Car insurance",
+    "electrical": "Auto electrical",
+    "viewAllServices": "View all services →",
+    "platform": "Platform",
+    "findCompany": "Find a company",
+    "exploreServices": "Explore services",
+    "ourPartners": "Our partners",
+    "createAccount": "Create an account",
+    "login": "Log in",
+    "mobileApp": "Mobile app",
+    "downloadOnGooglePlay": "Download on Google Play",
+    "providers": "Providers",
+    "registerMyCompany": "Register my company",
+    "manageMyCompanies": "Manage my companies",
+    "manageMyServices": "Manage my services",
+    "myMessages": "My messages",
+    "myDashboard": "My dashboard",
+    "helpSupport": "Help & Support",
+    "helpCenter": "Help center / FAQ",
+    "providerGuide": "Provider guide",
+    "suggestFeature": "Suggest a feature",
+    "privacyPolicy": "Privacy policy",
+    "termsOfUse": "Terms of use",
+    "directContact": "Direct contact",
+    "email": "Email",
+    "headquarters": "Headquarters",
+    "supportHours": "Support hours",
+    "supportHoursValue": "Monday – Saturday: 7:00 AM – 8:00 PM",
+    "copyright": "All rights reserved",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "cookies": "Cookies",
+    "help": "Help",
+    "legalNotice": "Legal notice"
+  },
+  "services": {
+    "mechanics": "Mechanics",
+    "bodywork": "Bodywork",
+    "tires": "Tires",
+    "aircon": "Air con",
+    "drivingSchool": "Driving School",
+    "insurance": "Insurance",
+    "mechanicsDesc": "Engine repair, gearbox, suspension",
+    "bodyworkDesc": "Bodywork, dent removal, full paint",
+    "tiresDesc": "Tires, rims, balancing, vulcanization",
+    "airconDesc": "Gas recharge, AC system repair",
+    "drivingSchoolDesc": "Driving license, full training",
+    "insuranceDesc": "All types of car insurance",
+    "viewMore": "View more"
+  },
+  "contact": {
+    "chooseMethod": "Choose your preferred contact method:",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "messaging": "Messaging",
+    "instantMessage": "Instant message",
+    "chatLive": "Chat live",
+    "recommended": "Recommended:",
+    "recommendedText": "Messaging allows you to track conversations and share photos/videos.",
+    "notAvailable": "Not available"
+  },
+  "language": {
+    "french": "Français",
+    "english": "English",
+    "selectLanguage": "Language"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "noNotifications": "No notifications",
+    "upToDate": "You're all caught up!",
+    "loading": "Loading...",
+    "viewAll": "View all notifications →",
+    "markAllRead": "Mark all read",
+    "delete": "Delete",
+    "justNow": "Just now"
+  },
+  "auth": {
+    "accessDenied": "Access denied",
+    "adminOnly": "This page is reserved for administrators.",
+    "backToDashboard": "Back to dashboard"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Quickly find answers to your questions"
+  },
+  "partners": {
+    "title": "Our Partners"
+  },
+  "admin": {
+    "loading": "Loading dashboard...",
+    "dashboard": {
+      "title": "Admin Dashboard",
+      "welcome": "Welcome",
+      "subtitle": "Manage company requests",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing...",
+      "pendingRequestsSingular": "pending request awaiting validation",
+      "pendingRequestsPlural": "pending requests awaiting validation",
+      "pendingAlertText": "Companies are waiting for your review. Please process them quickly.",
+      "examineNow": "Examine now",
+      "totalCompanies": "Total companies",
+      "pending": "Pending",
+      "validated": "Validated",
+      "rejected": "Rejected",
+      "quickActions": "Quick actions",
+      "fullList": "Full list",
+      "pendingRequests": "Pending requests",
+      "pendingDesc": "Approve or reject new companies",
+      "allCompanies": "All companies",
+      "allCompaniesDesc": "View full history",
+      "recentRequests": "Recent requests",
+      "viewAll": "View all",
+      "company": "Company",
+      "provider": "Provider",
+      "date": "Date",
+      "status": "Status",
+      "actions": "Actions",
+      "notProvided": "Not provided",
+      "notAssigned": "Not assigned",
+      "pendingStatus": "Pending",
+      "viewDetails": "View details",
+      "validationGuide": "Validation guide",
+      "guideItem1": "Verify legal documents (IFU, RCCM)",
+      "guideItem2": "Confirm email and phone address",
+      "guideItem3": "Validate legal status",
+      "guideItem4": "Review provider information",
+      "dataSecurity": "Data security",
+      "securityText": "All data is encrypted and protected in compliance with GDPR. Sensitive documents are automatically deleted after 6 months.",
+      "encryptedData": "Encrypted data",
+      "certified": "Certified",
+      "lastUpdate": "Last update",
+      "documentation": "Documentation",
+      "support": "Support"
+    },
+    "entrepriseDetails": {
+      "company": "Company",
+      "loading": {
+        "title": "Loading details...",
+        "subtext": "Please wait"
+      },
+      "errors": {
+        "notFound": "Company not found",
+        "notFoundText": "The company you are looking for does not exist or has been deleted.",
+        "backToList": "Back to list",
+        "retry": "Retry",
+        "actionError": "Action error",
+        "approveFailed": "Error during validation",
+        "rejectFailed": "Error during rejection",
+        "rejectReasonRequired": "⚠️ Please provide a detailed reason (minimum 10 characters)"
+      },
+      "header": {
+        "backToList": "Company list",
+        "refresh": "Refresh",
+        "refreshing": "Refreshing...",
+        "print": "Print",
+        "share": "Share",
+        "createdOn": "Created on"
+      },
+      "tabs": {
+        "info": "Information",
+        "documents": "Documents",
+        "provider": "Provider",
+        "history": "History"
+      },
+      "actions": {
+        "reject": "Reject",
+        "approve": "Approve",
+        "rejectRequest": "Reject request",
+        "approveCompany": "Approve company"
+      },
+      "status": {
+        "pending": {
+          "title": "Pending validation",
+          "description": "This request requires your review"
+        },
+        "validated": {
+          "title": "Successfully validated",
+          "description": "Company activated on the platform"
+        },
+        "rejected": {
+          "title": "Request rejected",
+          "description": "Request rejected by administrator",
+          "reason": "Reason"
+        }
+      },
+      "info": {
+        "companyIdentity": "Company Identity",
+        "companyName": "Company name",
+        "legalStatus": "Legal status",
+        "headquarters": "Headquarters",
+        "manager": "Main manager",
+        "fullName": "Full name",
+        "profession": "Profession",
+        "contact": "Contact",
+        "media": "Media & Visuals",
+        "logo": "Official logo",
+        "logoAlt": "Company logo",
+        "shopImage": "Shop image",
+        "shopAlt": "Company shop",
+        "businessAreas": "Business areas",
+        "legalNumbers": "Legal numbers",
+        "ifuNumber": "IFU number",
+        "rccmNumber": "RCCM number",
+        "certificateNumber": "Certificate",
+        "notSpecified": "Not specified",
+        "notProvided": "Not provided",
+        "noLogo": "No logo",
+        "noImage": "No image"
+      },
+      "documents": {
+        "legalDocuments": "Legal mandatory documents",
+        "ifuCertificate": "IFU Certificate",
+        "rccmRegister": "RCCM Register",
+        "complianceCertificate": "Compliance Certificate",
+        "number": "Number",
+        "downloadIFU": "Download IFU",
+        "downloadRCCM": "Download RCCM",
+        "downloadCertificate": "Download certificate",
+        "notProvided": "Document not provided",
+        "openInNewTab": "Open in new tab",
+        "view": "View",
+        "copyLink": "Copy link",
+        "download": "Download",
+        "documentValidation": "Document validation",
+        "validation": {
+          "checkDates": "Verify date validity",
+          "checkClarity": "Confirm document clarity",
+          "checkConsistency": "Verify information consistency",
+          "checkLegality": "Ensure legality"
+        },
+        "documentSecurity": "Document security",
+        "encryptedDocuments": "Encrypted documents",
+        "secureAccess": "Secure access",
+        "protectedStorage": "Protected storage"
+      },
+      "provider": {
+        "associatedProvider": "Associated provider",
+        "professionalEmail": "Professional email",
+        "registrationDate": "Registration date",
+        "accountStatus": "Account status",
+        "activeAccount": "Active account",
+        "whatsapp": "WhatsApp",
+        "callPhone": "Call phone",
+        "contact": "Contact",
+        "viewFullProfile": "View full profile",
+        "noProvider": "No associated provider",
+        "noProviderText": "This company is not yet associated with a provider.",
+        "notAvailable": "Not available",
+        "notProvided": "Not provided"
+      },
+      "history": {
+        "actionHistory": "Action history",
+        "requestCreated": "Request created",
+        "lastModified": "Last modified",
+        "adminValidation": "Admin validation",
+        "adminRejection": "Admin rejection",
+        "statistics": "Statistics",
+        "version": "Version",
+        "domains": "Domains",
+        "documents": "Documents"
+      },
+      "share": {
+        "title": "Company details",
+        "text": "Check out the details of {{name}} on Careasy",
+        "linkCopied": "Link copied to clipboard!"
+      },
+      "modals": {
+        "cancel": "Cancel",
+        "approve": {
+          "title": "Approve company",
+          "text": "Confirm approval of <strong>{{name}}</strong>? The provider will be notified by email.",
+          "comment": "Comment (optional)",
+          "placeholder": "Add a comment for the provider...",
+          "processing": "Processing...",
+          "confirm": "Confirm approval"
+        },
+        "reject": {
+          "title": "Reject company",
+          "text": "You are about to reject <strong>{{name}}</strong>. This action will be notified to the provider.",
+          "reason": "Rejection reason",
+          "placeholder": "Explain in detail why this company is being rejected...",
+          "hint": "Minimum 10 characters. This message will be sent to the provider.",
+          "processing": "Rejecting...",
+          "confirm": "Confirm rejection"
+        }
+      }
+    }
+  }
+}
