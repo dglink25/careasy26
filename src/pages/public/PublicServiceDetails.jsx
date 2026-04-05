@@ -213,7 +213,7 @@ const StatusBadge = ({ status }) => {
       border: `2px solid ${status.color}40`,
       borderRadius: '999px',
       padding: '8px 16px',
-      fontSize: '0.95rem',
+      fontSize: 'clamp(0.85rem, 4vw, 0.95rem)',
       fontWeight: '600',
       marginBottom: '1rem',
     }}>
@@ -221,7 +221,7 @@ const StatusBadge = ({ status }) => {
       <div>
         <div>{status.label}</div>
         {status.sublabel && (
-          <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>{status.sublabel}</div>
+          <div style={{ fontSize: 'clamp(0.75rem, 3.5vw, 0.85rem)', opacity: 0.9 }}>{status.sublabel}</div>
         )}
       </div>
     </div>
@@ -721,14 +721,11 @@ export default function PublicServiceDetails() {
               <div style={styles.serviceHeader}>
                 <h1 style={styles.serviceName}>{service.name}</h1>
                 <button onClick={toggleFavorite} style={styles.favoriteButton}>
-                  <FiHeart style={{ fontSize: '1.5rem', color: isFavorite ? '#ef4444' : '#94a3b8', fill: isFavorite ? '#ef4444' : 'none', transition: 'all 0.3s' }} />
+                  <FiHeart style={{ fontSize: 'clamp(1.25rem, 5vw, 1.5rem)', color: isFavorite ? '#ef4444' : '#94a3b8', fill: isFavorite ? '#ef4444' : 'none', transition: 'all 0.3s' }} />
                 </button>
               </div>
               {service.domaine && <div style={styles.domaineTag}>🏷️ {service.domaine.name}</div>}
-                    <StarRating
-                      rating={service.average_rating}
-                      total={service.total_reviews}
-                    />
+              <StarRating rating={service.average_rating} total={service.total_reviews} />
               {service.descriptions && (
                 <div style={styles.descriptionSection}>
                   <h3 style={styles.sectionSubtitle}><MdOutlineDescription style={styles.sectionIcon} />Description</h3>
@@ -764,19 +761,19 @@ export default function PublicServiceDetails() {
                   <div style={{
                     ...styles.infoItem,
                     backgroundColor: openStatus.bg,
-                    padding: '1rem',
+                    padding: 'clamp(0.75rem, 4vw, 1rem)',
                     borderRadius: '0.75rem',
                     marginBottom: '1rem',
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     gap: '0.5rem'
                   }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600', color: openStatus.color }}>
-                      <StatusIcon type={openStatus.icon} color={openStatus.color} size="1.2rem" />
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600', color: openStatus.color, fontSize: 'clamp(0.875rem, 4vw, 1rem)' }}>
+                      <StatusIcon type={openStatus.icon} color={openStatus.color} size="clamp(1rem, 4vw, 1.2rem)" />
                       {openStatus.label}
                     </span>
                     {openStatus.sublabel && (
-                      <span style={{ color: openStatus.color, fontSize: '0.9rem' }}>{openStatus.sublabel}</span>
+                      <span style={{ color: openStatus.color, fontSize: 'clamp(0.8rem, 3.5vw, 0.9rem)' }}>{openStatus.sublabel}</span>
                     )}
                   </div>
                 )}
@@ -803,7 +800,7 @@ export default function PublicServiceDetails() {
                   </div>
                 ) : (
                   <div style={styles.lockedContactHint}>
-                     Connectez-vous pour voir les coordonnées complètes.
+                    🔒 Connectez-vous pour voir les coordonnées complètes.
                   </div>
                 )}
               </InfoCard>
@@ -883,7 +880,15 @@ export default function PublicServiceDetails() {
         .main-contact-btn { transition: all 0.25s ease; }
         .main-contact-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(239,68,68,0.25) !important; }
         
-        /* Styles responsives */
+        * {
+          box-sizing: border-box;
+        }
+        
+        body {
+          overflow-x: hidden;
+        }
+        
+        /* Styles responsives avec media queries */
         @media (max-width: 1024px) {
           .main-grid {
             grid-template-columns: 1fr 360px !important;
@@ -1103,6 +1108,20 @@ export default function PublicServiceDetails() {
           .locked-contact-hint {
             font-size: 0.8rem !important;
           }
+          
+          .main-contact-btn-icon {
+            width: 35px !important;
+            height: 35px !important;
+            font-size: 1rem !important;
+          }
+          
+          .main-contact-btn-label {
+            font-size: 0.85rem !important;
+          }
+          
+          .main-contact-btn-sub {
+            font-size: 0.65rem !important;
+          }
         }
       `}</style>
     </div>
@@ -1113,89 +1132,162 @@ const styles = {
   container: { 
     minHeight: '100vh', 
     backgroundColor: '#f8fafc', 
-    paddingTop: '2rem', 
-    paddingBottom: '4rem',
-    '@media (max-width: 640px)': {
-      paddingTop: '1rem',
-      paddingBottom: '2rem'
-    }
+    paddingTop: 'clamp(1rem, 5vw, 2rem)', 
+    paddingBottom: 'clamp(2rem, 8vw, 4rem)',
+    overflowX: 'hidden'
   },
   content: { 
     maxWidth: '1200px', 
     margin: '0 auto', 
-    padding: '0 1rem',
-    '@media (max-width: 640px)': {
-      padding: '0 0.75rem'
-    }
+    padding: '0 clamp(0.75rem, 4vw, 1rem)'
   },
-  loadingContainer: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1rem' },
-  spinner: { width: '50px', height: '50px', border: '4px solid #dbeafe', borderTop: '4px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' },
-  loadingText: { color: '#64748b', fontSize: '1.125rem', margin: 0 },
-  loadingSubtext: { color: '#94a3b8', fontSize: '0.875rem', margin: 0 },
-  errorContainer: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1.5rem', textAlign: 'center' },
-  errorIcon: { fontSize: '5rem', animation: 'pulse 2s infinite' },
-  errorTitle: { fontSize: '1.75rem', color: '#1e293b', margin: 0 },
-  errorMessage: { color: '#64748b', margin: 0 },
-  errorActions: { display: 'flex', gap: '1rem', marginTop: '1rem', '@media (max-width: 480px)': { flexDirection: 'column' } },
-  errorButton: { backgroundColor: '#3b82f6', color: '#fff', padding: '1rem 2rem', borderRadius: '0.75rem', textDecoration: 'none', fontWeight: '600', border: 'none', cursor: 'pointer' },
-  retryButton: { backgroundColor: '#fff', color: '#3b82f6', padding: '1rem 2rem', borderRadius: '0.75rem', textDecoration: 'none', fontWeight: '600', border: '1px solid #3b82f6', cursor: 'pointer' },
-  header: { marginBottom: '2rem', animation: 'fadeIn 0.5s ease-out' },
-  backButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', textDecoration: 'none', fontWeight: '600', padding: '0.5rem 1rem', borderRadius: '0.5rem' },
-  backButtonIcon: { fontSize: '1.25rem' },
+  loadingContainer: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    minHeight: '60vh', 
+    gap: '1rem' 
+  },
+  spinner: { 
+    width: 'clamp(40px, 10vw, 50px)', 
+    height: 'clamp(40px, 10vw, 50px)', 
+    border: '4px solid #dbeafe', 
+    borderTop: '4px solid #3b82f6', 
+    borderRadius: '50%', 
+    animation: 'spin 1s linear infinite' 
+  },
+  loadingText: { 
+    color: '#64748b', 
+    fontSize: 'clamp(0.875rem, 4vw, 1.125rem)', 
+    margin: 0 
+  },
+  loadingSubtext: { 
+    color: '#94a3b8', 
+    fontSize: 'clamp(0.75rem, 3.5vw, 0.875rem)', 
+    margin: 0 
+  },
+  errorContainer: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    minHeight: '60vh', 
+    gap: 'clamp(1rem, 4vw, 1.5rem)', 
+    textAlign: 'center',
+    padding: '1rem'
+  },
+  errorIcon: { 
+    fontSize: 'clamp(3rem, 10vw, 5rem)', 
+    animation: 'pulse 2s infinite' 
+  },
+  errorTitle: { 
+    fontSize: 'clamp(1.25rem, 6vw, 1.75rem)', 
+    color: '#1e293b', 
+    margin: 0 
+  },
+  errorMessage: { 
+    color: '#64748b', 
+    margin: 0,
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)'
+  },
+  errorActions: { 
+    display: 'flex', 
+    gap: 'clamp(0.75rem, 3vw, 1rem)', 
+    marginTop: '1rem',
+    flexWrap: 'wrap',
+    justifyContent: 'center'
+  },
+  errorButton: { 
+    backgroundColor: '#3b82f6', 
+    color: '#fff', 
+    padding: 'clamp(0.75rem, 3vw, 1rem) clamp(1rem, 5vw, 2rem)', 
+    borderRadius: '0.75rem', 
+    textDecoration: 'none', 
+    fontWeight: '600', 
+    border: 'none', 
+    cursor: 'pointer',
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)'
+  },
+  retryButton: { 
+    backgroundColor: '#fff', 
+    color: '#3b82f6', 
+    padding: 'clamp(0.75rem, 3vw, 1rem) clamp(1rem, 5vw, 2rem)', 
+    borderRadius: '0.75rem', 
+    textDecoration: 'none', 
+    fontWeight: '600', 
+    border: '1px solid #3b82f6', 
+    cursor: 'pointer',
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)'
+  },
+  header: { 
+    marginBottom: 'clamp(1rem, 5vw, 2rem)', 
+    animation: 'fadeIn 0.5s ease-out' 
+  },
+  backButton: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem', 
+    color: '#3b82f6', 
+    textDecoration: 'none', 
+    fontWeight: '600', 
+    padding: '0.5rem 1rem', 
+    borderRadius: '0.5rem',
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)'
+  },
+  backButtonIcon: { 
+    fontSize: 'clamp(1rem, 5vw, 1.25rem)' 
+  },
   mainGrid: { 
     display: 'grid', 
-    gridTemplateColumns: '1fr 400px', 
-    gap: '2rem', 
-    animation: 'fadeIn 0.5s ease-out 0.2s both',
-    '@media (max-width: 1024px)': {
-      gridTemplateColumns: '1fr 360px',
-      gap: '1.5rem'
-    },
-    '@media (max-width: 768px)': {
-      gridTemplateColumns: '1fr',
-      gap: '1.5rem'
-    }
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(280px, 400px)', 
+    gap: 'clamp(1rem, 4vw, 2rem)', 
+    animation: 'fadeIn 0.5s ease-out 0.2s both'
   },
-  leftColumn: { display: 'flex', flexDirection: 'column', gap: '1.5rem' },
-  rightColumn: { display: 'flex', flexDirection: 'column', gap: '1.5rem' },
-  galleryCard: { backgroundColor: '#fff', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #e2e8f0' },
+  leftColumn: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: 'clamp(1rem, 4vw, 1.5rem)' 
+  },
+  rightColumn: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: 'clamp(1rem, 4vw, 1.5rem)' 
+  },
+  galleryCard: { 
+    backgroundColor: '#fff', 
+    borderRadius: 'clamp(0.75rem, 3vw, 1rem)', 
+    overflow: 'hidden', 
+    border: '1px solid #e2e8f0' 
+  },
   mainImageContainer: { 
     position: 'relative', 
-    height: '400px', 
+    height: 'clamp(200px, 50vw, 400px)', 
     backgroundColor: '#f1f5f9', 
     cursor: 'pointer', 
-    overflow: 'hidden',
-    '@media (max-width: 768px)': {
-      height: '300px'
-    },
-    '@media (max-width: 640px)': {
-      height: '250px'
-    },
-    '@media (max-width: 480px)': {
-      height: '200px'
-    }
+    overflow: 'hidden' 
   },
-  mainImage: { width: '100%', height: '100%', objectFit: 'cover' },
+  mainImage: { 
+    width: '100%', 
+    height: '100%', 
+    objectFit: 'cover' 
+  },
   fullscreenButton: { 
     position: 'absolute', 
-    top: '15px', 
-    right: '15px', 
+    top: 'clamp(10px, 3vw, 15px)', 
+    right: 'clamp(10px, 3vw, 15px)', 
     backgroundColor: 'rgba(0,0,0,0.6)', 
     color: '#fff', 
     border: 'none', 
-    width: '40px', 
-    height: '40px', 
+    width: 'clamp(32px, 8vw, 40px)', 
+    height: 'clamp(32px, 8vw, 40px)', 
     borderRadius: '50%', 
-    fontSize: '1.2rem', 
+    fontSize: 'clamp(1rem, 4vw, 1.2rem)', 
     cursor: 'pointer', 
     display: 'flex', 
     alignItems: 'center', 
     justifyContent: 'center',
-    '@media (max-width: 640px)': {
-      width: '32px',
-      height: '32px',
-      fontSize: '1rem'
-    }
+    transition: 'all 0.2s ease'
   },
   navButton: { 
     position: 'absolute', 
@@ -1204,44 +1296,36 @@ const styles = {
     backgroundColor: 'rgba(0,0,0,0.6)', 
     color: '#fff', 
     border: 'none', 
-    width: '50px', 
-    height: '50px', 
+    width: 'clamp(36px, 10vw, 50px)', 
+    height: 'clamp(36px, 10vw, 50px)', 
     borderRadius: '50%', 
-    fontSize: '1.5rem', 
+    fontSize: 'clamp(1rem, 5vw, 1.5rem)', 
     cursor: 'pointer', 
     display: 'flex', 
     alignItems: 'center', 
     justifyContent: 'center',
-    '@media (max-width: 640px)': {
-      width: '36px',
-      height: '36px',
-      fontSize: '1.2rem'
-    },
-    '@media (max-width: 480px)': {
-      width: '30px',
-      height: '30px',
-      fontSize: '1rem'
-    }
+    transition: 'all 0.2s ease'
   },
   imageCounter: { 
     position: 'absolute', 
-    bottom: '15px', 
-    right: '15px', 
+    bottom: 'clamp(10px, 3vw, 15px)', 
+    right: 'clamp(10px, 3vw, 15px)', 
     backgroundColor: 'rgba(0,0,0,0.7)', 
     color: '#fff', 
-    padding: '0.5rem 1rem', 
+    padding: 'clamp(0.25rem, 2vw, 0.5rem) clamp(0.75rem, 3vw, 1rem)', 
     borderRadius: '2rem', 
-    fontSize: '0.9rem', 
-    fontWeight: '600',
-    '@media (max-width: 640px)': {
-      fontSize: '0.75rem',
-      padding: '0.25rem 0.75rem'
-    }
+    fontSize: 'clamp(0.75rem, 3.5vw, 0.9rem)', 
+    fontWeight: '600' 
   },
-  thumbnailsContainer: { display: 'flex', gap: '0.75rem', padding: '1rem', overflowX: 'auto' },
+  thumbnailsContainer: { 
+    display: 'flex', 
+    gap: 'clamp(0.5rem, 2vw, 0.75rem)', 
+    padding: 'clamp(0.75rem, 3vw, 1rem)', 
+    overflowX: 'auto' 
+  },
   thumbnail: { 
-    width: '80px', 
-    height: '80px', 
+    width: 'clamp(50px, 15vw, 80px)', 
+    height: 'clamp(50px, 15vw, 80px)', 
     borderRadius: '0.5rem', 
     overflow: 'hidden', 
     border: '3px solid transparent', 
@@ -1249,127 +1333,163 @@ const styles = {
     flexShrink: 0, 
     padding: 0, 
     backgroundColor: 'transparent',
-    '@media (max-width: 640px)': {
-      width: '60px',
-      height: '60px'
-    },
-    '@media (max-width: 480px)': {
-      width: '50px',
-      height: '50px'
-    }
+    transition: 'all 0.2s ease'
   },
-  thumbnailActive: { borderColor: '#3b82f6' },
-  thumbnailImage: { width: '100%', height: '100%', objectFit: 'cover' },
-  imageCountBadge: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#3b82f6', color: '#fff', borderRadius: '2rem', fontSize: '0.875rem', alignSelf: 'flex-start' },
-  imageCountIcon: { fontSize: '1rem' },
-  noImageCard: { backgroundColor: '#fff', borderRadius: '1rem', border: '2px dashed #e2e8f0', padding: '4rem 2rem', textAlign: 'center' },
-  noImageIcon: { fontSize: '4rem', marginBottom: '1rem', opacity: 0.5 },
-  noImageText: { color: '#64748b', fontSize: '1.125rem', margin: 0 },
+  thumbnailActive: { 
+    borderColor: '#3b82f6' 
+  },
+  thumbnailImage: { 
+    width: '100%', 
+    height: '100%', 
+    objectFit: 'cover' 
+  },
+  imageCountBadge: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem', 
+    padding: '0.5rem 1rem', 
+    backgroundColor: '#3b82f6', 
+    color: '#fff', 
+    borderRadius: '2rem', 
+    fontSize: 'clamp(0.75rem, 3.5vw, 0.875rem)', 
+    alignSelf: 'flex-start' 
+  },
+  imageCountIcon: { 
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)' 
+  },
+  noImageCard: { 
+    backgroundColor: '#fff', 
+    borderRadius: '1rem', 
+    border: '2px dashed #e2e8f0', 
+    padding: 'clamp(2rem, 10vw, 4rem) clamp(1rem, 5vw, 2rem)', 
+    textAlign: 'center' 
+  },
+  noImageIcon: { 
+    fontSize: 'clamp(2rem, 10vw, 4rem)', 
+    marginBottom: '1rem', 
+    opacity: 0.5 
+  },
+  noImageText: { 
+    color: '#64748b', 
+    fontSize: 'clamp(0.875rem, 4vw, 1.125rem)', 
+    margin: 0 
+  },
   card: { 
     backgroundColor: '#fff', 
-    padding: '1.5rem', 
-    borderRadius: '1rem', 
-    border: '1px solid #e2e8f0',
-    '@media (max-width: 640px)': {
-      padding: '1rem'
-    }
+    padding: 'clamp(1rem, 4vw, 1.5rem)', 
+    borderRadius: 'clamp(0.75rem, 3vw, 1rem)', 
+    border: '1px solid #e2e8f0' 
   },
   cardTitle: { 
     display: 'flex', 
     alignItems: 'center', 
     gap: '0.5rem', 
-    fontSize: '1.25rem', 
+    fontSize: 'clamp(1rem, 5vw, 1.25rem)', 
     fontWeight: 'bold', 
     color: '#1e293b', 
     marginBottom: '1rem', 
     borderBottom: '2px solid #f1f5f9', 
-    paddingBottom: '0.75rem',
-    '@media (max-width: 640px)': {
-      fontSize: '1.125rem'
-    }
+    paddingBottom: '0.75rem' 
   },
-  cardTitleIcon: { fontSize: '1.5rem', color: '#3b82f6' },
+  cardTitleIcon: { 
+    fontSize: 'clamp(1.25rem, 5vw, 1.5rem)', 
+    color: '#3b82f6' 
+  },
   serviceHeader: { 
     display: 'flex', 
     justifyContent: 'space-between', 
     alignItems: 'flex-start', 
     marginBottom: '1rem',
-    '@media (max-width: 640px)': {
-      flexDirection: 'column',
-      gap: '0.75rem'
-    }
+    gap: '1rem'
   },
   serviceName: { 
-    fontSize: '2rem', 
+    fontSize: 'clamp(1.25rem, 6vw, 2rem)', 
     fontWeight: 'bold', 
     color: '#1e293b', 
     margin: 0, 
     flex: 1,
-    '@media (max-width: 768px)': {
-      fontSize: '1.5rem'
-    },
-    '@media (max-width: 640px)': {
-      fontSize: '1.25rem'
-    }
+    lineHeight: '1.3'
   },
-  favoriteButton: { backgroundColor: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem' },
+  favoriteButton: { 
+    backgroundColor: 'transparent', 
+    border: 'none', 
+    cursor: 'pointer', 
+    padding: '0.5rem',
+    flexShrink: 0
+  },
   domaineTag: { 
     display: 'inline-block', 
     backgroundColor: '#dbeafe', 
     color: '#3b82f6', 
-    padding: '0.5rem 1rem', 
+    padding: 'clamp(0.375rem, 2vw, 0.5rem) clamp(0.75rem, 3vw, 1rem)', 
     borderRadius: '2rem', 
-    fontSize: '0.95rem', 
+    fontSize: 'clamp(0.85rem, 4vw, 0.95rem)', 
     fontWeight: '600', 
-    marginBottom: '1.5rem',
-    '@media (max-width: 640px)': {
-      fontSize: '0.85rem',
-      padding: '0.375rem 0.75rem'
-    }
+    marginBottom: 'clamp(1rem, 4vw, 1.5rem)' 
   },
-  descriptionSection: { marginTop: '1.5rem' },
-  sectionSubtitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.125rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '0.75rem' },
-  sectionIcon: { fontSize: '1.25rem', color: '#3b82f6' },
+  descriptionSection: { 
+    marginTop: 'clamp(1rem, 4vw, 1.5rem)' 
+  },
+  sectionSubtitle: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem', 
+    fontSize: 'clamp(0.875rem, 4vw, 1.125rem)', 
+    fontWeight: 'bold', 
+    color: '#1e293b', 
+    marginBottom: '0.75rem' 
+  },
+  sectionIcon: { 
+    fontSize: 'clamp(1rem, 4vw, 1.25rem)', 
+    color: '#3b82f6' 
+  },
   description: { 
     color: '#64748b', 
-    fontSize: '1rem', 
-    lineHeight: '1.8', 
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)', 
+    lineHeight: '1.6', 
     whiteSpace: 'pre-wrap', 
-    margin: 0,
-    '@media (max-width: 640px)': {
-      fontSize: '0.9rem'
-    }
+    margin: 0 
   },
-  infoList: { display: 'flex', flexDirection: 'column', gap: '1rem' },
+  infoList: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '1rem' 
+  },
   infoItem: { 
     display: 'flex', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
     paddingBottom: '1rem', 
     borderBottom: '1px solid #e2e8f0',
-    '@media (max-width: 768px)': {
-      flexDirection: 'column',
-      alignItems: 'flex-start',
-      gap: '0.5rem'
-    }
+    gap: '1rem'
   },
-  infoLabel: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600', color: '#64748b' },
-  infoIcon: { fontSize: '1rem' },
-  infoValue: { color: '#1e293b', fontWeight: '600' },
+  infoLabel: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem', 
+    fontWeight: '600', 
+    color: '#64748b',
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)'
+  },
+  infoIcon: { 
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)' 
+  },
+  infoValue: { 
+    color: '#1e293b', 
+    fontWeight: '600',
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)'
+  },
   priceValue: { 
     color: '#10b981', 
     fontWeight: '700', 
-    fontSize: '1.25rem',
-    '@media (max-width: 480px)': {
-      fontSize: '1rem'
-    }
+    fontSize: 'clamp(1rem, 5vw, 1.25rem)' 
   },
   mainContactBtn: {
     display: 'flex',
     alignItems: 'center',
-    gap: '1rem',
+    gap: 'clamp(0.5rem, 3vw, 1rem)',
     width: '100%',
-    padding: '1.1rem 1.25rem',
+    padding: 'clamp(0.875rem, 3vw, 1.1rem) clamp(1rem, 3vw, 1.25rem)',
     borderRadius: '14px',
     border: 'none',
     background: `linear-gradient(135deg, ${theme.colors.primary}, #b91c1c)`,
@@ -1377,121 +1497,112 @@ const styles = {
     cursor: 'pointer',
     textAlign: 'left',
     boxShadow: '0 4px 16px rgba(239,68,68,0.3)',
-    marginBottom: '1rem',
-    '@media (max-width: 640px)': {
-      padding: '0.875rem 1rem'
-    }
+    marginBottom: '1rem'
   },
   mainContactBtnIcon: {
-    width: '46px',
-    height: '46px',
+    width: 'clamp(35px, 10vw, 46px)',
+    height: 'clamp(35px, 10vw, 46px)',
     borderRadius: '50%',
     backgroundColor: 'rgba(255,255,255,0.2)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '1.5rem',
-    '@media (max-width: 640px)': {
-      width: '40px',
-      height: '40px',
-      fontSize: '1.25rem'
-    }
+    fontSize: 'clamp(1rem, 5vw, 1.5rem)',
+    flexShrink: 0
   },
-  mainContactBtnText: { flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' },
+  mainContactBtnText: { 
+    flex: 1, 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '2px' 
+  },
   mainContactBtnLabel: { 
-    fontSize: '1rem', 
+    fontSize: 'clamp(0.85rem, 4vw, 1rem)', 
     fontWeight: '700', 
-    color: '#fff',
-    '@media (max-width: 640px)': {
-      fontSize: '0.9rem'
-    }
+    color: '#fff' 
   },
   mainContactBtnSub: { 
-    fontSize: '0.75rem', 
-    color: 'rgba(255,255,255,0.8)',
-    '@media (max-width: 640px)': {
-      fontSize: '0.7rem'
-    }
+    fontSize: 'clamp(0.65rem, 3vw, 0.75rem)', 
+    color: 'rgba(255,255,255,0.8)' 
   },
   mainContactBtnArrow: { 
-    fontSize: '1.6rem', 
+    fontSize: 'clamp(1.4rem, 6vw, 1.6rem)', 
     color: 'rgba(255,255,255,0.7)',
-    '@media (max-width: 640px)': {
-      fontSize: '1.4rem'
-    }
+    flexShrink: 0
   },
-  contactInfoList: { display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' },
-  contactInfoItem: { display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#1e293b' },
-  contactInfoIcon: { color: '#3b82f6', fontSize: '1rem' },
+  contactInfoList: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '0.75rem', 
+    marginTop: '0.5rem' 
+  },
+  contactInfoItem: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.75rem', 
+    color: '#1e293b' 
+  },
+  contactInfoIcon: { 
+    color: '#3b82f6', 
+    fontSize: '1rem' 
+  },
   lockedContactHint: { 
-    padding: '1rem', 
+    padding: 'clamp(0.75rem, 3vw, 1rem)', 
     backgroundColor: '#f1f5f9', 
     borderRadius: '0.75rem', 
     color: '#64748b', 
-    fontSize: '0.9rem', 
+    fontSize: 'clamp(0.8rem, 3.5vw, 0.9rem)', 
     textAlign: 'center', 
-    marginTop: '0.5rem',
-    '@media (max-width: 480px)': {
-      fontSize: '0.8rem'
-    }
+    marginTop: '0.5rem' 
   },
-  rendezVousSection: { marginTop: '1rem' },
+  rendezVousSection: { 
+    marginTop: '1rem' 
+  },
   rendezVousButton: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '0.75rem',
     width: '100%',
-    padding: '1rem',
+    padding: 'clamp(0.875rem, 3vw, 1rem)',
     backgroundColor: '#3b82f6',
     color: '#fff',
     border: 'none',
     borderRadius: '0.75rem',
-    fontSize: '1rem',
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)',
     fontWeight: '600',
     cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    '@media (max-width: 640px)': {
-      padding: '0.875rem',
-      fontSize: '0.9rem'
-    }
+    transition: 'all 0.3s ease'
   },
   infoBox: {
     backgroundColor: '#eff6ff',
-    padding: '1.25rem',
+    padding: 'clamp(1rem, 4vw, 1.25rem)',
     borderRadius: '0.75rem',
     border: '1px solid #bfdbfe',
     display: 'flex',
-    gap: '1rem',
-    alignItems: 'flex-start',
-    '@media (max-width: 640px)': {
-      padding: '1rem'
-    }
+    gap: 'clamp(0.75rem, 3vw, 1rem)',
+    alignItems: 'flex-start'
   },
-  infoBoxIcon: { fontSize: '1.5rem', color: '#3b82f6', flexShrink: 0 },
+  infoBoxIcon: { 
+    fontSize: 'clamp(1.25rem, 5vw, 1.5rem)', 
+    color: '#3b82f6', 
+    flexShrink: 0 
+  },
   infoBoxTitle: { 
     margin: '0 0 0.25rem 0', 
-    fontSize: '1rem', 
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)', 
     fontWeight: '600', 
-    color: '#1e293b',
-    '@media (max-width: 640px)': {
-      fontSize: '0.9rem'
-    }
+    color: '#1e293b' 
   },
   infoBoxText: { 
     margin: 0, 
-    fontSize: '0.875rem', 
-    color: '#475569',
-    '@media (max-width: 640px)': {
-      fontSize: '0.8rem'
-    }
+    fontSize: 'clamp(0.75rem, 3.5vw, 0.875rem)', 
+    color: '#475569' 
   },
   actionsCard: { 
     display: 'flex', 
-    gap: '0.75rem',
-    '@media (max-width: 768px)': {
-      flexDirection: 'column'
-    }
+    gap: 'clamp(0.5rem, 2vw, 0.75rem)',
+    flexWrap: 'wrap'
   },
   actionButton: { 
     display: 'flex', 
@@ -1501,149 +1612,157 @@ const styles = {
     flex: 1, 
     backgroundColor: '#f8fafc', 
     border: '1px solid #e2e8f0', 
-    padding: '0.875rem', 
+    padding: 'clamp(0.75rem, 3vw, 0.875rem)', 
     borderRadius: '0.75rem', 
     color: '#475569', 
     fontWeight: '600', 
     cursor: 'pointer', 
-    fontSize: '0.95rem',
-    '@media (max-width: 640px)': {
-      padding: '0.75rem',
-      fontSize: '0.85rem'
-    }
+    fontSize: 'clamp(0.8rem, 3.5vw, 0.95rem)',
+    minWidth: 'min(150px, 100%)'
   },
   entrepriseLink: { 
     display: 'flex', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
     textDecoration: 'none', 
-    padding: '1rem', 
+    padding: 'clamp(0.75rem, 3vw, 1rem)', 
     backgroundColor: '#f8fafc', 
     borderRadius: '0.75rem', 
     border: '1px solid #e2e8f0',
-    '@media (max-width: 640px)': {
-      padding: '0.75rem'
-    }
+    gap: '1rem'
   },
-  entrepriseInfo: { display: 'flex', alignItems: 'center', gap: '1rem' },
+  entrepriseInfo: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 'clamp(0.75rem, 3vw, 1rem)',
+    flex: 1
+  },
   entrepriseLogo: { 
-    width: '60px', 
-    height: '60px', 
+    width: 'clamp(50px, 15vw, 60px)', 
+    height: 'clamp(50px, 15vw, 60px)', 
     borderRadius: '0.75rem', 
-    objectFit: 'cover',
-    '@media (max-width: 640px)': {
-      width: '50px',
-      height: '50px'
-    }
+    objectFit: 'cover' 
   },
   entrepriseLogoPlaceholder: { 
-    width: '60px', 
-    height: '60px', 
+    width: 'clamp(50px, 15vw, 60px)', 
+    height: 'clamp(50px, 15vw, 60px)', 
     borderRadius: '0.75rem', 
     backgroundColor: '#dbeafe', 
     display: 'flex', 
     alignItems: 'center', 
     justifyContent: 'center', 
-    fontSize: '2rem',
-    '@media (max-width: 640px)': {
-      width: '50px',
-      height: '50px',
-      fontSize: '1.5rem'
-    }
+    fontSize: 'clamp(1.5rem, 6vw, 2rem)' 
   },
   entrepriseName: { 
     fontWeight: 'bold', 
     color: '#1e293b', 
     marginBottom: '0.25rem',
-    '@media (max-width: 640px)': {
-      fontSize: '0.95rem'
-    }
+    fontSize: 'clamp(0.9rem, 4vw, 1rem)'
   },
   entrepriseDetails: { 
     display: 'flex', 
     alignItems: 'center', 
     gap: '0.375rem', 
     color: '#64748b', 
-    fontSize: '0.9rem',
-    '@media (max-width: 640px)': {
-      fontSize: '0.8rem'
-    }
+    fontSize: 'clamp(0.75rem, 3.5vw, 0.9rem)' 
   },
-  detailIcon: { fontSize: '1rem' },
-  viewLink: { color: '#3b82f6', fontWeight: '600' },
-  modalOverlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
-  modalContent: { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' },
+  detailIcon: { 
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)' 
+  },
+  viewLink: { 
+    color: '#3b82f6', 
+    fontWeight: '600',
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)',
+    flexShrink: 0
+  },
+  modalOverlay: { 
+    position: 'fixed', 
+    inset: 0, 
+    backgroundColor: 'rgba(0,0,0,0.95)', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    zIndex: 9999 
+  },
+  modalContent: { 
+    width: '100%', 
+    height: '100%', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    position: 'relative' 
+  },
   modalHeader: { 
     position: 'absolute', 
     top: 0, 
     left: 0, 
     right: 0, 
-    padding: '1rem 2rem', 
+    padding: 'clamp(0.75rem, 3vw, 1rem) clamp(1rem, 4vw, 2rem)', 
     display: 'flex', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
     background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)', 
     color: '#fff', 
     zIndex: 10,
-    '@media (max-width: 640px)': {
-      padding: '0.75rem 1rem'
-    }
+    flexWrap: 'wrap',
+    gap: '0.5rem'
   },
   modalTitle: { 
     display: 'flex', 
     alignItems: 'center', 
     gap: '0.5rem', 
-    fontSize: '1rem',
-    '@media (max-width: 640px)': {
-      fontSize: '0.875rem'
-    }
+    fontSize: 'clamp(0.875rem, 4vw, 1rem)' 
   },
-  modalTitleIcon: { fontSize: '1.25rem' },
+  modalTitleIcon: { 
+    fontSize: 'clamp(1rem, 4vw, 1.25rem)' 
+  },
   modalControls: { 
     display: 'flex', 
-    gap: '0.5rem',
-    '@media (max-width: 768px)': {
-      gap: '0.25rem'
-    }
+    gap: 'clamp(0.25rem, 2vw, 0.5rem)',
+    flexWrap: 'wrap'
   },
   modalControlButton: { 
     backgroundColor: 'rgba(255,255,255,0.2)', 
     color: '#fff', 
     border: 'none', 
-    width: '40px', 
-    height: '40px', 
+    width: 'clamp(32px, 8vw, 40px)', 
+    height: 'clamp(32px, 8vw, 40px)', 
     borderRadius: '50%', 
-    fontSize: '1.2rem', 
+    fontSize: 'clamp(1rem, 4vw, 1.2rem)', 
     cursor: 'pointer', 
     display: 'flex', 
     alignItems: 'center', 
     justifyContent: 'center',
-    '@media (max-width: 768px)': {
-      width: '32px',
-      height: '32px',
-      fontSize: '1rem'
-    }
+    transition: 'all 0.2s ease'
   },
   modalCloseButton: { 
     backgroundColor: '#ef4444', 
     color: '#fff', 
     border: 'none', 
-    width: '40px', 
-    height: '40px', 
+    width: 'clamp(32px, 8vw, 40px)', 
+    height: 'clamp(32px, 8vw, 40px)', 
     borderRadius: '50%', 
-    fontSize: '1.2rem', 
+    fontSize: 'clamp(1rem, 4vw, 1.2rem)', 
     cursor: 'pointer', 
     display: 'flex', 
     alignItems: 'center', 
     justifyContent: 'center',
-    '@media (max-width: 768px)': {
-      width: '32px',
-      height: '32px',
-      fontSize: '1rem'
-    }
+    transition: 'all 0.2s ease'
   },
-  modalImageContainer: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', position: 'relative' },
-  modalImage: { maxWidth: '100%', maxHeight: 'calc(100vh - 200px)', objectFit: 'contain', borderRadius: '0.5rem', transition: 'transform 0.3s ease' },
+  modalImageContainer: { 
+    flex: 1, 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    padding: 'clamp(1rem, 4vw, 2rem)', 
+    position: 'relative' 
+  },
+  modalImage: { 
+    maxWidth: '100%', 
+    maxHeight: 'calc(100vh - 200px)', 
+    objectFit: 'contain', 
+    borderRadius: '0.5rem', 
+    transition: 'transform 0.3s ease' 
+  },
   modalNavButton: { 
     position: 'absolute', 
     top: '50%', 
@@ -1651,51 +1770,63 @@ const styles = {
     backgroundColor: 'rgba(255,255,255,0.2)', 
     color: '#fff', 
     border: 'none', 
-    width: '60px', 
-    height: '60px', 
+    width: 'clamp(40px, 10vw, 60px)', 
+    height: 'clamp(40px, 10vw, 60px)', 
     borderRadius: '50%', 
-    fontSize: '2rem', 
+    fontSize: 'clamp(1.5rem, 6vw, 2rem)', 
     cursor: 'pointer', 
     display: 'flex', 
     alignItems: 'center', 
     justifyContent: 'center',
-    '@media (max-width: 768px)': {
-      width: '40px',
-      height: '40px',
-      fontSize: '1.5rem'
-    }
+    transition: 'all 0.2s ease'
   },
   modalThumbnails: { 
     position: 'absolute', 
     bottom: 0, 
     left: 0, 
     right: 0, 
-    padding: '1rem 2rem', 
+    padding: 'clamp(0.75rem, 3vw, 1rem) clamp(1rem, 4vw, 2rem)', 
     background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)', 
     display: 'flex', 
     flexDirection: 'column', 
     gap: '0.5rem', 
-    zIndex: 10,
-    '@media (max-width: 640px)': {
-      padding: '0.75rem 1rem'
-    }
+    zIndex: 10 
   },
-  toggleThumbnailsButton: { backgroundColor: 'transparent', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', cursor: 'pointer', alignSelf: 'center' },
-  modalThumbnailsContainer: { display: 'flex', gap: '0.5rem', overflowX: 'auto', padding: '0.5rem 0', justifyContent: 'center' },
+  toggleThumbnailsButton: { 
+    backgroundColor: 'transparent', 
+    color: '#fff', 
+    border: '1px solid rgba(255,255,255,0.3)', 
+    padding: '0.5rem 1rem', 
+    borderRadius: '2rem', 
+    fontSize: 'clamp(0.75rem, 3.5vw, 0.875rem)', 
+    cursor: 'pointer', 
+    alignSelf: 'center' 
+  },
+  modalThumbnailsContainer: { 
+    display: 'flex', 
+    gap: '0.5rem', 
+    overflowX: 'auto', 
+    padding: '0.5rem 0', 
+    justifyContent: 'center' 
+  },
   modalThumbnail: { 
-    width: '60px', 
-    height: '60px', 
+    width: 'clamp(50px, 12vw, 60px)', 
+    height: 'clamp(50px, 12vw, 60px)', 
     borderRadius: '0.5rem', 
     overflow: 'hidden', 
     border: '3px solid transparent', 
     cursor: 'pointer', 
     padding: 0, 
     backgroundColor: 'transparent',
-    '@media (max-width: 768px)': {
-      width: '50px',
-      height: '50px'
-    }
+    transition: 'all 0.2s ease',
+    flexShrink: 0
   },
-  modalThumbnailActive: { borderColor: '#3b82f6' },
-  modalThumbnailImage: { width: '100%', height: '100%', objectFit: 'cover' },
+  modalThumbnailActive: { 
+    borderColor: '#3b82f6' 
+  },
+  modalThumbnailImage: { 
+    width: '100%', 
+    height: '100%', 
+    objectFit: 'cover' 
+  },
 };
