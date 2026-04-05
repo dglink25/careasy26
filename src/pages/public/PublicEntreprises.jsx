@@ -33,7 +33,6 @@ export default function PublicEntreprises() {
     redirectPath: '/entreprises',
   });
 
-  // Lire l'action en attente au montage (retour depuis /login)
   const pendingOpenRef = useRef(shouldOpenModal());
 
   const [entreprises, setEntreprises] = useState([]);
@@ -41,12 +40,10 @@ export default function PublicEntreprises() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Modal contact
   const [showContactModal, setShowContactModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
   const [selectedEntreprise, setSelectedEntreprise] = useState(null);
 
-  // États depuis URL
   const searchTerm = searchParams.get('search') || '';
   const selectedDomaine = searchParams.get('domaine') || 'all';
   const viewMode = searchParams.get('view') || 'grid';
@@ -76,11 +73,8 @@ export default function PublicEntreprises() {
       setEntreprises(entreprisesData);
       setDomaines(domainesData);
 
-      // ── Ouvrir le modal de contact si on revient de /login ──
       if (pendingOpenRef.current) {
         pendingOpenRef.current = false;
-        // On ne peut pas ouvrir le modal ici sans une entreprise sélectionnée.
-        // Le selectedEntreprise sera récupéré via window.history.state
         const saved = window.history.state?.usr?.selectedEntrepriseId;
         if (saved) {
           const found = entreprisesData.find(e => e.id === saved);
@@ -129,7 +123,6 @@ export default function PublicEntreprises() {
   const handleClearFilters = () => { setLocalSearchTerm(''); setSearchParams({}); };
   const handleImageError = (id) => setImageErrors(prev => ({ ...prev, [id]: true }));
 
-  // ── Ouvrir le ContactModal avec auth ──
   const handleOpenContact = (entreprise, e) => {
     e.stopPropagation();
     setSelectedEntreprise(entreprise);
@@ -139,7 +132,6 @@ export default function PublicEntreprises() {
       setShowContactModal(true);
     });
 
-    // Stocker l'id de l'entreprise dans l'historique pour retrouver après login
     if (!user) {
       const currentUsr = window.history.state?.usr ?? {};
       window.history.replaceState(
@@ -270,7 +262,7 @@ export default function PublicEntreprises() {
           <div style={styles.controlActions}>
             <button onClick={() => setShowFilters(!showFilters)} style={styles.filterToggleButton}>
               <FiFilter style={styles.filterToggleIcon} />
-              Filtres
+              <span style={{ display: 'inline-block' }}>Filtres</span>
               {(localSearchTerm || selectedDomaine !== 'all') && <span style={styles.activeFilterIndicator}></span>}
             </button>
             <div style={styles.viewModeButtons}>
@@ -370,23 +362,23 @@ export default function PublicEntreprises() {
               </div>
             </div>
 
-            {/* Grille */}
-            <div style={styles.grid}>
+            {/* Grille/Liste */}
+            <div style={viewMode === 'grid' ? styles.grid : styles.listContainer}>
               {filteredEntreprises.map((entreprise) => (
                 <div
                   key={entreprise.id}
-                  style={styles.card}
+                  style={viewMode === 'grid' ? styles.card : styles.listCard}
                   className="entreprise-card"
                   onClick={() => navigate(`/entreprises/${entreprise.id}`)}
                 >
                   {/* Header carte */}
-                  <div style={styles.cardHeader}>
-                    <div style={styles.cardImage}>
+                  <div style={viewMode === 'grid' ? styles.cardHeader : styles.listCardHeader}>
+                    <div style={viewMode === 'grid' ? styles.cardImage : styles.listCardImage}>
                       {entreprise.logo && !imageErrors[entreprise.id] ? (
-                        <img src={entreprise.logo} alt={entreprise.name} style={styles.logo} onError={() => handleImageError(entreprise.id)} />
+                        <img src={entreprise.logo} alt={entreprise.name} style={viewMode === 'grid' ? styles.logo : styles.listLogo} onError={() => handleImageError(entreprise.id)} />
                       ) : null}
-                      <div style={{ ...styles.logoPlaceholder, display: (entreprise.logo && !imageErrors[entreprise.id]) ? 'none' : 'flex' }}>
-                        <MdBusiness style={styles.logoPlaceholderIcon} />
+                      <div style={{ ...(viewMode === 'grid' ? styles.logoPlaceholder : styles.listLogoPlaceholder), display: (entreprise.logo && !imageErrors[entreprise.id]) ? 'none' : 'flex' }}>
+                        <MdBusiness style={viewMode === 'grid' ? styles.logoPlaceholderIcon : styles.listLogoPlaceholderIcon} />
                       </div>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); toggleFavorite(entreprise.id); }} style={styles.favoriteButton}>
@@ -395,8 +387,8 @@ export default function PublicEntreprises() {
                   </div>
 
                   {/* Corps */}
-                  <div style={styles.cardBody}>
-                    <h3 style={styles.cardTitle}>{entreprise.name}</h3>
+                  <div style={viewMode === 'grid' ? styles.cardBody : styles.listCardBody}>
+                    <h3 style={viewMode === 'grid' ? styles.cardTitle : styles.listCardTitle}>{entreprise.name}</h3>
                     {entreprise.siege && (
                       <div style={styles.location}>
                         <MdOutlineLocationOn style={styles.locationIcon} />
@@ -404,18 +396,18 @@ export default function PublicEntreprises() {
                       </div>
                     )}
                     {entreprise.description && (
-                      <p style={styles.cardDescription}>
-                        {entreprise.description.length > 100 ? `${entreprise.description.substring(0, 100)}...` : entreprise.description}
+                      <p style={viewMode === 'grid' ? styles.cardDescription : styles.listCardDescription}>
+                        {entreprise.description.length > (viewMode === 'grid' ? 100 : 150) ? `${entreprise.description.substring(0, viewMode === 'grid' ? 100 : 150)}...` : entreprise.description}
                       </p>
                     )}
                     {entreprise.domaines?.length > 0 && (
                       <div style={styles.domainesContainer}>
                         <div style={styles.domainesLabel}><FiTool style={styles.domainesLabelIcon} />Spécialités</div>
                         <div style={styles.domainesTags}>
-                          {entreprise.domaines.slice(0, 3).map((domaine) => (
+                          {entreprise.domaines.slice(0, viewMode === 'grid' ? 3 : 4).map((domaine) => (
                             <span key={domaine.id} style={styles.domaineTag}>{getDomaineIcon(domaine.name)}{domaine.name}</span>
                           ))}
-                          {entreprise.domaines.length > 3 && <span style={styles.moreTag}>+{entreprise.domaines.length - 3}</span>}
+                          {entreprise.domaines.length > (viewMode === 'grid' ? 3 : 4) && <span style={styles.moreTag}>+{entreprise.domaines.length - (viewMode === 'grid' ? 3 : 4)}</span>}
                         </div>
                       </div>
                     )}
@@ -427,10 +419,9 @@ export default function PublicEntreprises() {
                     )}
                   </div>
 
-                  {/* ── Footer : Contacter + Voir détails ── */}
-                  <div style={styles.cardFooter}>
-                    <div style={styles.cardActions}>
-                      {/* Bouton Contacter (remplace Itinéraire) */}
+                  {/* Footer */}
+                  <div style={viewMode === 'grid' ? styles.cardFooter : styles.listCardFooter}>
+                    <div style={viewMode === 'grid' ? styles.cardActions : styles.listCardActions}>
                       <button
                         onClick={(e) => handleOpenContact(entreprise, e)}
                         style={styles.contactButton}
@@ -447,7 +438,6 @@ export default function PublicEntreprises() {
                         <FiArrowRight style={styles.viewButtonIcon} />
                       </button>
                     </div>
-                    {/* Hint auth discret sous les boutons */}
                     {!user && (
                       <p style={styles.cardAuthHint}>🔒 Connexion requise pour contacter</p>
                     )}
@@ -487,7 +477,7 @@ export default function PublicEntreprises() {
         )}
       </div>
 
-      {/* ── Modales ── */}
+      {/* Modales */}
       {showContactModal && selectedEntreprise && (
         <ContactModal
           isOpen={showContactModal}
@@ -509,146 +499,863 @@ export default function PublicEntreprises() {
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-        .entreprise-card { transition: all 0.3s ease; cursor: pointer; animation: fadeIn 0.5s ease-out; }
-        .entreprise-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.15); }
-        .contact-btn { transition: all 0.2s ease; }
-        .contact-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        
+        .entreprise-card { 
+          transition: all 0.3s ease; 
+          cursor: pointer; 
+          animation: fadeIn 0.5s ease-out; 
+        }
+        .entreprise-card:hover { 
+          transform: translateY(-5px); 
+          box-shadow: 0 15px 40px rgba(0,0,0,0.15); 
+        }
+        .contact-btn { 
+          transition: all 0.2s ease; 
+        }
+        .contact-btn:hover { 
+          filter: brightness(1.1); 
+          transform: translateY(-1px); 
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1024px) {
+          .grid-container { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important; }
+        }
+        
+        @media (max-width: 768px) {
+          .grid-container { grid-template-columns: 1fr !important; }
+        }
       `}</style>
     </div>
   );
 }
 
 const styles = {
-  container: { minHeight: '100vh', backgroundColor: '#f8fafc', padding: '2rem 0' },
-  content: { maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' },
-  loadingContainer: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1rem' },
-  spinner: { width: '50px', height: '50px', border: `4px solid ${theme.colors.primaryLight}`, borderTop: `4px solid ${theme.colors.primary}`, borderRadius: '50%', animation: 'spin 1s linear infinite' },
-  loadingText: { color: theme.colors.text.secondary, fontSize: '1.125rem' },
-  loadingSubtext: { color: '#94a3b8', fontSize: '0.875rem' },
-  hero: { display: 'grid', gridTemplateColumns: '1fr 300px', gap: '3rem', alignItems: 'center', marginBottom: '3rem', padding: '2rem 0' },
-  heroContent: { display: 'flex', flexDirection: 'column', gap: '1.5rem' },
-  heroTitle: { fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: '800', color: '#1e293b', margin: 0, lineHeight: '1.2', display: 'flex', alignItems: 'center', gap: '1rem' },
-  heroTitleIcon: { fontSize: '3rem', color: '#ef4444' },
-  heroSubtitle: { fontSize: '1.25rem', color: '#64748b', lineHeight: '1.6' },
-  highlight: { color: '#ef4444', fontWeight: '700' },
-  heroStats: { display: 'flex', gap: '2rem', flexWrap: 'wrap' },
-  heroStat: { display: 'flex', alignItems: 'center', gap: '0.75rem' },
-  heroStatIcon: { fontSize: '1.5rem', color: '#ef4444' },
-  heroStatContent: { display: 'flex', flexDirection: 'column' },
-  heroStatNumber: { fontSize: '1.5rem', fontWeight: '700', color: '#1e293b' },
-  heroStatLabel: { fontSize: '0.875rem', color: '#64748b' },
-  heroImage: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  heroImagePlaceholder: { width: '250px', height: '250px', backgroundColor: '#dbeafe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  heroIllustration: { fontSize: '8rem', color: '#ef4444' },
-  controlBar: { backgroundColor: '#fff', padding: '1.5rem', borderRadius: theme.borderRadius.lg, border: '1px solid #e2e8f0', marginBottom: '1.5rem', display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' },
-  searchContainer: { flex: 1, position: 'relative', minWidth: '300px' },
-  searchIcon: { position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', fontSize: '1.25rem', color: '#94a3b8' },
-  searchInput: { width: '100%', padding: '0.875rem 1rem 0.875rem 3rem', border: '1px solid #e2e8f0', borderRadius: theme.borderRadius.md, fontSize: '0.95rem', outline: 'none' },
-  clearSearchButton: { position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', backgroundColor: 'transparent', border: 'none', color: '#94a3b8', fontSize: '1.25rem', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' },
-  controlActions: { display: 'flex', gap: '0.75rem', alignItems: 'center' },
-  filterToggleButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.625rem 1.25rem', borderRadius: theme.borderRadius.md, fontSize: '0.875rem', fontWeight: '500', color: '#475569', cursor: 'pointer', position: 'relative' },
-  filterToggleIcon: { fontSize: '1rem' },
-  activeFilterIndicator: { position: 'absolute', top: '-5px', right: '-5px', width: '10px', height: '10px', backgroundColor: '#ef4444', borderRadius: '50%' },
-  viewModeButtons: { display: 'flex', gap: '0.25rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: theme.borderRadius.md, padding: '0.25rem' },
-  viewModeButton: { backgroundColor: 'transparent', border: 'none', padding: '0.5rem', borderRadius: theme.borderRadius.sm, fontSize: '1.125rem', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  viewModeButtonActive: { backgroundColor: '#fff', color: '#ef4444', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
-  refreshButton: { backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.625rem', borderRadius: theme.borderRadius.md, fontSize: '1rem', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center' },
+  container: { 
+    minHeight: '100vh', 
+    backgroundColor: '#f8fafc', 
+    padding: 'clamp(1rem, 4vw, 2rem) 0' 
+  },
+  content: { 
+    maxWidth: '1200px', 
+    margin: '0 auto', 
+    padding: '0 clamp(1rem, 4vw, 1.5rem)' 
+  },
+  loadingContainer: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    minHeight: '60vh', 
+    gap: '1rem' 
+  },
+  spinner: { 
+    width: '50px', 
+    height: '50px', 
+    border: `4px solid ${theme.colors.primaryLight}`, 
+    borderTop: `4px solid ${theme.colors.primary}`, 
+    borderRadius: '50%', 
+    animation: 'spin 1s linear infinite' 
+  },
+  loadingText: { 
+    color: theme.colors.text.secondary, 
+    fontSize: 'clamp(1rem, 4vw, 1.125rem)' 
+  },
+  loadingSubtext: { 
+    color: '#94a3b8', 
+    fontSize: 'clamp(0.75rem, 3vw, 0.875rem)' 
+  },
+  
+  // Hero responsive
+  hero: { 
+    display: 'grid', 
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+    gap: 'clamp(1.5rem, 5vw, 3rem)', 
+    alignItems: 'center', 
+    marginBottom: 'clamp(2rem, 5vw, 3rem)', 
+    padding: 'clamp(1rem, 4vw, 2rem) 0' 
+  },
+  heroContent: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: 'clamp(1rem, 3vw, 1.5rem)' 
+  },
+  heroTitle: { 
+    fontSize: 'clamp(1.5rem, 5vw, 3rem)', 
+    fontWeight: '800', 
+    color: '#1e293b', 
+    margin: 0, 
+    lineHeight: '1.2', 
+    display: 'flex', 
+    alignItems: 'center', 
+    flexWrap: 'wrap', 
+    gap: 'clamp(0.5rem, 2vw, 1rem)' 
+  },
+  heroTitleIcon: { 
+    fontSize: 'clamp(2rem, 6vw, 3rem)', 
+    color: '#ef4444' 
+  },
+  heroSubtitle: { 
+    fontSize: 'clamp(1rem, 3.5vw, 1.25rem)', 
+    color: '#64748b', 
+    lineHeight: '1.6' 
+  },
+  highlight: { 
+    color: '#ef4444', 
+    fontWeight: '700' 
+  },
+  heroStats: { 
+    display: 'flex', 
+    gap: 'clamp(1rem, 4vw, 2rem)', 
+    flexWrap: 'wrap' 
+  },
+  heroStat: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 'clamp(0.5rem, 2vw, 0.75rem)' 
+  },
+  heroStatIcon: { 
+    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
+    color: '#ef4444' 
+  },
+  heroStatContent: { 
+    display: 'flex', 
+    flexDirection: 'column' 
+  },
+  heroStatNumber: { 
+    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
+    fontWeight: '700', 
+    color: '#1e293b' 
+  },
+  heroStatLabel: { 
+    fontSize: 'clamp(0.7rem, 2.5vw, 0.875rem)', 
+    color: '#64748b' 
+  },
+  heroImage: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  heroImagePlaceholder: { 
+    width: 'clamp(150px, 30vw, 250px)', 
+    height: 'clamp(150px, 30vw, 250px)', 
+    backgroundColor: '#dbeafe', 
+    borderRadius: '50%', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  heroIllustration: { 
+    fontSize: 'clamp(4rem, 12vw, 8rem)', 
+    color: '#ef4444' 
+  },
+  
+  // Control bar responsive
+  controlBar: { 
+    backgroundColor: '#fff', 
+    padding: 'clamp(1rem, 3vw, 1.5rem)', 
+    borderRadius: theme.borderRadius.lg, 
+    border: '1px solid #e2e8f0', 
+    marginBottom: 'clamp(1rem, 3vw, 1.5rem)', 
+    display: 'flex', 
+    gap: 'clamp(0.75rem, 2vw, 1.5rem)', 
+    alignItems: 'center', 
+    flexWrap: 'wrap' 
+  },
+  searchContainer: { 
+    flex: '1', 
+    position: 'relative', 
+    minWidth: 'clamp(200px, 50%, 300px)' 
+  },
+  searchIcon: { 
+    position: 'absolute', 
+    left: 'clamp(0.75rem, 2vw, 1rem)', 
+    top: '50%', 
+    transform: 'translateY(-50%)', 
+    fontSize: 'clamp(1rem, 3vw, 1.25rem)', 
+    color: '#94a3b8' 
+  },
+  searchInput: { 
+    width: '100%', 
+    padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(0.75rem, 2vw, 1rem) clamp(0.75rem, 2vw, 0.875rem) clamp(2rem, 6vw, 3rem)', 
+    border: '1px solid #e2e8f0', 
+    borderRadius: theme.borderRadius.md, 
+    fontSize: 'clamp(0.875rem, 2.5vw, 0.95rem)', 
+    outline: 'none' 
+  },
+  clearSearchButton: { 
+    position: 'absolute', 
+    right: 'clamp(0.5rem, 1.5vw, 1rem)', 
+    top: '50%', 
+    transform: 'translateY(-50%)', 
+    backgroundColor: 'transparent', 
+    border: 'none', 
+    color: '#94a3b8', 
+    fontSize: 'clamp(1rem, 3vw, 1.25rem)', 
+    cursor: 'pointer', 
+    padding: 0, 
+    display: 'flex', 
+    alignItems: 'center' 
+  },
+  controlActions: { 
+    display: 'flex', 
+    gap: 'clamp(0.5rem, 1.5vw, 0.75rem)', 
+    alignItems: 'center', 
+    flexWrap: 'wrap' 
+  },
+  filterToggleButton: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 'clamp(0.25rem, 1.5vw, 0.5rem)', 
+    backgroundColor: '#f8fafc', 
+    border: '1px solid #e2e8f0', 
+    padding: 'clamp(0.5rem, 1.5vw, 0.625rem) clamp(0.75rem, 2vw, 1.25rem)', 
+    borderRadius: theme.borderRadius.md, 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    fontWeight: '500', 
+    color: '#475569', 
+    cursor: 'pointer', 
+    position: 'relative' 
+  },
+  filterToggleIcon: { 
+    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' 
+  },
+  activeFilterIndicator: { 
+    position: 'absolute', 
+    top: '-5px', 
+    right: '-5px', 
+    width: '10px', 
+    height: '10px', 
+    backgroundColor: '#ef4444', 
+    borderRadius: '50%' 
+  },
+  viewModeButtons: { 
+    display: 'flex', 
+    gap: '0.25rem', 
+    backgroundColor: '#f8fafc', 
+    border: '1px solid #e2e8f0', 
+    borderRadius: theme.borderRadius.md, 
+    padding: '0.25rem' 
+  },
+  viewModeButton: { 
+    backgroundColor: 'transparent', 
+    border: 'none', 
+    padding: 'clamp(0.375rem, 1.5vw, 0.5rem)', 
+    borderRadius: theme.borderRadius.sm, 
+    fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)', 
+    color: '#94a3b8', 
+    cursor: 'pointer', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  viewModeButtonActive: { 
+    backgroundColor: '#fff', 
+    color: '#ef4444', 
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+  },
+  refreshButton: { 
+    backgroundColor: '#f8fafc', 
+    border: '1px solid #e2e8f0', 
+    padding: 'clamp(0.5rem, 1.5vw, 0.625rem)', 
+    borderRadius: theme.borderRadius.md, 
+    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
+    color: '#475569', 
+    cursor: 'pointer', 
+    display: 'flex', 
+    alignItems: 'center' 
+  },
   refreshIcon: { fontSize: '1rem' },
   refreshingIcon: { fontSize: '1rem', animation: 'spin 1s linear infinite' },
-  filtersPanel: { backgroundColor: '#fff', borderRadius: theme.borderRadius.lg, border: '1px solid #e2e8f0', marginBottom: '1.5rem', padding: '1.5rem', animation: 'slideIn 0.3s ease-out' },
-  filtersHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' },
-  filtersTitle: { fontSize: '1.125rem', fontWeight: '600', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' },
-  filtersTitleIcon: { fontSize: '1.25rem', color: '#3b82f6' },
-  clearAllButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'transparent', border: '1px solid #e2e8f0', padding: '0.5rem 1rem', borderRadius: theme.borderRadius.md, fontSize: '0.875rem', color: '#64748b', cursor: 'pointer' },
-  clearAllIcon: { fontSize: '1rem' },
-  filterSection: { marginBottom: '1.5rem' },
-  filterSectionTitle: { fontSize: '1rem', fontWeight: '600', color: '#475569', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' },
-  filterSectionIcon: { fontSize: '1.25rem', color: '#94a3b8' },
-  domainesGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' },
-  domaineButton: { display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.75rem 1rem', borderRadius: theme.borderRadius.md, fontSize: '0.875rem', color: '#475569', cursor: 'pointer', position: 'relative' },
-  domaineButtonActive: { backgroundColor: '#dbeafe', color: '#851717ff', borderColor: '#ef4444' },
-  domaineButtonIcon: { fontSize: '1rem', color: '#94a3b8' },
-  domaineIcon: { fontSize: '1rem', marginRight: '0.5rem' },
-  domaineCount: { position: 'absolute', right: '0.75rem', backgroundColor: '#e2e8f0', color: '#64748b', fontSize: '0.75rem', padding: '0.125rem 0.375rem', borderRadius: '9999px' },
-  filterStats: { display: 'flex', gap: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' },
-  filterStat: { textAlign: 'center' },
-  filterStatNumber: { fontSize: '1.5rem', fontWeight: '700', color: '#3b82f6', marginBottom: '0.25rem' },
-  filterStatLabel: { fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  errorAlert: { backgroundColor: '#fee2e2', border: '1px solid #ef4444', borderRadius: theme.borderRadius.lg, padding: '1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' },
-  errorAlertIcon: { fontSize: '1.5rem', color: '#dc2626', flexShrink: 0 },
-  errorAlertContent: { flex: 1 },
-  errorAlertTitle: { fontSize: '1.125rem', fontWeight: '600', color: '#7f1d1d', marginBottom: '0.25rem' },
-  errorAlertText: { color: '#991b1b', fontSize: '0.875rem' },
-  errorAlertButton: { backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '0.5rem 1.5rem', borderRadius: theme.borderRadius.md, fontSize: '0.875rem', fontWeight: '500', cursor: 'pointer' },
-  emptyState: { backgroundColor: '#fff', padding: '4rem 2rem', borderRadius: theme.borderRadius.lg, textAlign: 'center', border: '2px dashed #e2e8f0' },
-  emptyIllustration: { fontSize: '5rem', marginBottom: '1.5rem', color: '#cbd5e1' },
-  emptyIcon: { fontSize: '5rem' },
-  emptyTitle: { fontSize: '1.5rem', fontWeight: '600', color: '#334155', marginBottom: '0.75rem' },
-  emptyText: { color: '#64748b', fontSize: '1rem', maxWidth: '500px', margin: '0 auto 1.5rem', lineHeight: '1.6' },
-  emptyActions: { display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' },
-  emptyActionButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.625rem 1.25rem', borderRadius: theme.borderRadius.md, fontSize: '0.875rem', fontWeight: '500', color: '#475569', cursor: 'pointer' },
-  emptyActionIcon: { fontSize: '1rem' },
-  resultsHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' },
-  resultsInfo: { flex: 1 },
-  resultsTitle: { fontSize: '1.5rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' },
-  resultsStats: { display: 'flex', gap: '1.5rem', alignItems: 'center' },
-  resultsStat: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#64748b' },
-  resultsStatIcon: { fontSize: '1rem', color: '#94a3b8' },
-  resultsSort: { display: 'flex', alignItems: 'center', gap: '0.75rem' },
-  resultsSortLabel: { fontSize: '0.875rem', color: '#64748b', fontWeight: '500' },
-  sortSelect: { padding: '0.5rem 2rem 0.5rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: theme.borderRadius.md, backgroundColor: '#fff', color: '#475569', fontSize: '0.875rem', cursor: 'pointer' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem', marginBottom: '2rem' },
-  card: { backgroundColor: '#fff', borderRadius: theme.borderRadius.lg, border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
-  cardHeader: { position: 'relative' },
-  cardImage: { height: '180px', backgroundColor: '#f8fafc', position: 'relative', overflow: 'hidden' },
-  logo: { width: '100%', height: '100%', objectFit: 'cover' },
-  logoPlaceholder: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#dbeafe' },
-  logoPlaceholderIcon: { fontSize: '4rem', color: '#3b82f6', opacity: 0.6 },
-  favoriteButton: { position: 'absolute', top: '1rem', right: '1rem', backgroundColor: 'rgba(255,255,255,0.9)', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 2 },
-  favoriteIcon: { fontSize: '1.25rem' },
-  cardBody: { padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' },
-  cardTitle: { fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', margin: 0 },
-  location: { display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: '#64748b', fontSize: '0.875rem' },
-  locationIcon: { fontSize: '1rem', color: '#94a3b8', flexShrink: 0, marginTop: '2px' },
-  locationText: { flex: 1, lineHeight: '1.5' },
-  cardDescription: { color: '#475569', fontSize: '0.875rem', lineHeight: '1.6', margin: 0 },
-  domainesContainer: { marginTop: '0.5rem' },
-  domainesLabel: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: '600' },
-  domainesLabelIcon: { fontSize: '0.875rem' },
-  domainesTags: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem' },
-  domaineTag: { display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#f1f5f9', color: '#475569', padding: '0.375rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500' },
-  moreTag: { backgroundColor: '#e2e8f0', color: '#64748b', padding: '0.375rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500' },
-  servicesInfo: { display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', fontSize: '0.875rem', fontWeight: '500', marginTop: 'auto' },
-  servicesIcon: { fontSize: '1rem' },
-  servicesText: {},
-  cardFooter: { padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0' },
-  cardActions: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' },
-
-  // ── Bouton Contacter (remplace Itinéraire) ──
-  contactButton: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-    backgroundColor: theme.colors.primary, color: '#fff', border: 'none',
-    padding: '0.625rem', borderRadius: theme.borderRadius.md,
-    fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer',
+  
+  // Filters panel responsive
+  filtersPanel: { 
+    backgroundColor: '#fff', 
+    borderRadius: theme.borderRadius.lg, 
+    border: '1px solid #e2e8f0', 
+    marginBottom: 'clamp(1rem, 3vw, 1.5rem)', 
+    padding: 'clamp(1rem, 3vw, 1.5rem)', 
+    animation: 'slideIn 0.3s ease-out' 
   },
-  contactIcon: { fontSize: '1rem' },
-
-  viewButton: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '0.625rem', borderRadius: theme.borderRadius.md, fontSize: '0.875rem', fontWeight: '500', cursor: 'pointer' },
-  viewButtonIcon: { fontSize: '1rem' },
-
-  // Hint auth sous les boutons
-  cardAuthHint: { margin: '0.6rem 0 0', fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center' },
-
-  pagination: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 0', borderTop: '1px solid #e2e8f0' },
-  paginationInfo: { fontSize: '0.875rem', color: '#64748b' },
-  paginationControls: { display: 'flex', alignItems: 'center', gap: '0.75rem' },
-  paginationButton: { backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.5rem', borderRadius: theme.borderRadius.md, fontSize: '1rem', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center' },
-  paginationPage: { fontSize: '0.875rem', color: '#475569', fontWeight: '500' },
-  ctaSection: { backgroundColor: '#dbeafe', borderRadius: theme.borderRadius.lg, padding: '2rem', marginTop: '2rem' },
-  ctaContent: { display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' },
-  ctaIcon: { fontSize: '3rem', color: '#ef4444' },
-  ctaTitle: { fontSize: '1.5rem', fontWeight: '700', color: '#ef4444', marginBottom: '0.5rem' },
-  ctaText: { color: '#ef4444', fontSize: '1rem', opacity: 0.9 },
-  ctaButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#df2424ff', color: '#fff', border: 'none', padding: '0.875rem 1.75rem', borderRadius: theme.borderRadius.lg, fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', marginLeft: 'auto' },
-  ctaButtonIcon: { fontSize: '1.125rem' },
+  filtersHeader: { 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 'clamp(1rem, 3vw, 1.5rem)', 
+    flexWrap: 'wrap', 
+    gap: '1rem' 
+  },
+  filtersTitle: { 
+    fontSize: 'clamp(1rem, 3vw, 1.125rem)', 
+    fontWeight: '600', 
+    color: '#1e293b', 
+    margin: 0, 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem' 
+  },
+  filtersTitleIcon: { 
+    fontSize: 'clamp(1rem, 3vw, 1.25rem)', 
+    color: '#3b82f6' 
+  },
+  clearAllButton: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem', 
+    backgroundColor: 'transparent', 
+    border: '1px solid #e2e8f0', 
+    padding: 'clamp(0.375rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)', 
+    borderRadius: theme.borderRadius.md, 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    color: '#64748b', 
+    cursor: 'pointer' 
+  },
+  clearAllIcon: { fontSize: '1rem' },
+  filterSection: { marginBottom: 'clamp(1rem, 3vw, 1.5rem)' },
+  filterSectionTitle: { 
+    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
+    fontWeight: '600', 
+    color: '#475569', 
+    marginBottom: 'clamp(0.75rem, 2vw, 1rem)', 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem' 
+  },
+  filterSectionIcon: { 
+    fontSize: 'clamp(1rem, 3vw, 1.25rem)', 
+    color: '#94a3b8' 
+  },
+  domainesGrid: { 
+    display: 'grid', 
+    gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(160px, 25vw, 200px), 1fr))', 
+    gap: 'clamp(0.5rem, 1.5vw, 0.75rem)' 
+  },
+  domaineButton: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 'clamp(0.5rem, 1.5vw, 0.75rem)', 
+    backgroundColor: '#f8fafc', 
+    border: '1px solid #e2e8f0', 
+    padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)', 
+    borderRadius: theme.borderRadius.md, 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    color: '#475569', 
+    cursor: 'pointer', 
+    position: 'relative' 
+  },
+  domaineButtonActive: { 
+    backgroundColor: '#dbeafe', 
+    color: '#851717ff', 
+    borderColor: '#ef4444' 
+  },
+  domaineButtonIcon: { 
+    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
+    color: '#94a3b8' 
+  },
+  domaineIcon: { 
+    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
+    marginRight: '0.5rem' 
+  },
+  domaineCount: { 
+    position: 'absolute', 
+    right: 'clamp(0.5rem, 1.5vw, 0.75rem)', 
+    backgroundColor: '#e2e8f0', 
+    color: '#64748b', 
+    fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', 
+    padding: '0.125rem 0.375rem', 
+    borderRadius: '9999px' 
+  },
+  filterStats: { 
+    display: 'flex', 
+    gap: 'clamp(1rem, 4vw, 2rem)', 
+    paddingTop: 'clamp(1rem, 3vw, 1.5rem)', 
+    borderTop: '1px solid #e2e8f0', 
+    flexWrap: 'wrap' 
+  },
+  filterStat: { textAlign: 'center' },
+  filterStatNumber: { 
+    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
+    fontWeight: '700', 
+    color: '#3b82f6', 
+    marginBottom: '0.25rem' 
+  },
+  filterStatLabel: { 
+    fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', 
+    color: '#64748b', 
+    textTransform: 'uppercase', 
+    letterSpacing: '0.05em' 
+  },
+  
+  // Error alert responsive
+  errorAlert: { 
+    backgroundColor: '#fee2e2', 
+    border: '1px solid #ef4444', 
+    borderRadius: theme.borderRadius.lg, 
+    padding: 'clamp(1rem, 3vw, 1.5rem)', 
+    marginBottom: 'clamp(1rem, 3vw, 1.5rem)', 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 'clamp(0.75rem, 2vw, 1rem)', 
+    flexWrap: 'wrap' 
+  },
+  errorAlertIcon: { 
+    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
+    color: '#dc2626', 
+    flexShrink: 0 
+  },
+  errorAlertContent: { flex: 1 },
+  errorAlertTitle: { 
+    fontSize: 'clamp(1rem, 3vw, 1.125rem)', 
+    fontWeight: '600', 
+    color: '#7f1d1d', 
+    marginBottom: '0.25rem' 
+  },
+  errorAlertText: { 
+    color: '#991b1b', 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' 
+  },
+  errorAlertButton: { 
+    backgroundColor: '#ef4444', 
+    color: '#fff', 
+    border: 'none', 
+    padding: 'clamp(0.5rem, 1.5vw, 0.5rem) clamp(1rem, 3vw, 1.5rem)', 
+    borderRadius: theme.borderRadius.md, 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    fontWeight: '500', 
+    cursor: 'pointer' 
+  },
+  
+  // Empty state responsive
+  emptyState: { 
+    backgroundColor: '#fff', 
+    padding: 'clamp(2rem, 8vw, 4rem) clamp(1rem, 4vw, 2rem)', 
+    borderRadius: theme.borderRadius.lg, 
+    textAlign: 'center', 
+    border: '2px dashed #e2e8f0' 
+  },
+  emptyIllustration: { 
+    fontSize: 'clamp(3rem, 10vw, 5rem)', 
+    marginBottom: 'clamp(1rem, 3vw, 1.5rem)', 
+    color: '#cbd5e1' 
+  },
+  emptyIcon: { fontSize: '5rem' },
+  emptyTitle: { 
+    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
+    fontWeight: '600', 
+    color: '#334155', 
+    marginBottom: '0.75rem' 
+  },
+  emptyText: { 
+    color: '#64748b', 
+    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
+    maxWidth: '500px', 
+    margin: '0 auto 1.5rem', 
+    lineHeight: '1.6' 
+  },
+  emptyActions: { 
+    display: 'flex', 
+    gap: 'clamp(0.5rem, 2vw, 0.75rem)', 
+    justifyContent: 'center', 
+    flexWrap: 'wrap' 
+  },
+  emptyActionButton: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem', 
+    backgroundColor: '#f8fafc', 
+    border: '1px solid #e2e8f0', 
+    padding: 'clamp(0.5rem, 1.5vw, 0.625rem) clamp(0.75rem, 2vw, 1.25rem)', 
+    borderRadius: theme.borderRadius.md, 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    fontWeight: '500', 
+    color: '#475569', 
+    cursor: 'pointer' 
+  },
+  emptyActionIcon: { fontSize: '1rem' },
+  
+  // Results header responsive
+  resultsHeader: { 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 'clamp(1rem, 4vw, 2rem)', 
+    flexWrap: 'wrap', 
+    gap: 'clamp(0.75rem, 2vw, 1rem)' 
+  },
+  resultsInfo: { flex: 1 },
+  resultsTitle: { 
+    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
+    fontWeight: '600', 
+    color: '#1e293b', 
+    marginBottom: '0.5rem' 
+  },
+  resultsStats: { 
+    display: 'flex', 
+    gap: 'clamp(0.75rem, 2vw, 1.5rem)', 
+    alignItems: 'center', 
+    flexWrap: 'wrap' 
+  },
+  resultsStat: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem', 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    color: '#64748b' 
+  },
+  resultsStatIcon: { 
+    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
+    color: '#94a3b8' 
+  },
+  resultsSort: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 'clamp(0.5rem, 2vw, 0.75rem)' 
+  },
+  resultsSortLabel: { 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    color: '#64748b', 
+    fontWeight: '500' 
+  },
+  sortSelect: { 
+    padding: 'clamp(0.375rem, 1.5vw, 0.5rem) clamp(1rem, 3vw, 2rem) clamp(0.375rem, 1.5vw, 0.5rem) clamp(0.5rem, 1.5vw, 0.75rem)', 
+    border: '1px solid #e2e8f0', 
+    borderRadius: theme.borderRadius.md, 
+    backgroundColor: '#fff', 
+    color: '#475569', 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    cursor: 'pointer' 
+  },
+  
+  // Grid responsive
+  grid: { 
+    display: 'grid', 
+    gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(280px, 40vw, 340px), 1fr))', 
+    gap: 'clamp(1rem, 3vw, 1.5rem)', 
+    marginBottom: '2rem' 
+  },
+  listContainer: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '1rem', 
+    marginBottom: '2rem' 
+  },
+  
+  // Card styles
+  card: { 
+    backgroundColor: '#fff', 
+    borderRadius: theme.borderRadius.lg, 
+    border: '1px solid #e2e8f0', 
+    overflow: 'hidden', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+  },
+  listCard: { 
+    backgroundColor: '#fff', 
+    borderRadius: theme.borderRadius.lg, 
+    border: '1px solid #e2e8f0', 
+    overflow: 'hidden', 
+    display: 'flex', 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+  },
+  cardHeader: { position: 'relative' },
+  listCardHeader: { 
+    position: 'relative', 
+    width: 'clamp(120px, 25vw, 180px)', 
+    flexShrink: 0 
+  },
+  cardImage: { 
+    height: 'clamp(160px, 25vw, 180px)', 
+    backgroundColor: '#f8fafc', 
+    position: 'relative', 
+    overflow: 'hidden' 
+  },
+  listCardImage: { 
+    height: '100%', 
+    backgroundColor: '#f8fafc', 
+    position: 'relative', 
+    overflow: 'hidden', 
+    minHeight: 'clamp(160px, 30vw, 200px)' 
+  },
+  logo: { width: '100%', height: '100%', objectFit: 'cover' },
+  listLogo: { width: '100%', height: '100%', objectFit: 'cover' },
+  logoPlaceholder: { 
+    position: 'absolute', 
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0, 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    backgroundColor: '#dbeafe' 
+  },
+  listLogoPlaceholder: { 
+    position: 'absolute', 
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0, 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    backgroundColor: '#dbeafe' 
+  },
+  logoPlaceholderIcon: { fontSize: 'clamp(2rem, 6vw, 4rem)', color: '#3b82f6', opacity: 0.6 },
+  listLogoPlaceholderIcon: { fontSize: 'clamp(2rem, 6vw, 3rem)', color: '#3b82f6', opacity: 0.6 },
+  favoriteButton: { 
+    position: 'absolute', 
+    top: 'clamp(0.75rem, 2vw, 1rem)', 
+    right: 'clamp(0.75rem, 2vw, 1rem)', 
+    backgroundColor: 'rgba(255,255,255,0.9)', 
+    border: 'none', 
+    width: 'clamp(32px, 6vw, 36px)', 
+    height: 'clamp(32px, 6vw, 36px)', 
+    borderRadius: '50%', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    cursor: 'pointer', 
+    boxShadow: '0 2px 8px rgba(0,0,0,0.15)', 
+    zIndex: 2 
+  },
+  favoriteIcon: { fontSize: 'clamp(1rem, 3vw, 1.25rem)' },
+  cardBody: { 
+    padding: 'clamp(1rem, 3vw, 1.5rem)', 
+    flex: 1, 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: 'clamp(0.75rem, 2vw, 1rem)' 
+  },
+  listCardBody: { 
+    padding: 'clamp(1rem, 3vw, 1.5rem)', 
+    flex: 1, 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: 'clamp(0.75rem, 2vw, 1rem)', 
+    minWidth: 'clamp(200px, 50%, 300px)' 
+  },
+  cardTitle: { 
+    fontSize: 'clamp(1rem, 3.5vw, 1.25rem)', 
+    fontWeight: '700', 
+    color: '#1e293b', 
+    margin: 0 
+  },
+  listCardTitle: { 
+    fontSize: 'clamp(1rem, 3.5vw, 1.25rem)', 
+    fontWeight: '700', 
+    color: '#1e293b', 
+    margin: 0 
+  },
+  location: { 
+    display: 'flex', 
+    alignItems: 'flex-start', 
+    gap: '0.5rem', 
+    color: '#64748b', 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' 
+  },
+  locationIcon: { 
+    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
+    color: '#94a3b8', 
+    flexShrink: 0, 
+    marginTop: '2px' 
+  },
+  locationText: { flex: 1, lineHeight: '1.5' },
+  cardDescription: { 
+    color: '#475569', 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    lineHeight: '1.6', 
+    margin: 0 
+  },
+  listCardDescription: { 
+    color: '#475569', 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    lineHeight: '1.6', 
+    margin: 0 
+  },
+  domainesContainer: { marginTop: '0.5rem' },
+  domainesLabel: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem', 
+    fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', 
+    color: '#64748b', 
+    textTransform: 'uppercase', 
+    letterSpacing: '0.05em', 
+    marginBottom: '0.5rem', 
+    fontWeight: '600' 
+  },
+  domainesLabelIcon: { fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' },
+  domainesTags: { 
+    display: 'flex', 
+    flexWrap: 'wrap', 
+    gap: 'clamp(0.375rem, 1.5vw, 0.5rem)' 
+  },
+  domaineTag: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.25rem', 
+    backgroundColor: '#f1f5f9', 
+    color: '#475569', 
+    padding: 'clamp(0.25rem, 1vw, 0.375rem) clamp(0.5rem, 2vw, 0.75rem)', 
+    borderRadius: '9999px', 
+    fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', 
+    fontWeight: '500' 
+  },
+  moreTag: { 
+    backgroundColor: '#e2e8f0', 
+    color: '#64748b', 
+    padding: 'clamp(0.25rem, 1vw, 0.375rem) clamp(0.5rem, 2vw, 0.75rem)', 
+    borderRadius: '9999px', 
+    fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', 
+    fontWeight: '500' 
+  },
+  servicesInfo: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem', 
+    color: '#ef4444', 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    fontWeight: '500', 
+    marginTop: 'auto' 
+  },
+  servicesIcon: { fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' },
+  servicesText: {},
+  cardFooter: { 
+    padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)', 
+    borderTop: '1px solid #e2e8f0' 
+  },
+  listCardFooter: { 
+    padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)', 
+    borderTop: '1px solid #e2e8f0', 
+    width: '100%' 
+  },
+  cardActions: { 
+    display: 'grid', 
+    gridTemplateColumns: '1fr 1fr', 
+    gap: 'clamp(0.5rem, 1.5vw, 0.75rem)' 
+  },
+  listCardActions: { 
+    display: 'grid', 
+    gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
+    gap: 'clamp(0.5rem, 1.5vw, 0.75rem)' 
+  },
+  contactButton: {
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: '0.5rem',
+    backgroundColor: theme.colors.primary, 
+    color: '#fff', 
+    border: 'none',
+    padding: 'clamp(0.5rem, 1.5vw, 0.625rem)', 
+    borderRadius: theme.borderRadius.md,
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    fontWeight: '600', 
+    cursor: 'pointer',
+  },
+  contactIcon: { fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' },
+  viewButton: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: '0.5rem', 
+    backgroundColor: '#f1f5f9', 
+    color: '#475569', 
+    border: '1px solid #e2e8f0', 
+    padding: 'clamp(0.5rem, 1.5vw, 0.625rem)', 
+    borderRadius: theme.borderRadius.md, 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    fontWeight: '500', 
+    cursor: 'pointer' 
+  },
+  viewButtonIcon: { fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' },
+  cardAuthHint: { 
+    margin: '0.6rem 0 0', 
+    fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', 
+    color: '#94a3b8', 
+    textAlign: 'center' 
+  },
+  
+  // Pagination responsive
+  pagination: { 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    padding: 'clamp(1rem, 3vw, 1.5rem) 0', 
+    borderTop: '1px solid #e2e8f0', 
+    flexWrap: 'wrap', 
+    gap: '1rem' 
+  },
+  paginationInfo: { 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    color: '#64748b' 
+  },
+  paginationControls: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 'clamp(0.5rem, 1.5vw, 0.75rem)' 
+  },
+  paginationButton: { 
+    backgroundColor: '#f8fafc', 
+    border: '1px solid #e2e8f0', 
+    padding: 'clamp(0.375rem, 1.5vw, 0.5rem)', 
+    borderRadius: theme.borderRadius.md, 
+    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
+    color: '#475569', 
+    cursor: 'pointer', 
+    display: 'flex', 
+    alignItems: 'center' 
+  },
+  paginationPage: { 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    color: '#475569', 
+    fontWeight: '500' 
+  },
+  
+  // CTA section responsive
+  ctaSection: { 
+    backgroundColor: '#dbeafe', 
+    borderRadius: theme.borderRadius.lg, 
+    padding: 'clamp(1.5rem, 4vw, 2rem)', 
+    marginTop: 'clamp(1.5rem, 4vw, 2rem)' 
+  },
+  ctaContent: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 'clamp(1rem, 3vw, 1.5rem)', 
+    flexWrap: 'wrap' 
+  },
+  ctaIcon: { 
+    fontSize: 'clamp(2rem, 6vw, 3rem)', 
+    color: '#ef4444' 
+  },
+  ctaTitle: { 
+    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
+    fontWeight: '700', 
+    color: '#ef4444', 
+    marginBottom: '0.5rem' 
+  },
+  ctaText: { 
+    color: '#ef4444', 
+    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
+    opacity: 0.9 
+  },
+  ctaButton: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.5rem', 
+    backgroundColor: '#df2424ff', 
+    color: '#fff', 
+    border: 'none', 
+    padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1rem, 3vw, 1.75rem)', 
+    borderRadius: theme.borderRadius.lg, 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
+    fontWeight: '600', 
+    cursor: 'pointer', 
+    marginLeft: 'auto' 
+  },
+  ctaButtonIcon: { fontSize: 'clamp(1rem, 3vw, 1.125rem)' },
 };

@@ -881,151 +881,7 @@ export default function PublicServiceDetails() {
         @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
         .main-contact-btn { transition: all 0.25s ease; }
         .main-contact-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(239,68,68,0.25) !important; }
-        
-        /* Styles responsive */
-        @media (max-width: 1024px) {
-          .main-grid {
-            grid-template-columns: 1fr !important;
-            gap: 1.5rem !important;
-          }
-          .left-column, .right-column {
-            max-width: 100% !important;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .container {
-            padding-top: 1rem !important;
-            padding-bottom: 2rem !important;
-          }
-          .content {
-            padding: 0 1rem !important;
-          }
-          .service-name {
-            font-size: 1.5rem !important;
-          }
-          .main-image-container {
-            height: 250px !important;
-          }
-          .thumbnails-container {
-            gap: 0.5rem !important;
-          }
-          .thumbnail {
-            width: 60px !important;
-            height: 60px !important;
-          }
-          .nav-button {
-            width: 35px !important;
-            height: 35px !important;
-            font-size: 1rem !important;
-          }
-          .fullscreen-button {
-            width: 35px !important;
-            height: 35px !important;
-          }
-          .card {
-            padding: 1rem !important;
-          }
-          .card-title {
-            font-size: 1.1rem !important;
-          }
-          .info-item {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 0.5rem !important;
-          }
-          .info-item-value {
-            text-align: left !important;
-          }
-          .actions-card {
-            flex-direction: column !important;
-          }
-          .main-contact-btn {
-            padding: 0.9rem 1rem !important;
-          }
-          .main-contact-btn-icon {
-            width: 40px !important;
-            height: 40px !important;
-            font-size: 1rem !important;
-          }
-          .main-contact-btn-label {
-            font-size: 0.9rem !important;
-          }
-          .main-contact-btn-sub {
-            font-size: 0.7rem !important;
-          }
-          .modal-controls {
-            gap: 0.25rem !important;
-          }
-          .modal-control-button, .modal-close-button {
-            width: 35px !important;
-            height: 35px !important;
-            font-size: 1rem !important;
-          }
-          .modal-nav-button {
-            width: 40px !important;
-            height: 40px !important;
-            font-size: 1.2rem !important;
-          }
-          .modal-thumbnail {
-            width: 45px !important;
-            height: 45px !important;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .service-name {
-            font-size: 1.3rem !important;
-          }
-          .main-image-container {
-            height: 200px !important;
-          }
-          .thumbnail {
-            width: 50px !important;
-            height: 50px !important;
-          }
-          .card {
-            padding: 0.875rem !important;
-          }
-          .card-title {
-            font-size: 1rem !important;
-          }
-          .description {
-            font-size: 0.9rem !important;
-          }
-          .price-value {
-            font-size: 1.1rem !important;
-          }
-          .info-label {
-            font-size: 0.85rem !important;
-          }
-          .info-value {
-            font-size: 0.85rem !important;
-          }
-          .main-contact-btn {
-            padding: 0.8rem 0.875rem !important;
-          }
-          .main-contact-btn-icon {
-            width: 35px !important;
-            height: 35px !important;
-          }
-          .main-contact-btn-label {
-            font-size: 0.85rem !important;
-          }
-          .modal-header {
-            padding: 0.75rem 1rem !important;
-          }
-          .modal-title {
-            font-size: 0.8rem !important;
-          }
-          .modal-thumbnails-container {
-            gap: 0.3rem !important;
-          }
-          .modal-thumbnail {
-            width: 35px !important;
-            height: 35px !important;
-          }
-        }
+        @media (max-width:768px) { .main-grid { grid-template-columns:1fr !important; } }
       `}</style>
     </div>
   );
@@ -1042,7 +898,7 @@ const styles = {
   errorIcon: { fontSize: '5rem', animation: 'pulse 2s infinite' },
   errorTitle: { fontSize: '1.75rem', color: '#1e293b', margin: 0 },
   errorMessage: { color: '#64748b', margin: 0 },
-  errorActions: { display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap', justifyContent: 'center' },
+  errorActions: { display: 'flex', gap: '1rem', marginTop: '1rem' },
   errorButton: { backgroundColor: '#3b82f6', color: '#fff', padding: '1rem 2rem', borderRadius: '0.75rem', textDecoration: 'none', fontWeight: '600', border: 'none', cursor: 'pointer' },
   retryButton: { backgroundColor: '#fff', color: '#3b82f6', padding: '1rem 2rem', borderRadius: '0.75rem', textDecoration: 'none', fontWeight: '600', border: '1px solid #3b82f6', cursor: 'pointer' },
   header: { marginBottom: '2rem', animation: 'fadeIn 0.5s ease-out' },
@@ -1069,7 +925,7 @@ const styles = {
   card: { backgroundColor: '#fff', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #e2e8f0' },
   cardTitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '1rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '0.75rem' },
   cardTitleIcon: { fontSize: '1.5rem', color: '#3b82f6' },
-  serviceHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' },
+  serviceHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' },
   serviceName: { fontSize: '2rem', fontWeight: 'bold', color: '#1e293b', margin: 0, flex: 1 },
   favoriteButton: { backgroundColor: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem' },
   domaineTag: { display: 'inline-block', backgroundColor: '#dbeafe', color: '#3b82f6', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.95rem', fontWeight: '600', marginBottom: '1.5rem' },
@@ -1157,10 +1013,10 @@ const styles = {
   viewLink: { color: '#3b82f6', fontWeight: '600' },
   modalOverlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
   modalContent: { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' },
-  modalHeader: { position: 'absolute', top: 0, left: 0, right: 0, padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)', color: '#fff', zIndex: 10, flexWrap: 'wrap', gap: '0.5rem' },
+  modalHeader: { position: 'absolute', top: 0, left: 0, right: 0, padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)', color: '#fff', zIndex: 10 },
   modalTitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem' },
   modalTitleIcon: { fontSize: '1.25rem' },
-  modalControls: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' },
+  modalControls: { display: 'flex', gap: '0.5rem' },
   modalControlButton: { backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', width: '40px', height: '40px', borderRadius: '50%', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   modalCloseButton: { backgroundColor: '#ef4444', color: '#fff', border: 'none', width: '40px', height: '40px', borderRadius: '50%', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   modalImageContainer: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', position: 'relative' },

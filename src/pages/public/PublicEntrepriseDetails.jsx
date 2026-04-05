@@ -413,196 +413,6 @@ export default function PublicEntrepriseDetails() {
         }
         .service-card { transition: all 0.2s ease; cursor: pointer; animation: fadeIn 0.3s ease-out; }
         .service-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-        
-        /* Styles responsive */
-        @media (max-width: 1024px) {
-          .content-grid {
-            grid-template-columns: 1fr !important;
-            gap: 1.5rem !important;
-          }
-          .left-column, .right-column {
-            max-width: 100% !important;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .container {
-            padding-bottom: 2rem !important;
-          }
-          .content {
-            padding: 0 1rem !important;
-          }
-          .header-top {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 1rem !important;
-          }
-          .hero-image {
-            height: 250px !important;
-          }
-          .hero-title {
-            font-size: 1.5rem !important;
-          }
-          .hero-location {
-            font-size: 0.875rem !important;
-          }
-          .hero-placeholder {
-            height: 150px !important;
-          }
-          .hero-placeholder-icon {
-            font-size: 2.5rem !important;
-          }
-          .card {
-            margin-bottom: 1rem !important;
-          }
-          .card-header {
-            padding: 1rem !important;
-          }
-          .card-title {
-            font-size: 1.1rem !important;
-          }
-          .card-body {
-            padding: 1rem !important;
-          }
-          .expertise-grid {
-            gap: 0.5rem !important;
-          }
-          .expertise-item {
-            font-size: 0.8rem !important;
-            padding: 0.4rem 0.75rem !important;
-          }
-          .service-header {
-            padding: 0.75rem !important;
-            gap: 0.75rem !important;
-          }
-          .service-image-container {
-            width: 50px !important;
-            height: 50px !important;
-          }
-          .service-name {
-            font-size: 0.9rem !important;
-          }
-          .service-price {
-            font-size: 0.8rem !important;
-          }
-          .service-details {
-            padding: 0 0.75rem 0.75rem !important;
-          }
-          .service-description {
-            font-size: 0.8rem !important;
-          }
-          .service-action-button {
-            padding: 0.5rem 1rem !important;
-            font-size: 0.8rem !important;
-          }
-          .info-item {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 0.5rem !important;
-          }
-          .info-item-value {
-            text-align: left !important;
-            max-width: 100% !important;
-          }
-          .cta-section {
-            padding: 1.5rem !important;
-          }
-          .cta-content {
-            flex-direction: column !important;
-            text-align: center !important;
-            gap: 1rem !important;
-          }
-          .cta-icon {
-            font-size: 2.5rem !important;
-          }
-          .cta-title {
-            font-size: 1.2rem !important;
-          }
-          .cta-description {
-            font-size: 0.85rem !important;
-          }
-          .cta-primary-button {
-            width: 100% !important;
-            justify-content: center !important;
-          }
-          .contact-banner {
-            padding: 0.9rem 1rem !important;
-          }
-          .contact-banner-icon {
-            width: 40px !important;
-            height: 40px !important;
-            font-size: 1rem !important;
-          }
-          .contact-banner-label {
-            font-size: 0.9rem !important;
-          }
-          .contact-banner-sub {
-            font-size: 0.7rem !important;
-          }
-          .main-contact-btn {
-            padding: 0.9rem 1rem !important;
-          }
-          .main-contact-btn-icon {
-            width: 40px !important;
-            height: 40px !important;
-            font-size: 1rem !important;
-          }
-          .main-contact-btn-label {
-            font-size: 0.9rem !important;
-          }
-          .main-contact-btn-sub {
-            font-size: 0.7rem !important;
-          }
-          .locked-info {
-            padding: 1rem !important;
-          }
-          .locked-title {
-            font-size: 0.9rem !important;
-          }
-          .locked-text {
-            font-size: 0.8rem !important;
-          }
-          .locked-button {
-            padding: 0.5rem 1rem !important;
-            font-size: 0.8rem !important;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .hero-image {
-            height: 200px !important;
-          }
-          .hero-title {
-            font-size: 1.3rem !important;
-          }
-          .hero-location {
-            font-size: 0.75rem !important;
-          }
-          .card-title {
-            font-size: 1rem !important;
-          }
-          .description {
-            font-size: 0.9rem !important;
-          }
-          .service-name {
-            font-size: 0.85rem !important;
-          }
-          .service-price {
-            font-size: 0.75rem !important;
-          }
-          .expertise-name {
-            font-size: 0.75rem !important;
-          }
-          .cta-title {
-            font-size: 1rem !important;
-          }
-          .contact-banner-label {
-            font-size: 0.85rem !important;
-          }
-          .main-contact-btn-label {
-            font-size: 0.85rem !important;
-          }
-        }
       `}</style>
     </div>
   );
@@ -617,7 +427,7 @@ const styles = {
   errorContainer: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1.5rem', textAlign: 'center' },
   errorIcon: { fontSize: '5rem', color: '#ef4444' },
   errorTitle: { fontSize: '2rem', fontWeight: '700', color: '#1e293b' },
-  errorActions: { display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' },
+  errorActions: { display: 'flex', gap: '1rem', flexWrap: 'wrap' },
   errorButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#3b82f6', color: '#fff', border: 'none', padding: '0.875rem 1.75rem', borderRadius: theme.borderRadius.lg, fontSize: '0.875rem', fontWeight: '500', cursor: 'pointer' },
   errorRetryButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '0.875rem 1.75rem', borderRadius: theme.borderRadius.lg, fontSize: '0.875rem', fontWeight: '500', cursor: 'pointer' },
 
@@ -625,7 +435,7 @@ const styles = {
   headerTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 0', flexWrap: 'wrap', gap: '1rem' },
   backButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'transparent', border: 'none', color: '#ef4444', fontSize: '0.875rem', fontWeight: '500', cursor: 'pointer', padding: '0.5rem 0' },
   backButtonIcon: { fontSize: '1.25rem' },
-  headerActions: { display: 'flex', gap: '0.75rem', flexWrap: 'wrap' },
+  headerActions: { display: 'flex', gap: '0.75rem' },
   headerActionButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#fff', border: '1px solid #e2e8f0', padding: '0.625rem 1rem', borderRadius: theme.borderRadius.md, fontSize: '0.875rem', color: '#475569', cursor: 'pointer' },
   headerActionIcon: { fontSize: '1rem' },
   refreshingIcon: { fontSize: '1rem', animation: 'spin 1s linear infinite' },
@@ -636,7 +446,7 @@ const styles = {
   heroOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: '2rem', background: 'linear-gradient(transparent, rgba(0,0,0,0.85))' },
   heroContent: { color: '#fff' },
   heroTitle: { fontSize: '2.2rem', fontWeight: '800', color: '#fff', margin: '0 0 0.5rem 0' },
-  heroLocation: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', opacity: 0.9, color: '#fff', flexWrap: 'wrap' },
+  heroLocation: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', opacity: 0.9, color: '#fff' },
   heroLocationIcon: { fontSize: '1.3rem' },
   heroPlaceholder: { height: '180px', backgroundColor: '#dbeafe', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' },
   heroPlaceholderIcon: { fontSize: '4rem', color: '#3b82f6' },
@@ -663,7 +473,7 @@ const styles = {
   rightColumn: { display: 'flex', flexDirection: 'column', gap: '1.5rem' },
 
   card: { backgroundColor: '#fff', borderRadius: theme.borderRadius.lg, border: '1px solid #e2e8f0', overflow: 'hidden' },
-  cardHeader: { display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc', flexWrap: 'wrap' },
+  cardHeader: { display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc' },
   cardHeaderIcon: { fontSize: '1.5rem', color: theme.colors.primary },
   cardTitle: { fontSize: '1.2rem', fontWeight: '600', color: '#1e293b', margin: 0 },
   servicesCount: { marginLeft: 'auto', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.65rem', borderRadius: theme.borderRadius.md, fontSize: '0.8rem', fontWeight: '500' },
@@ -684,12 +494,12 @@ const styles = {
   serviceImagePlaceholder: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' },
   serviceInfo: { flex: 1 },
   serviceName: { fontSize: '1rem', fontWeight: '600', color: '#1e293b', margin: '0 0 0.25rem 0' },
-  servicePrice: { display: 'flex', alignItems: 'center', gap: '0.375rem', color: theme.colors.primary, fontWeight: '600', fontSize: '0.875rem', flexWrap: 'wrap' },
+  servicePrice: { display: 'flex', alignItems: 'center', gap: '0.375rem', color: theme.colors.primary, fontWeight: '600', fontSize: '0.875rem' },
   servicePriceIcon: { fontSize: '0.875rem' },
   serviceToggle: { backgroundColor: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center' },
   serviceDetails: { padding: '0 1rem 1rem', borderTop: '1px solid #f1f5f9' },
   serviceDescription: { color: '#64748b', fontSize: '0.875rem', lineHeight: '1.5', margin: '0.75rem 0 1rem' },
-  serviceActions: { display: 'flex', gap: '0.75rem', flexWrap: 'wrap' },
+  serviceActions: { display: 'flex', gap: '0.75rem' },
   serviceActionButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: theme.colors.primary, color: '#fff', border: 'none', padding: '0.6rem 1.25rem', borderRadius: theme.borderRadius.md, fontSize: '0.875rem', fontWeight: '500', cursor: 'pointer' },
   serviceActionIcon: { fontSize: '1rem' },
   noServices: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem', color: '#94a3b8' },
@@ -711,8 +521,8 @@ const styles = {
   mainContactBtnArrow: { fontSize: '1.5rem', color: 'rgba(255,255,255,0.7)' },
 
   infoList: { display: 'flex', flexDirection: 'column', gap: '0.875rem' },
-  infoItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '0.875rem', borderBottom: '1px solid #e2e8f0', gap: '1rem', flexWrap: 'wrap' },
-  infoItemLabel: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#64748b', fontWeight: '600', flexShrink: 0 },
+  infoItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '0.875rem', borderBottom: '1px solid #e2e8f0' },
+  infoItemLabel: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#64748b', fontWeight: '600' },
   infoItemIcon: { fontSize: '1rem', color: '#94a3b8' },
   infoItemValue: { fontSize: '0.875rem', fontWeight: '500', color: '#1e293b', textAlign: 'right', maxWidth: '200px', wordBreak: 'break-word' },
 
@@ -723,6 +533,7 @@ const styles = {
   ctaTitle: { fontSize: '1.4rem', fontWeight: '700', margin: '0 0 0.4rem 0', color: '#fff' },
   ctaDescription: { fontSize: '0.95rem', opacity: 0.85, margin: 0, color: '#fff' },
   ctaPrimaryButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: theme.colors.primary, color: '#fff', border: 'none', padding: '0.9rem 1.75rem', borderRadius: theme.borderRadius.lg, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', flexShrink: 0 },
+  ctaButtonIcon: { fontSize: '1.1rem' },
 
   // Bloc infos verrouillées (non connecté)
   lockedInfo: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', padding: '1.5rem 1rem', textAlign: 'center' },
