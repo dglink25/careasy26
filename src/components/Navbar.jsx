@@ -1,3 +1,4 @@
+// src/components/Navbar.jsx (version corrigée avec responsivité améliorée)
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -111,7 +112,8 @@ function badgeStyle(color) {
 function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick, onDeleteNotif, onMarkAllRead, onViewAll }) {
   return (
     <div style={{
-      width: 380, maxHeight: '80vh',
+      width: 'min(380px, 85vw)',
+      maxHeight: '80vh',
       backgroundColor: 'var(--bg-card)',
       borderRadius: '1rem',
       boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
@@ -120,7 +122,7 @@ function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick,
       animation: 'slideDown 0.25s ease',
     }}>
       {/* Header */}
-      <div style={{ padding: '1rem 1.25rem', borderBottom: '2px solid var(--border-color)', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '1rem 1.25rem', borderBottom: '2px solid var(--border-color)', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FiBell style={{ color: 'var(--brand-primary)', fontSize: '1.2rem' }} />
           <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>Notifications</span>
@@ -165,7 +167,6 @@ function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick,
               <div
                 key={notif.id}
                 onMouseDown={(e) => {
-                  // Si le clic vient du bouton supprimer, ne pas déclencher onNotifClick
                   if (e.target.closest('[data-delete-btn]')) return;
                   onNotifClick(notif);
                 }}
@@ -192,7 +193,6 @@ function NotificationPanel({ dbNotifs, unreadCount, loadingNotifs, onNotifClick,
                     {formatNotifDate(notif.created_at)}
                   </div>
                 </div>
-                {/* ✅ data-delete-btn pour identifier ce bouton depuis le parent */}
                 <button
                   data-delete-btn="true"
                   onMouseDown={(e) => { e.stopPropagation(); onDeleteNotif(notif.id); }}
@@ -235,9 +235,9 @@ function BellButton({ unreadCount, showPanel, onToggle, onClose, dbNotifs, loadi
       setPos({
         position: 'fixed',
         top:   rect.bottom + 8,
-        right: window.innerWidth - rect.right,
+        right: Math.max(8, window.innerWidth - rect.right),
         zIndex: 99999,
-        maxWidth: 'min(380px, 96vw)',
+        maxWidth: 'min(380px, 85vw)',
       });
     }
   }, [showPanel]);
@@ -294,7 +294,6 @@ function BellButton({ unreadCount, showPanel, onToggle, onClose, dbNotifs, loadi
         )}
       </button>
 
-      {/* Portal — PAS de stopPropagation ici, les boutons internes gèrent eux-mêmes */}
       {showPanel && pos && createPortal(
         <div ref={panelRef} style={pos}>
           <NotificationPanel
@@ -312,6 +311,7 @@ function BellButton({ unreadCount, showPanel, onToggle, onClose, dbNotifs, loadi
     </>
   );
 }
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
@@ -335,7 +335,6 @@ export default function Navbar() {
 
   const settingsRef = useRef(null);
 
-  // ── Fetch notifications ──────────────────────────────────
   const prevNotifsRef = useRef([]);
 
   const fetchNotifications = useCallback(async () => {
@@ -370,7 +369,7 @@ export default function Navbar() {
 
   useEffect(() => {
     fetchNotifications();
-    const iv = setInterval(fetchNotifications, 30_000);
+    const iv = setInterval(fetchNotifications, 30000);
     return () => clearInterval(iv);
   }, [fetchNotifications]);
 
@@ -381,7 +380,6 @@ export default function Navbar() {
     }
   }, [toasts.length, fetchNotifications]);
 
-  // ── Handlers notifications ──
   const handleNotifClick = useCallback((notif) => {
     setShowNotifPanel(false);
 
@@ -396,7 +394,6 @@ export default function Navbar() {
       }
     }
 
-    // Marquer comme lu en arrière-plan
     if (!notif.read_at) {
       api.post(`/notifications/${notif.id}/mark-read`)
         .then(() => {
@@ -438,7 +435,6 @@ export default function Navbar() {
     setShowNotifPanel(false);
   }, []);
 
-  // ── Fermer settings dropdown au clic extérieur ─────────────────────────────
   useEffect(() => {
     const fn = (e) => {
       if (settingsRef.current && !settingsRef.current.contains(e.target)) {
@@ -449,14 +445,12 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  // ── Scroll ───────────────────────────────────────────────
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', fn);
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  // ── User data ────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     setProfilePhotoUrl(user.profile_photo_url || null);
@@ -481,13 +475,13 @@ export default function Navbar() {
   const isActive = (p) => location.pathname === p;
 
   const settingsSections = [
-  { id: 'profile',       label: 'Profil',         icon: FiUser,   description: 'Gérer vos informations',       color: '#3b82f6' },
-  { id: 'security',      label: 'Sécurité',        icon: FiLock,   description: 'Mot de passe',                 color: '#ef4444' },
-  { id: 'sessions',      label: 'Appareils',       icon: FiShield, description: 'Sessions & appareils connectés', color: '#8b5cf6' },
-  { id: 'notifications', label: 'Notifications',   icon: FiBell,   description: 'Préférences de notifications', color: '#f59e0b' },
-  { id: 'appearance',    label: 'Apparence',        icon: FiMoon,   description: 'Thème et affichage',           color: '#8b5cf6' },
-  { id: 'privacy',       label: 'Confidentialité', icon: FiShield, description: 'Vie privée',                   color: '#10b981' },
-];
+    { id: 'profile',       label: 'Profil',         icon: FiUser,   description: 'Gérer vos informations',       color: '#3b82f6' },
+    { id: 'security',      label: 'Sécurité',        icon: FiLock,   description: 'Mot de passe',                 color: '#ef4444' },
+    { id: 'sessions',      label: 'Appareils',       icon: FiShield, description: 'Sessions & appareils connectés', color: '#8b5cf6' },
+    { id: 'notifications', label: 'Notifications',   icon: FiBell,   description: 'Préférences de notifications', color: '#f59e0b' },
+    { id: 'appearance',    label: 'Apparence',        icon: FiMoon,   description: 'Thème et affichage',           color: '#8b5cf6' },
+    { id: 'privacy',       label: 'Confidentialité', icon: FiShield, description: 'Vie privée',                   color: '#10b981' },
+  ];
 
   const providerLinks = [
     { to: '/dashboard',       icon: MdDashboard,     label: t('nav.dashboard') },
@@ -517,7 +511,6 @@ export default function Navbar() {
     );
   };
 
-  // Props communs pour BellButton
   const bellProps = {
     unreadCount,
     showPanel: showNotifPanel,
@@ -534,11 +527,11 @@ export default function Navbar() {
   return (
     <>
       <nav style={{ position: 'sticky', top: 0, zIndex: 1000, width: '100%', backgroundColor: 'var(--nav-bg)', backdropFilter: 'blur(12px)', padding: scrolled ? '0.75rem 0' : '1rem 0', borderBottom: '3px solid var(--brand-primary)', boxShadow: scrolled ? 'var(--shadow-lg)' : 'none', transition: 'all 0.3s ease' }}>
-        <div style={{ width: '100%', padding: '0 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '0 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
           <Logo size="md" showText={true} />
 
           {/* Desktop */}
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'nowrap' }} className="desktop-nav">
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'nowrap' }} className="desktop-nav">
             {user ? (
               <>
                 {user.role === 'admin' ? (
@@ -549,25 +542,23 @@ export default function Navbar() {
                     { to: '/admin/plans',       icon: FiAward,         label: 'Plans'       },
                   ].map(({ to, icon: Icon, label }) => (
                     <Link key={to} to={to} className="nav-link" style={{ ...navLinkStyle, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
-                      <Icon style={{ fontSize: '1rem' }} />{label}
+                      <Icon style={{ fontSize: '1rem' }} /><span className="nav-label">{label}</span>
                     </Link>
                   ))
                 ) : (
                   <>
                     {(isProvider ? providerLinks : clientLinks).map(({ to, icon: Icon, label }) => (
                       <Link key={to} to={to} className="nav-link" style={{ ...navLinkStyle, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
-                        <Icon style={{ fontSize: '1rem' }} />{label}
+                        <Icon style={{ fontSize: '1rem' }} /><span className="nav-label">{label}</span>
                       </Link>
                     ))}
                     {hasPendingEntreprise && !isProvider && (
                       <Link to="/dashboard" className="nav-link" style={{ ...navLinkStyle, color: '#f59e0b', backgroundColor: '#fef3c7', border: '1px solid #fbbf24', fontWeight: 600 }}>
-                        <FiClock style={{ fontSize: '1rem' }} />Validation en cours
+                        <FiClock style={{ fontSize: '1rem' }} /><span className="nav-label">Validation en cours</span>
                       </Link>
                     )}
                   </>
                 )}
-                {/* MODIFICATION 3: LanguageSwitcher ajouté avant BellButton 
-                <LanguageSwitcher /> */}
                 <BellButton {...bellProps} />
 
                 {/* User dropdown */}
@@ -581,7 +572,7 @@ export default function Navbar() {
                       <UserAvatar size={35} />
                       <div style={{ position: 'absolute', bottom: 0, right: -2, width: 12, height: 12, borderRadius: '50%', backgroundColor: '#10b981', border: '2px solid var(--bg-primary)', animation: 'pulse 2s ease-in-out infinite' }} />
                     </div>
-                    <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem' }}>{user.name.split(' ')[0]}</span>
+                    <span className="user-name" style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem' }}>{user.name.split(' ')[0]}</span>
                     {user.role === 'admin'               && <span style={badgeStyle('#3b82f6')}>ADMIN</span>}
                     {isProvider                          && <span style={badgeStyle('#10b981')}>PRESTATAIRE</span>}
                     {hasPendingEntreprise && !isProvider && <span style={badgeStyle('#f59e0b')}>EN VALIDATION</span>}
@@ -589,13 +580,13 @@ export default function Navbar() {
                   </button>
 
                   {showSettingsDropdown && (
-                    <div className="settings-dropdown-menu" style={{ position: 'absolute', top: 'calc(100% + 0.5rem)', right: 0, backgroundColor: 'var(--bg-card)', borderRadius: '1rem', boxShadow: 'var(--shadow-lg)', border: '2px solid var(--border-color)', minWidth: 380, maxHeight: '70vh', overflow: 'auto', zIndex: 1001 }}>
+                    <div className="settings-dropdown-menu" style={{ position: 'absolute', top: 'calc(100% + 0.5rem)', right: 0, backgroundColor: 'var(--bg-card)', borderRadius: '1rem', boxShadow: 'var(--shadow-lg)', border: '2px solid var(--border-color)', minWidth: 'min(380px, 85vw)', maxHeight: '70vh', overflow: 'auto', zIndex: 1001 }}>
                       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '2px solid var(--border-color)', background: 'var(--bg-secondary)', borderRadius: '1rem 1rem 0 0' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                           <div style={{ flexShrink: 0, borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--brand-primary)' }}><UserAvatar size={52} /></div>
                           <div>
                             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--brand-primary)', marginBottom: '0.25rem' }}>{user.name}</h3>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{user.email}</p>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{user.email}</p>
                             {isProvider              && <span style={{ ...badgeStyle('#10b981'), display: 'inline-block', marginTop: '0.25rem' }}>Prestataire</span>}
                             {hasPendingEntreprise && !isProvider && <span style={{ ...badgeStyle('#f59e0b'), display: 'inline-block', marginTop: '0.25rem' }}>⏳ Validation en cours</span>}
                           </div>
@@ -626,15 +617,15 @@ export default function Navbar() {
               <>
                 {[{ to: '/', icon: FaHome, label: 'Accueil' }, { to: '/entreprises', icon: FaBuilding, label: 'Entreprises' }].map(({ to, icon: Icon, label }) => (
                   <Link key={to} to={to} className="nav-link" style={{ ...navLinkStyle, color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)', fontWeight: isActive(to) ? 700 : 500 }}>
-                    <Icon style={{ fontSize: '1rem' }} />{label}
+                    <Icon style={{ fontSize: '1rem' }} /><span className="nav-label">{label}</span>
                   </Link>
                 ))}
                 <div style={{ position: 'relative' }} onMouseEnter={() => setShowServicesDropdown(true)} onMouseLeave={() => setShowServicesDropdown(false)}>
                   <Link to="/services" className="nav-link" style={{ ...navLinkStyle, color: isActive('/services') ? 'var(--brand-primary)' : 'var(--text-primary)' }}>
-                    <FaTools style={{ fontSize: '1rem' }} />Services<FaChevronDown style={{ fontSize: '0.75rem' }} />
+                    <FaTools style={{ fontSize: '1rem' }} /><span className="nav-label">Services</span><FaChevronDown style={{ fontSize: '0.75rem' }} />
                   </Link>
                   {showServicesDropdown && (
-                    <div className="mega-dropdown" style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '0.5rem', backgroundColor: 'var(--bg-card)', borderRadius: '1rem', boxShadow: 'var(--shadow-lg)', border: '2px solid var(--border-color)', minWidth: 600, maxWidth: 700, maxHeight: '70vh', overflow: 'auto' }}>
+                    <div className="mega-dropdown" style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '0.5rem', backgroundColor: 'var(--bg-card)', borderRadius: '1rem', boxShadow: 'var(--shadow-lg)', border: '2px solid var(--border-color)', width: '90vw', maxWidth: '700px', maxHeight: '70vh', overflow: 'auto' }}>
                       <div style={{ padding: '1.5rem', borderBottom: '2px solid var(--border-color)', background: 'var(--bg-secondary)', borderRadius: '1rem 1rem 0 0' }}>
                         <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--brand-primary)', marginBottom: '0.25rem' }}>Nos Services</h3>
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{loadingDomaines ? 'Chargement...' : `${domaines.length} domaines disponibles`}</p>
@@ -643,7 +634,7 @@ export default function Navbar() {
                         <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><div style={{ width: 30, height: 30, border: '3px solid var(--border-color)', borderTop: '3px solid var(--brand-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} /></div>
                       ) : domaines.length > 0 ? (
                         <>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '0.5rem', padding: '1rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem', padding: '1rem' }}>
                             {domaines.map(d => (
                               <button key={d.id} onClick={() => { navigate(`/services?type=${d.id}`); setShowServicesDropdown(false); }} className="service-item" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.5rem', border: '2px solid var(--border-color)', cursor: 'pointer', color: 'var(--text-primary)', transition: 'all 0.3s' }}>
                                 <FaTools style={{ fontSize: '1.25rem', color: 'var(--brand-primary)', flexShrink: 0 }} />
@@ -684,8 +675,7 @@ export default function Navbar() {
       {/* Menu mobile */}
       {mobileMenuOpen && (
         <div onClick={() => setMobileMenuOpen(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--overlay)', zIndex: 999, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(4px)' }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'var(--bg-card)', width: '80%', maxWidth: 400, height: '100%', padding: '2rem 1.5rem', overflowY: 'auto', boxShadow: '-4px 0 20px rgba(0,0,0,0.3)', animation: 'slideInRight 0.3s ease' }}>
-            {/* MODIFICATION 4: LanguageSwitcher ajouté en premier enfant dans le menu mobile */}
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'var(--bg-card)', width: '85%', maxWidth: 350, height: '100%', padding: '2rem 1.5rem', overflowY: 'auto', boxShadow: '-4px 0 20px rgba(0,0,0,0.3)', animation: 'slideInRight 0.3s ease' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
               <LanguageSwitcher />
             </div>
@@ -695,9 +685,9 @@ export default function Navbar() {
                   <UserAvatar size={50} />
                   <div style={{ position: 'absolute', bottom: 0, right: -2, width: 12, height: 12, borderRadius: '50%', backgroundColor: '#10b981', border: '2px solid var(--bg-primary)' }} />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{user.name}</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{user.email}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem', wordBreak: 'break-word' }}>{user.name}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{user.email}</div>
                   {isProvider && <span style={{ ...badgeStyle('#10b981'), display: 'inline-block', marginTop: '0.25rem' }}>Prestataire</span>}
                 </div>
                 {unreadCount > 0 && <span style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: 999, minWidth: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 800 }}>{unreadCount > 99 ? '99+' : unreadCount}</span>}
@@ -752,24 +742,98 @@ export default function Navbar() {
         .desktop-nav { display: flex; }
         .mobile-menu-btn { display: none !important; }
         .mobile-bell { display: none !important; }
-        @media (max-width: 1200px) {
+        
+        @media (max-width: 1024px) {
+          .nav-label { display: none; }
+          .desktop-nav { gap: 0.25rem; }
+          .user-name { display: none; }
+        }
+        
+        @media (max-width: 768px) {
           .desktop-nav { display: none !important; }
           .mobile-menu-btn { display: flex !important; }
           .mobile-bell { display: flex !important; }
         }
-        .nav-link { text-decoration:none; padding:0.5rem 1rem; display:flex; align-items:center; gap:0.5rem; white-space:nowrap; border-radius:0.5rem; font-size:0.95rem; position:relative; transition:all 0.2s ease; }
-        .nav-link::after { content:''; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%) scaleX(0); width:80%; height:3px; background:var(--brand-primary); border-radius:2px; transition:transform 0.3s ease; }
-        .nav-link:hover::after { transform:translateX(-50%) scaleX(1); }
-        .settings-trigger:hover { background-color:var(--bg-tertiary) !important; }
-        .settings-item:hover { background-color:var(--bg-secondary) !important; transform:translateX(4px); }
-        .service-item:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); background-color:var(--bg-tertiary) !important; }
-        .bell-btn:hover { background-color:var(--brand-primary) !important; color:#fff !important; border-color:var(--brand-primary) !important; }
-        .mega-dropdown, .settings-dropdown-menu { animation:slideDown 0.25s ease; }
-        @keyframes slideDown    { from{opacity:0;transform:translateY(-8px)}  to{opacity:1;transform:translateY(0)} }
-        @keyframes slideInRight { from{transform:translateX(100%)}            to{transform:translateX(0)} }
-        @keyframes spin         { to{transform:rotate(360deg)} }
-        @keyframes pulse        { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.8;transform:scale(1.15)} }
-        @keyframes badgePop     { 0%{transform:scale(0)} 80%{transform:scale(1.2)} 100%{transform:scale(1)} }
+        
+        .nav-link { 
+          text-decoration: none; 
+          padding: 0.5rem 0.75rem; 
+          display: flex; 
+          align-items: center; 
+          gap: 0.5rem; 
+          white-space: nowrap; 
+          border-radius: 0.5rem; 
+          font-size: 0.9rem; 
+          position: relative; 
+          transition: all 0.2s ease; 
+        }
+        
+        .nav-link::after { 
+          content: ''; 
+          position: absolute; 
+          bottom: -5px; 
+          left: 50%; 
+          transform: translateX(-50%) scaleX(0); 
+          width: 80%; 
+          height: 3px; 
+          background: var(--brand-primary); 
+          border-radius: 2px; 
+          transition: transform 0.3s ease; 
+        }
+        
+        .nav-link:hover::after { 
+          transform: translateX(-50%) scaleX(1); 
+        }
+        
+        .settings-trigger:hover { 
+          background-color: var(--bg-tertiary) !important; 
+        }
+        
+        .settings-item:hover { 
+          background-color: var(--bg-secondary) !important; 
+          transform: translateX(4px); 
+        }
+        
+        .service-item:hover { 
+          transform: translateY(-3px); 
+          box-shadow: var(--shadow-md); 
+          background-color: var(--bg-tertiary) !important; 
+        }
+        
+        .bell-btn:hover { 
+          background-color: var(--brand-primary) !important; 
+          color: #fff !important; 
+          border-color: var(--brand-primary) !important; 
+        }
+        
+        .mega-dropdown, .settings-dropdown-menu { 
+          animation: slideDown 0.25s ease; 
+        }
+        
+        @keyframes slideDown { 
+          from { opacity: 0; transform: translateY(-8px); } 
+          to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        @keyframes slideInRight { 
+          from { transform: translateX(100%); } 
+          to { transform: translateX(0); } 
+        }
+        
+        @keyframes spin { 
+          to { transform: rotate(360deg); } 
+        }
+        
+        @keyframes pulse { 
+          0%, 100% { opacity: 1; transform: scale(1); } 
+          50% { opacity: 0.8; transform: scale(1.15); } 
+        }
+        
+        @keyframes badgePop { 
+          0% { transform: scale(0); } 
+          80% { transform: scale(1.2); } 
+          100% { transform: scale(1); } 
+        }
       `}</style>
     </>
   );
@@ -784,7 +848,8 @@ function MobileLink({ to, icon: Icon, label, onClick }) {
       onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'; }}
       onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
     >
-      <Icon style={{ color: 'var(--brand-primary)' }} />{label}
+      <Icon style={{ color: 'var(--brand-primary)', fontSize: '1.1rem' }} />
+      <span style={{ wordBreak: 'break-word' }}>{label}</span>
     </Link>
   );
 }
