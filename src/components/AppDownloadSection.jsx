@@ -10,18 +10,6 @@ const DownloadIcon = () => (
   </svg>
 );
 
-const QRIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2">
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <rect x="14" y="14" width="3" height="3" rx="0.5" />
-    <rect x="18" y="14" width="3" height="3" rx="0.5" />
-    <rect x="14" y="18" width="3" height="3" rx="0.5" />
-    <rect x="18" y="18" width="3" height="3" rx="0.5" />
-  </svg>
-);
-
 const ShieldIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -50,31 +38,27 @@ const ArrowRightIcon = () => (
 export default function AppDownloadSection() {
   return (
     <section style={styles.section}>
-      {/* Background gradient animé */}
       <div style={styles.bgGradient} />
+      <div style={styles.bgGradient2} />
+      <div style={styles.bgGradient3} />
       
       <div style={styles.container}>
-        {/* Partie gauche - Contenu principal avec animations */}
         <div style={styles.leftContent} className="slide-up">
-          {/* Badge animateur */}
           <div style={styles.animatedBadge} className="badge-pulse">
             <div style={styles.badgeDot} />
             <span style={styles.badgeText}>Version 2.0.0 disponible</span>
           </div>
 
-          {/* Titre principal */}
           <h1 style={styles.title}>
             CarEasy dans votre{' '}
             <span style={styles.titleHighlight}>poche</span>
           </h1>
 
-          {/* Description */}
           <p style={styles.description}>
             Trouvez un prestataire automobile, prenez rendez-vous et suivez vos interventions 
             depuis votre smartphone. Disponible maintenant sur Android — 100% gratuit.
           </p>
 
-          {/* Stats avec animations */}
           <div style={styles.statsContainer}>
             {[
               { value: '100%', label: 'Gratuit', icon: <ShieldIcon />, color: '#10b981' },
@@ -90,41 +74,8 @@ export default function AppDownloadSection() {
               </div>
             ))}
           </div>
-
-          {/* Bouton Obtenir avec animation superbe */}
-          <div style={styles.btnWrapper} className="btn-wrapper">
-            <button 
-              style={styles.btnPrimary}
-              className="glow-button"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-              onClick={() => window.open(APK_URL)}
-            >
-              <span style={styles.btnContent}>
-                <span style={styles.btnIconWrapper}>
-                  <DownloadIcon />
-                </span>
-                <span style={styles.btnTextWrapper}>
-                  <span style={styles.btnSmall}>Télécharger gratuitement</span>
-                  <span style={styles.btnBig}>Obtenir CarEasy.apk</span>
-                </span>
-                <span style={styles.btnArrow}>
-                  <ArrowRightIcon />
-                </span>
-              </span>
-            </button>
-            
-            {/* Effet de vague */}
-            <div style={styles.rippleEffect} className="ripple" />
-          </div>
-
         </div>
 
-        {/* Partie droite - Mockup téléphone */}
         <div style={styles.rightContent} className="float-animation">
           <div style={styles.phoneMockup}>
             <div style={styles.phoneScreen}>
@@ -133,6 +84,17 @@ export default function AppDownloadSection() {
                   src="/logo.png" 
                   alt="CarEasy"
                   style={styles.phoneLogo}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    const parent = e.target.parentElement;
+                    if (parent) {
+                      const fallback = document.createElement('div');
+                      fallback.textContent = '🚗';
+                      fallback.style.fontSize = '60px';
+                      fallback.style.marginBottom = '12px';
+                      parent.insertBefore(fallback, e.target);
+                    }
+                  }}
                 />
                 
                 <div style={styles.phoneSubtitleBadge}>
@@ -171,8 +133,39 @@ export default function AppDownloadSection() {
         </div>
       </div>
 
+      <div style={styles.downloadWrapper} className="download-slide-up">
+        <button 
+          style={styles.btnPrimary}
+          className="glow-button"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.02)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+          onClick={() => window.open(APK_URL)}
+        >
+          <span style={styles.btnContent}>
+            <span style={styles.btnIconWrapper}>
+              <DownloadIcon />
+            </span>
+            <span style={styles.btnTextWrapper}>
+              <span style={styles.btnSmall}>Télécharger gratuitement</span>
+              <span style={styles.btnBig}>Obtenir CarEasy.apk</span>
+            </span>
+            <span style={styles.btnArrow}>
+              <ArrowRightIcon />
+            </span>
+          </span>
+        </button>
+        <div style={styles.rippleEffect} className="ripple" />
+      </div>
+
       <style>{`
-        /* Animations principales */
+        * {
+          box-sizing: border-box;
+        }
+
         @keyframes slideUp {
           from {
             opacity: 0;
@@ -184,21 +177,26 @@ export default function AppDownloadSection() {
           }
         }
 
-        @keyframes fadeIn {
+        @keyframes slideUpDownload {
           from {
             opacity: 0;
+            transform: translateY(60px);
           }
           to {
             opacity: 1;
+            transform: translateY(0);
           }
         }
 
         @keyframes float {
           0%, 100% {
-            transform: translateY(0px);
+            transform: translateY(0px) rotate(0deg);
           }
-          50% {
-            transform: translateY(-15px);
+          25% {
+            transform: translateY(-10px) rotate(1deg);
+          }
+          75% {
+            transform: translateY(5px) rotate(-1deg);
           }
         }
 
@@ -238,17 +236,34 @@ export default function AppDownloadSection() {
             box-shadow: 0 0 5px rgba(239, 68, 68, 0.3), 0 0 15px rgba(239, 68, 68, 0.2);
           }
           50% {
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6), 0 0 30px rgba(239, 68, 68, 0.3);
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.6), 0 0 35px rgba(239, 68, 68, 0.3);
           }
         }
 
-        /* Application des animations */
+        @keyframes gradientShift {
+          0%, 100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(50px, -50px) scale(1.2);
+          }
+          66% {
+            transform: translate(-30px, 30px) scale(0.9);
+          }
+        }
+
         .slide-up {
           animation: slideUp 0.8s cubic-bezier(0.2, 0.9, 0.4, 1.1) forwards;
         }
 
+        .download-slide-up {
+          animation: slideUpDownload 0.8s cubic-bezier(0.2, 0.9, 0.4, 1.1) 0.3s forwards;
+          opacity: 0;
+          animation-fill-mode: forwards;
+        }
+
         .float-animation {
-          animation: float 4s ease-in-out infinite;
+          animation: float 5s ease-in-out infinite;
         }
 
         .badge-pulse {
@@ -260,16 +275,26 @@ export default function AppDownloadSection() {
           animation: statCardIn 0.6s ease-out forwards;
         }
 
-        .fade-in {
-          animation: fadeIn 1s ease-out 0.5s forwards;
-          opacity: 0;
-        }
-
-        /* Bouton avec glow */
         .glow-button {
           position: relative;
           transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
           animation: glowPulse 2.5s infinite;
+          overflow: hidden;
+        }
+
+        .glow-button::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          transition: left 0.5s;
+        }
+
+        .glow-button:hover::before {
+          left: 100%;
         }
 
         .glow-button:hover {
@@ -279,11 +304,6 @@ export default function AppDownloadSection() {
 
         .glow-button:active {
           transform: scale(0.98) !important;
-        }
-
-        /* Effet ripple */
-        .btn-wrapper {
-          position: relative;
         }
 
         .ripple {
@@ -303,25 +323,67 @@ export default function AppDownloadSection() {
           animation: ripple 1s ease-out;
         }
 
-        /* Media queries */
-        @media (max-width: 768px) {
-          .app-download-container {
+        /* RESPONSIVE - LE TELEPHONE EST TOUJOURS VISIBLE */
+        @media (max-width: 968px) {
+          .container {
             flex-direction: column !important;
+            text-align: center !important;
+            gap: 48px !important;
           }
+          
+          .left-content {
+            text-align: center !important;
+            align-items: center !important;
+          }
+          
+          .animated-badge {
+            justify-content: center !important;
+          }
+          
+          .stats-container {
+            justify-content: center !important;
+          }
+          
           .float-animation {
-            display: none !important;
+            animation: none;
           }
+          
+          .download-slide-up {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+          }
+          
+          .right-content {
+            display: flex !important;
+            justify-content: center !important;
+            width: 100% !important;
+          }
+        }
+
+        @media (max-width: 768px) {
           .stat-card {
-            min-width: 100px;
+            min-width: auto;
           }
         }
 
         @media (max-width: 480px) {
-          .stat-card {
-            min-width: 80px;
+          .glow-button {
+            width: 100%;
           }
-          .statsContainer {
-            gap: 12px !important;
+        }
+
+        /* Classes pour les media queries */
+        @media (max-width: 968px) {
+          .container {
+            flex-direction: column;
+            text-align: center;
+          }
+          .left-content {
+            text-align: center;
+          }
+          .stats-container {
+            justify-content: center;
           }
         }
       `}</style>
@@ -333,37 +395,63 @@ const styles = {
   section: {
     position: 'relative',
     background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-    padding: '80px 24px',
+    padding: 'clamp(40px, 6vw, 80px) clamp(16px, 5vw, 24px)',
     minHeight: '100vh',
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
     fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   },
   bgGradient: {
     position: 'absolute',
-    top: -200,
-    right: -200,
-    width: 600,
-    height: 600,
+    top: '-20%',
+    right: '-10%',
+    width: 'clamp(300px, 40vw, 600px)',
+    height: 'clamp(300px, 40vw, 600px)',
     background: 'radial-gradient(circle, rgba(239,68,68,0.08) 0%, transparent 70%)',
+    borderRadius: '50%',
+    pointerEvents: 'none',
+    animation: 'gradientShift 15s ease-in-out infinite',
+  },
+  bgGradient2: {
+    position: 'absolute',
+    bottom: '-20%',
+    left: '-10%',
+    width: 'clamp(250px, 35vw, 500px)',
+    height: 'clamp(250px, 35vw, 500px)',
+    background: 'radial-gradient(circle, rgba(59,130,246,0.05) 0%, transparent 70%)',
+    borderRadius: '50%',
+    pointerEvents: 'none',
+    animation: 'gradientShift 20s ease-in-out infinite reverse',
+  },
+  bgGradient3: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 'clamp(400px, 60vw, 800px)',
+    height: 'clamp(400px, 60vw, 800px)',
+    background: 'radial-gradient(circle, rgba(16,185,129,0.03) 0%, transparent 70%)',
     borderRadius: '50%',
     pointerEvents: 'none',
   },
   container: {
-    maxWidth: 1200,
-    margin: '0 auto',
+    maxWidth: 1280,
+    margin: '0 auto 48px auto',
     display: 'flex',
-    gap: 64,
+    gap: 'clamp(32px, 6vw, 64px)',
     alignItems: 'center',
     justifyContent: 'space-between',
-    flexWrap: 'wrap',
     position: 'relative',
     zIndex: 2,
+    flexDirection: 'row',
+    width: '100%',
   },
   leftContent: {
     flex: 1,
-    minWidth: 320,
+    minWidth: 280,
   },
   animatedBadge: {
     display: 'inline-flex',
@@ -382,13 +470,13 @@ const styles = {
     borderRadius: '50%',
   },
   badgeText: {
-    fontSize: 13,
+    fontSize: 'clamp(11px, 3vw, 13px)',
     fontWeight: 600,
     color: '#ef4444',
     letterSpacing: 0.3,
   },
   title: {
-    fontSize: 'clamp(2rem, 5vw, 3.2rem)',
+    fontSize: 'clamp(28px, 6vw, 52px)',
     fontWeight: 800,
     color: '#0f172a',
     lineHeight: 1.2,
@@ -401,52 +489,59 @@ const styles = {
     WebkitTextFillColor: 'transparent',
   },
   description: {
-    fontSize: '1rem',
+    fontSize: 'clamp(14px, 3.5vw, 16px)',
     lineHeight: 1.6,
     color: '#475569',
     marginBottom: 32,
-    maxWidth: 480,
+    maxWidth: 540,
   },
   statsContainer: {
     display: 'flex',
-    gap: 24,
-    marginBottom: 36,
+    gap: 'clamp(12px, 3vw, 24px)',
+    marginBottom: 0,
     flexWrap: 'wrap',
   },
   statCard: {
     display: 'flex',
     alignItems: 'center',
     gap: 10,
-    padding: '10px 16px',
+    padding: 'clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px)',
     background: 'white',
     borderRadius: 16,
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
     border: '1px solid #e2e8f0',
+    flex: '0 0 auto',
+    transition: 'all 0.3s ease',
+    cursor: 'default',
   },
   statIcon: {
-    width: 32,
-    height: 32,
+    width: 'clamp(28px, 5vw, 32px)',
+    height: 'clamp(28px, 5vw, 32px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 'clamp(16px, 4vw, 20px)',
     fontWeight: 800,
     lineHeight: 1.2,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 'clamp(10px, 2.5vw, 11px)',
     fontWeight: 500,
     color: '#64748b',
   },
-  btnWrapper: {
+  downloadWrapper: {
     position: 'relative',
-    marginBottom: 28,
+    marginTop: 'clamp(32px, 5vw, 48px)',
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    zIndex: 2,
   },
   btnPrimary: {
     width: '100%',
-    maxWidth: 380,
+    maxWidth: 'clamp(300px, 80vw, 400px)',
     background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
     border: 'none',
     borderRadius: 60,
@@ -454,23 +549,25 @@ const styles = {
     padding: 0,
     overflow: 'hidden',
     boxShadow: '0 10px 25px -5px rgba(239, 68, 68, 0.3)',
+    transition: 'all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1)',
   },
   btnContent: {
     display: 'flex',
     alignItems: 'center',
-    gap: 12,
-    padding: '16px 24px',
+    gap: 'clamp(8px, 2vw, 12px)',
+    padding: 'clamp(12px, 2.5vw, 16px) clamp(16px, 3vw, 24px)',
     width: '100%',
   },
   btnIconWrapper: {
-    width: 48,
-    height: 48,
+    width: 'clamp(40px, 8vw, 48px)',
+    height: 'clamp(40px, 8vw, 48px)',
     background: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 40,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     color: 'white',
+    flexShrink: 0,
   },
   btnTextWrapper: {
     flex: 1,
@@ -478,7 +575,7 @@ const styles = {
   },
   btnSmall: {
     display: 'block',
-    fontSize: 11,
+    fontSize: 'clamp(9px, 2.5vw, 11px)',
     fontWeight: 500,
     color: 'rgba(255, 255, 255, 0.7)',
     letterSpacing: 0.5,
@@ -486,13 +583,14 @@ const styles = {
   },
   btnBig: {
     display: 'block',
-    fontSize: 18,
+    fontSize: 'clamp(13px, 3.5vw, 18px)',
     fontWeight: 800,
     color: 'white',
   },
   btnArrow: {
     color: 'white',
     opacity: 0.7,
+    flexShrink: 0,
   },
   rippleEffect: {
     position: 'absolute',
@@ -502,165 +600,147 @@ const styles = {
     height: '100%',
     pointerEvents: 'none',
   },
-  qrHint: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 12,
-    padding: '12px 18px',
-    background: 'white',
-    borderRadius: 16,
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-  },
-  qrHintIcon: {
-    width: 36,
-    height: 36,
-    background: '#f1f5f9',
-    borderRadius: 10,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qrHintTitle: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: '#0f172a',
-  },
-  qrHintText: {
-    fontSize: 11,
-    color: '#64748b',
-  },
   rightContent: {
     flex: 1,
     display: 'flex',
     justifyContent: 'center',
-    minWidth: 320,
+    minWidth: 280,
   },
   phoneMockup: {
-    width: 320,
+    width: 'clamp(280px, 65vw, 340px)',
     background: '#1e293b',
-    borderRadius: 44,
+    borderRadius: 'clamp(36px, 8vw, 44px)',
     border: '4px solid #334155',
-    padding: '12px 10px 20px',
+    padding: 'clamp(10px, 2vw, 12px) clamp(8px, 1.5vw, 10px) clamp(16px, 3vw, 20px)',
     position: 'relative',
     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    animation: 'float 5s ease-in-out infinite',
   },
   phoneNotch: {
     position: 'absolute',
-    top: 18,
+    top: 'clamp(14px, 3vw, 18px)',
     left: '50%',
     transform: 'translateX(-50%)',
-    width: 120,
-    height: 28,
+    width: 'clamp(100px, 25vw, 120px)',
+    height: 'clamp(24px, 5vw, 28px)',
     background: '#0f172a',
     borderRadius: 20,
     zIndex: 2,
   },
   phoneButton: {
     position: 'absolute',
-    bottom: 8,
+    bottom: 'clamp(6px, 1.5vw, 8px)',
     left: '50%',
     transform: 'translateX(-50%)',
-    width: 120,
+    width: 'clamp(100px, 25vw, 120px)',
     height: 4,
     background: '#334155',
     borderRadius: 2,
   },
   phoneScreen: {
     background: '#ffffff',
-    borderRadius: 36,
+    borderRadius: 'clamp(30px, 6vw, 36px)',
     overflow: 'hidden',
-    height: 640,
+    height: 'clamp(560px, 130vw, 680px)',
     position: 'relative',
-    paddingTop: 40,
+    paddingTop: 'clamp(36px, 7vw, 40px)',
   },
   phoneWelcomeContent: {
-    padding: '20px 16px',
+    padding: 'clamp(16px, 4vw, 20px) clamp(12px, 3vw, 16px)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     height: '100%',
   },
   phoneLogo: {
-    width: 80,
-    height: 80,
+    width: 'clamp(60px, 15vw, 80px)',
+    height: 'clamp(60px, 15vw, 80px)',
     objectFit: 'contain',
-    marginBottom: 12,
+    marginBottom: 'clamp(8px, 2vw, 12px)',
   },
   phoneSubtitleBadge: {
-    padding: '6px 16px',
+    padding: 'clamp(4px, 1.5vw, 6px) clamp(12px, 3vw, 16px)',
     background: '#F7FAFC',
     borderRadius: 30,
     border: '1px solid #EDF2F7',
-    marginBottom: 10,
+    marginBottom: 'clamp(8px, 2vw, 10px)',
   },
   phoneSubtitleText: {
-    fontSize: 13,
+    fontSize: 'clamp(11px, 2.5vw, 13px)',
     fontWeight: 500,
     color: '#4A5568',
   },
   phoneDescription: {
-    fontSize: 11,
+    fontSize: 'clamp(10px, 2vw, 11px)',
     fontStyle: 'italic',
     color: '#718096',
     textAlign: 'center',
-    marginBottom: 28,
+    marginBottom: 'clamp(20px, 5vw, 28px)',
   },
   phoneButtons: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 10,
+    gap: 'clamp(8px, 2vw, 10px)',
     width: '100%',
   },
   phoneBtnPrimary: {
     background: '#ef4444',
-    borderRadius: 14,
-    padding: '14px 16px',
+    borderRadius: 'clamp(12px, 2.5vw, 14px)',
+    padding: 'clamp(12px, 2.5vw, 14px) clamp(12px, 3vw, 16px)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     color: 'white',
     fontWeight: 600,
-    fontSize: 14,
+    fontSize: 'clamp(12px, 2.5vw, 14px)',
     boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+    transition: 'all 0.3s ease',
+    cursor: 'default',
   },
   phoneBtnArrow: {
-    fontSize: 16,
+    fontSize: 'clamp(14px, 3vw, 16px)',
   },
   phoneBtnOutline: {
     border: '1.5px solid #E2E8F0',
-    borderRadius: 14,
-    padding: '14px 16px',
+    borderRadius: 'clamp(12px, 2.5vw, 14px)',
+    padding: 'clamp(12px, 2.5vw, 14px) clamp(12px, 3vw, 16px)',
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: 'clamp(12px, 2.5vw, 14px)',
     fontWeight: 600,
     color: '#2D3748',
+    transition: 'all 0.3s ease',
+    cursor: 'default',
   },
   phoneBtnQR: {
     background: 'rgba(239, 68, 68, 0.04)',
     border: '1px solid rgba(239, 68, 68, 0.3)',
-    borderRadius: 14,
-    padding: '10px 12px',
+    borderRadius: 'clamp(12px, 2.5vw, 14px)',
+    padding: 'clamp(8px, 2vw, 10px) clamp(10px, 2.5vw, 12px)',
     display: 'flex',
-    gap: 10,
+    gap: 'clamp(8px, 2vw, 10px)',
     alignItems: 'center',
+    transition: 'all 0.3s ease',
+    cursor: 'default',
   },
   phoneQRIcon: {
-    fontSize: 20,
+    fontSize: 'clamp(18px, 4vw, 20px)',
   },
   phoneQRTitle: {
-    fontSize: 11,
+    fontSize: 'clamp(10px, 2vw, 11px)',
     fontWeight: 600,
     color: '#ef4444',
   },
   phoneQRSubtitle: {
-    fontSize: 9,
+    fontSize: 'clamp(8px, 1.8vw, 9px)',
     color: '#718096',
   },
   phoneFooterLink: {
-    marginTop: 28,
-    fontSize: 9,
+    marginTop: 'clamp(20px, 5vw, 28px)',
+    fontSize: 'clamp(8px, 1.8vw, 9px)',
     color: '#718096',
     textDecoration: 'underline',
+    cursor: 'pointer',
   },
 };
