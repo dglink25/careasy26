@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,7 +12,7 @@ import {
   FaArrowRight, FaComments, FaTimes,
   FaPhone, FaWhatsapp,
   FaClock, FaFire, FaTag,
-  FaChevronLeft, FaChevronRight, FaPause
+  FaChevronLeft, FaChevronRight
 } from 'react-icons/fa';
 import { MdVerified, MdOutlineLocalOffer } from 'react-icons/md';
 import {
@@ -70,9 +69,7 @@ const formatPromoPeriod = (service) => {
   return null;
 };
 
-
 const getOpenStatus = (service) => {
-  
   if (service?.is_always_open || service?.is_open_24h) {
     return {
       isOpen: true,
@@ -86,11 +83,9 @@ const getOpenStatus = (service) => {
   }
 
   const now = new Date();
-  
   const currentDayKey = JS_DAY_TO_KEY[now.getDay()];
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
- 
   if (service?.schedule && typeof service.schedule === 'object' && Object.keys(service.schedule).length > 0) {
     const today = service.schedule[currentDayKey];
 
@@ -209,7 +204,6 @@ const useServicesImages = (services) => {
     setAutoPlayStates(initialAutoPlay);
   }, [services]);
 
- 
   const nextImage = useCallback((serviceId, totalImages) => {
     setImageIndices(prev => ({
       ...prev,
@@ -217,7 +211,6 @@ const useServicesImages = (services) => {
     }));
   }, []);
 
- 
   const prevImage = useCallback((serviceId, totalImages) => {
     setImageIndices(prev => ({
       ...prev,
@@ -286,45 +279,6 @@ const useServicesImages = (services) => {
   };
 };
 
-const AutoPlayIndicator = ({ autoPlay, currentIndex, totalImages }) => (
-  <div style={{
-    position: 'absolute',
-    top: '10px',
-    right: '10px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    color: '#fff',
-    padding: '4px 8px',
-    borderRadius: '20px',
-    fontSize: '0.7rem',
-    fontWeight: '600',
-    backdropFilter: 'blur(4px)',
-    zIndex: 4,
-    border: '1px solid rgba(255,255,255,0.2)',
-  }}>
-    {autoPlay ? (
-      <>
-        <div style={{
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          backgroundColor: '#3b82f6',
-          animation: 'pulseDot 1.5s ease-in-out infinite',
-        }} />
-        <span>Auto {currentIndex + 1}/{totalImages}</span>
-      </>
-    ) : (
-      <>
-        <FaPause style={{ fontSize: '0.6rem' }} />
-        <span>En pause</span>
-      </>
-    )}
-  </div>
-);
-
-// Barre de progression
 const ProgressBar = ({ totalImages, currentIndex }) => (
   <div style={{
     position: 'absolute',
@@ -338,52 +292,11 @@ const ProgressBar = ({ totalImages, currentIndex }) => (
     <div style={{
       height: '100%',
       width: `${((currentIndex + 1) / totalImages) * 100}%`,
-      backgroundColor: '#3b82f6',
+      backgroundColor: '#dc2626',
       transition: 'width 0.3s ease',
     }} />
   </div>
 );
-
-// Miniatures de navigation
-const ImageThumbnails = ({ medias, currentIndex, onThumbnailClick }) => {
-  return (
-    <div style={{
-      position: 'absolute',
-      bottom: '10px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      display: 'flex',
-      gap: '5px',
-      padding: '5px',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      borderRadius: '20px',
-      backdropFilter: 'blur(4px)',
-      zIndex: 4,
-    }}>
-      {medias.map((_, index) => (
-        <button
-          key={index}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onThumbnailClick(index);
-          }}
-          style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            backgroundColor: index === currentIndex ? '#3b82f6' : '#fff',
-            transition: 'all 0.2s ease',
-            transform: index === currentIndex ? 'scale(1.2)' : 'scale(1)',
-          }}
-        />
-      ))}
-    </div>
-  );
-};
 
 const StatusIcon = ({ type, size = '1rem', color }) => {
   const s = { fontSize: size, color, flexShrink: 0 };
@@ -393,7 +306,6 @@ const StatusIcon = ({ type, size = '1rem', color }) => {
   return <HiOutlineQuestionMarkCircle style={s} />;
 };
 
-// Badge de statut (sur l'image)
 const OpenStatusBadge = ({ status }) => {
   if (!status) return null;
   return (
@@ -423,7 +335,6 @@ const OpenStatusBadge = ({ status }) => {
   );
 };
 
-// Badge promo (sur l'image)
 const PromoBadge = ({ discount }) => (
   <div style={{
     position: 'absolute',
@@ -441,14 +352,12 @@ const PromoBadge = ({ discount }) => (
     zIndex: 3,
     boxShadow: '0 4px 12px rgba(220,38,38,0.4)',
     letterSpacing: '0.02em',
-    animation: 'pulseBadge 2s ease-in-out infinite',
   }}>
     <FaFire style={{ fontSize: '0.72rem' }} />
     -{discount}%
   </div>
 );
 
-// Ligne horaires du jour (dans la carte)
 const HoursChip = ({ status }) => {
   if (!status?.todayHours || status.todayHours === 'Fermé' || status.todayHours === 'Non défini') return null;
   return (
@@ -471,7 +380,6 @@ const HoursChip = ({ status }) => {
   );
 };
 
-// Affichage prix
 const PriceDisplay = ({ service, promoActive }) => {
   if (service.is_price_on_request) {
     return (
@@ -505,9 +413,8 @@ const PriceDisplay = ({ service, promoActive }) => {
   if (service.price) {
     return (
       <span style={{
-        color: theme.colors.primary, fontWeight: '700', fontSize: '0.9rem',
-        backgroundColor: `${theme.colors.primaryLight}44`,
-        padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap',
+        color: '#dc2626', fontWeight: '700', fontSize: '0.9rem',
+        backgroundColor: '#fef2f2', padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap',
       }}>
         {formatPrice(service.price)}
       </span>
@@ -520,7 +427,6 @@ const PriceDisplay = ({ service, promoActive }) => {
   );
 };
 
-// Tooltip horaires de la semaine (au survol de l'horaire)
 const WeekScheduleTooltip = ({ schedule, visible }) => {
   if (!visible || !schedule) return null;
   const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
@@ -563,7 +469,6 @@ const WeekScheduleTooltip = ({ schedule, visible }) => {
           </div>
         );
       })}
-      {/* flèche bas */}
       <div style={{
         position: 'absolute', bottom: '-6px', right: '18px',
         width: 0, height: 0,
@@ -575,7 +480,6 @@ const WeekScheduleTooltip = ({ schedule, visible }) => {
   );
 };
 
-// ── Carte service principale AVEC DÉFILEMENT D'IMAGES ────────
 const ServiceCard = ({ 
   service, 
   onContact, 
@@ -596,7 +500,6 @@ const ServiceCard = ({
 
   return (
     <div style={styles.serviceCard} className="service-card">
-      {/* ── Image avec badges et navigation ── */}
       <div 
         style={styles.serviceImageContainer}
         onMouseEnter={() => onUserInteraction()}
@@ -605,14 +508,11 @@ const ServiceCard = ({
           <>
             <img
               src={service.medias[imageIndex]}
-              alt={`${service.name} - Image ${imageIndex + 1}`}
+              alt={service.name}
               style={styles.serviceImage}
               loading="lazy"
             />
             
-            
-            
-            {/* Barre de progression */}
             {service.medias.length > 1 && autoPlay && (
               <ProgressBar 
                 totalImages={service.medias.length}
@@ -620,9 +520,6 @@ const ServiceCard = ({
               />
             )}
             
-            
-            
-            {/* Boutons de navigation */}
             {service.medias.length > 1 && (
               <>
                 <button 
@@ -694,14 +591,13 @@ const ServiceCard = ({
           </>
         ) : (
           <div style={styles.servicePlaceholder}>
-            <FaWrench style={{ fontSize: '2.5rem', color: theme.colors.primary, opacity: 0.5 }} />
+            <FaWrench style={{ fontSize: '2.5rem', color: '#dc2626', opacity: 0.5 }} />
           </div>
         )}
         
         {promoActive && discount && <PromoBadge discount={discount} />}
         <OpenStatusBadge status={status} />
         
-        {/* Badge nombre de photos */}
         {service.medias?.length > 1 && (
           <div style={{
             position: 'absolute',
@@ -721,16 +617,12 @@ const ServiceCard = ({
         )}
       </div>
 
-      {/* ── Contenu ── */}
       <div style={styles.serviceContent}>
-        {/* Nom + prix */}
         <div style={styles.serviceHeader}>
           <h3 style={styles.serviceName}>{service.name}</h3>
           <PriceDisplay service={service} promoActive={promoActive} />
         </div>
 
-        
-        {/* Période promo */}
         {promoActive && promoPeriod && (
           <div style={styles.promoPeriod}>
             <MdOutlineLocalOffer style={{ fontSize: '0.9rem', flexShrink: 0 }} />
@@ -738,7 +630,6 @@ const ServiceCard = ({
           </div>
         )}
 
-        {/* Sous-label statut (ex: "Ferme dans 12 min", "Ouvre demain à 08:00") */}
         {status?.sublabel ? (
           <p style={{ ...styles.statusSublabel, color: status.color }}>
             <StatusIcon type={status.icon} color={status.color} size="0.8rem" />
@@ -748,15 +639,13 @@ const ServiceCard = ({
 
         <div style={styles.divider} />
 
-          <StarRating
-            rating={service.average_rating}
-            total={service.total_reviews}
-            compact={true}
-          />
+        <StarRating
+          rating={service.average_rating}
+          total={service.total_reviews}
+          compact={true}
+        />
 
-        {/* Entreprise + horaires aujourd'hui */}
         <div style={styles.serviceInfo}>
-          {/* Logo + nom */}
           <div style={styles.entrepriseInfo}>
             {service.entreprise?.logo ? (
               <img src={service.entreprise.logo} alt="" style={styles.entrepriseLogo} />
@@ -768,12 +657,11 @@ const ServiceCard = ({
             <span style={styles.entrepriseName}>
               {service.entreprise?.name || 'Entreprise'}
               {service.entreprise?.is_verified && (
-                <MdVerified style={{ color: theme.colors.primary, fontSize: '0.85rem', marginLeft: '3px' }} />
+                <MdVerified style={{ color: '#dc2626', fontSize: '0.85rem', marginLeft: '3px' }} />
               )}
             </span>
           </div>
 
-          {/* Chip horaire du jour + tooltip semaine */}
           <div
             style={{ position: 'relative' }}
             onMouseEnter={() => hasSchedule && setShowTooltip(true)}
@@ -784,7 +672,6 @@ const ServiceCard = ({
           </div>
         </div>
 
-        {/* Description + voir plus */}
         <div style={styles.serviceDescriptionRow}>
           <p style={styles.serviceDescription}>
             {service.descriptions
@@ -799,7 +686,6 @@ const ServiceCard = ({
         </div>
       </div>
 
-      {/* ── Bouton contacter ── */}
       <button
         onClick={() => onContact(service)}
         style={styles.contactButton}
@@ -827,7 +713,6 @@ export default function Home() {
 
   const sectionsRef = useRef([]);
 
-  // Hook pour la gestion des images des services
   const {
     imageIndices,
     nextImage,
@@ -855,7 +740,6 @@ export default function Home() {
     { id: 6, name: 'Assurance', image: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800', description: 'Tous types d\'assurances auto', icon: <FaShieldAlt /> },
   ], []);
 
-  // Calcule tous les statuts d'un coup
   const updateOpenStatuses = useCallback(() => {
     const newStatuses = {};
     services.forEach(service => {
@@ -864,13 +748,11 @@ export default function Home() {
     setOpenStatuses(newStatuses);
   }, [services]);
 
-  // Hero carousel auto
   useEffect(() => {
     const interval = setInterval(() => setCurrentSlide(p => (p + 1) % heroSlides.length), 5000);
     return () => clearInterval(interval);
   }, [heroSlides.length]);
 
-  // Chargement données
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -887,14 +769,12 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // Mise à jour statuts toutes les minutes
   useEffect(() => {
     updateOpenStatuses();
     const interval = setInterval(updateOpenStatuses, 60000);
     return () => clearInterval(interval);
   }, [updateOpenStatuses]);
 
-  // Animations au scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('animate-in'); }),
@@ -904,7 +784,6 @@ export default function Home() {
     return () => observer.disconnect();
   }, []);
 
-  // Redirection après login
   useEffect(() => {
     const locationState = window.history.state?.usr;
     if (user && locationState?.openContactModal && locationState?.selectedService) {
@@ -931,7 +810,7 @@ export default function Home() {
 
   return (
     <div style={styles.container}>
-      {/* ── Hero Carousel ── */}
+      {/* Hero Carousel */}
       <div style={styles.heroSection}>
         {heroSlides.map((slide, index) => (
           <div key={index} style={{
@@ -962,13 +841,13 @@ export default function Home() {
           {heroSlides.map((_, index) => (
             <button key={index} onClick={() => setCurrentSlide(index)} style={{
               ...styles.indicator,
-              backgroundColor: currentSlide === index ? theme.colors.primary : 'rgba(255,255,255,0.5)',
+              backgroundColor: currentSlide === index ? '#dc2626' : 'rgba(255,255,255,0.5)',
             }} />
           ))}
         </div>
       </div>
 
-      {/* ── Section Domaines ── */}
+      {/* Section Domaines */}
       <div ref={el => sectionsRef.current[0] = el} className="animate-section" style={styles.section}>
         <h2 style={styles.sectionTitle}>Domaines d'Expertise</h2>
         <p style={styles.sectionSubtitle}>Plus de 20 catégories de services pour tous vos besoins automobiles</p>
@@ -990,11 +869,11 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Section Services Récents AVEC DÉFILEMENT AUTOMATIQUE ── */}
+      {/* Section Services Récents */}
       <div
         ref={el => sectionsRef.current[1] = el}
         className="animate-section"
-        style={{ ...styles.section, backgroundColor: theme.colors.secondary, maxWidth: '100%', padding: '6rem 2rem' }}
+        style={{ ...styles.section, backgroundColor: '#f8fafc', maxWidth: '100%', padding: '6rem 2rem' }}
       >
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <h2 style={styles.sectionTitle}>Services Récents</h2>
@@ -1025,7 +904,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Section Partenaires ── */}
+      {/* Section Partenaires */}
       <div ref={el => sectionsRef.current[2] = el} className="animate-section" style={styles.partnersSection}>
         <h2 style={styles.sectionTitle}>Nos Entreprises de Confiance</h2>
         <div style={styles.partnersTrack}>
@@ -1044,16 +923,16 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── CTA Final ── */}
-      <div ref={el => sectionsRef.current[3] = el} className="animate-section" style={styles.ctaSection}>
-        <h2 style={styles.ctaTitle}>Prêt à démarrer ?</h2>
-        <p style={styles.ctaText}>Rejoignez des milliers de Béninois qui font confiance à CarEasy</p>
-        {!user && (
+      {/* CTA Final - Masqué si utilisateur connecté */}
+      {!user && (
+        <div ref={el => sectionsRef.current[3] = el} className="animate-section" style={styles.ctaSection}>
+          <h2 style={styles.ctaTitle}>Prêt à démarrer ?</h2>
+          <p style={styles.ctaText}>Rejoignez des milliers de Béninois qui font confiance à CarEasy</p>
           <Link to="/register" style={styles.ctaButtonLarge}>Créer un compte gratuitement</Link>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* ── Modal Contact ── */}
+      {/* Modal Contact */}
       {user && showContactModal && selectedService && (
         <div style={styles.contactModalOverlay} onClick={() => setShowContactModal(false)}>
           <div style={styles.contactModal} onClick={e => e.stopPropagation()}>
@@ -1076,7 +955,6 @@ export default function Home() {
             <div style={styles.contactModalBody}>
               <p style={styles.contactModalInstruction}>Choisissez votre méthode de contact préférée :</p>
               <div style={styles.contactMethodsGrid}>
-                {/* Appeler */}
                 <button onClick={() => {
                   selectedService.entreprise?.call_phone
                     ? window.location.href = `tel:${selectedService.entreprise.call_phone}`
@@ -1090,7 +968,6 @@ export default function Home() {
                   </div>
                   <span style={styles.contactMethodArrow}>→</span>
                 </button>
-                {/* WhatsApp */}
                 <button onClick={() => {
                   if (selectedService.entreprise?.whatsapp_phone) {
                     const msg = encodeURIComponent(`Bonjour ${selectedService.entreprise.name}, je suis intéressé par votre service: ${selectedService.name}`);
@@ -1105,9 +982,8 @@ export default function Home() {
                   </div>
                   <span style={styles.contactMethodArrow}>→</span>
                 </button>
-                {/* Chat */}
                 <button onClick={openChat} style={styles.contactMethodButton} className="contact-method-button">
-                  <div style={{ ...styles.contactMethodIcon, backgroundColor: theme.colors.primary }}><FaComments /></div>
+                  <div style={{ ...styles.contactMethodIcon, backgroundColor: '#dc2626' }}><FaComments /></div>
                   <div style={styles.contactMethodContent}>
                     <div style={styles.contactMethodTitle}>Messagerie</div>
                     <div style={styles.contactMethodSubtitle}>Discuter en direct</div>
@@ -1125,7 +1001,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── Chat Modal ── */}
+      {/* Chat Modal */}
       {user && selectedService && showChatModal && (
         <ChatModal
           serviceId={selectedService.id} 
@@ -1135,16 +1011,8 @@ export default function Home() {
         />
       )}
 
-      {/* ── CSS global AVEC LES NOUVELLES ANIMATIONS ── */}
+      {/* CSS global */}
       <style>{`
-        @keyframes pulseBadge {
-          0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(220,38,38,0.4); }
-          50%       { transform: scale(1.06); box-shadow: 0 6px 16px rgba(220,38,38,0.55); }
-        }
-        @keyframes pulseDot {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
         @keyframes scroll {
           0%   { transform: translateX(0); }
           100% { transform: translateX(-50%); }
@@ -1171,15 +1039,19 @@ export default function Home() {
           opacity: 0.7 !important;
         }
         .contact-button { transition: all 0.3s ease; }
-        .contact-button:hover { background-color: ${theme.colors.primaryDark || '#dc2626'} !important; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(239,68,68,0.3); }
+        .contact-button:hover { background-color: #b91c1c !important; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(220,38,38,0.3); }
         .contact-method-button { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .contact-method-button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); border-color: ${theme.colors.primary} !important; }
-        .see-more-link:hover { color: ${theme.colors.primaryDark || '#dc2626'} !important; transform: translateX(3px); display: inline-flex; }
+        .contact-method-button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); border-color: #dc2626 !important; }
+        .see-more-link:hover { color: #b91c1c !important; transform: translateX(3px); display: inline-flex; }
         .partners-scroll { animation: scroll 30s linear infinite; }
         .partners-scroll:hover { animation-play-state: paused; }
         @media (max-width: 768px) {
           .servicesGrid { grid-template-columns: 1fr !important; }
           .domainesGrid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 640px) {
+          .heroButtons { flex-direction: column; align-items: center; }
+          .heroButtons a { width: 80%; text-align: center; }
         }
       `}</style>
     </div>
@@ -1187,96 +1059,96 @@ export default function Home() {
 }
 
 const styles = {
-  container: { backgroundColor: theme.colors.background, minHeight: '100vh' },
+  container: { backgroundColor: '#ffffff', minHeight: '100vh' },
 
   // Hero
   heroSection: { position: 'relative', height: '100vh', overflow: 'hidden' },
   slide: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundSize: 'cover', backgroundPosition: 'center', transition: 'opacity 1s ease-in-out' },
   slideOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(135deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.7) 100%)' },
   slideContent: { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', zIndex: 2, width: '90%', maxWidth: '900px', animation: 'fadeInUp 1s ease-out' },
-  slideIcon: { fontSize: '5rem', color: theme.colors.primary, marginBottom: '1.5rem', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' },
+  slideIcon: { fontSize: '5rem', color: '#dc2626', marginBottom: '1.5rem', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' },
   slideTitle: { fontSize: 'clamp(2.5rem, 6vw, 4rem)', fontWeight: 'bold', color: '#fff', marginBottom: '1rem', textShadow: '2px 2px 8px rgba(0,0,0,0.5)' },
   slideSubtitle: { fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', color: '#fff', marginBottom: '2.5rem', textShadow: '1px 1px 4px rgba(0,0,0,0.5)' },
   heroButtons: { display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' },
-  primaryButton: { backgroundColor: theme.colors.primary, color: '#fff', padding: '1.25rem 3rem', borderRadius: theme.borderRadius.xl, textDecoration: 'none', fontWeight: '600', fontSize: '1.125rem', display: 'inline-flex', alignItems: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' },
-  secondaryButton: { backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)', color: '#fff', padding: '1.25rem 3rem', borderRadius: theme.borderRadius.xl, textDecoration: 'none', fontWeight: '600', fontSize: '1.125rem', border: '2px solid #fff' },
+  primaryButton: { backgroundColor: '#dc2626', color: '#fff', padding: '1.25rem 3rem', borderRadius: '999px', textDecoration: 'none', fontWeight: '600', fontSize: '1.125rem', display: 'inline-flex', alignItems: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', transition: 'all 0.3s ease' },
+  secondaryButton: { backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)', color: '#fff', padding: '1.25rem 3rem', borderRadius: '999px', textDecoration: 'none', fontWeight: '600', fontSize: '1.125rem', border: '2px solid #fff', transition: 'all 0.3s ease' },
   indicators: { position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '12px', zIndex: 3 },
   indicator: { width: '14px', height: '14px', borderRadius: '50%', border: '2px solid #fff', cursor: 'pointer', transition: 'all 0.3s ease', background: 'transparent' },
 
   // Sections
   section: { maxWidth: '1200px', margin: '0 auto', padding: '6rem 2rem' },
-  sectionTitle: { fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 'bold', textAlign: 'center', marginBottom: '1rem', color: theme.colors.text.primary },
-  sectionSubtitle: { fontSize: '1.2rem', textAlign: 'center', color: theme.colors.text.secondary, marginBottom: '4rem', maxWidth: '700px', margin: '0 auto 4rem' },
+  sectionTitle: { fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 'bold', textAlign: 'center', marginBottom: '1rem', color: '#1e293b' },
+  sectionSubtitle: { fontSize: '1.2rem', textAlign: 'center', color: '#64748b', marginBottom: '4rem', maxWidth: '700px', margin: '0 auto 4rem' },
 
   // Domaines
   domainesGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' },
-  domaineCard: { backgroundColor: theme.colors.background, borderRadius: theme.borderRadius.xl, overflow: 'hidden', textDecoration: 'none', boxShadow: theme.shadows.lg, border: `2px solid ${theme.colors.primaryLight}` },
+  domaineCard: { backgroundColor: '#ffffff', borderRadius: '24px', overflow: 'hidden', textDecoration: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' },
   domaineImage: { position: 'relative', height: '220px', backgroundSize: 'cover', backgroundPosition: 'center' },
-  domaineOverlay: { width: '100%', height: '100%', background: `linear-gradient(135deg, ${theme.colors.primary}80, ${theme.colors.primary}CC)`, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  domaineOverlay: { width: '100%', height: '100%', background: 'linear-gradient(135deg, #dc262680, #dc2626CC)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   domaineIcon: { fontSize: '4rem', color: '#fff', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.2))' },
   domaineContent: { padding: '2rem' },
-  domaineName: { fontSize: '1.5rem', fontWeight: 'bold', color: theme.colors.text.primary, marginBottom: '0.75rem' },
-  domaineDescription: { color: theme.colors.text.secondary, marginBottom: '1.5rem', lineHeight: '1.6' },
-  domaineButton: { backgroundColor: theme.colors.primary, color: '#fff', padding: '0.875rem 2rem', borderRadius: theme.borderRadius.lg, border: 'none', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' },
+  domaineName: { fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '0.75rem' },
+  domaineDescription: { color: '#64748b', marginBottom: '1.5rem', lineHeight: '1.6' },
+  domaineButton: { backgroundColor: '#dc2626', color: '#fff', padding: '0.875rem 2rem', borderRadius: '999px', border: 'none', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.3s ease' },
 
   // Services
   servicesGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '2rem', marginBottom: '1rem' },
-  serviceCard: { backgroundColor: theme.colors.background, borderRadius: '16px', overflow: 'visible', boxShadow: '0 2px 12px rgba(0,0,0,0.07)', border: `1.5px solid ${theme.colors.primaryLight}`, display: 'flex', flexDirection: 'column' },
-  serviceImageContainer: { position: 'relative', height: '210px', overflow: 'hidden', borderRadius: '14px 14px 0 0', backgroundColor: `${theme.colors.primaryLight}55`, flexShrink: 0 },
+  serviceCard: { backgroundColor: '#ffffff', borderRadius: '16px', overflow: 'visible', boxShadow: '0 2px 12px rgba(0,0,0,0.07)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' },
+  serviceImageContainer: { position: 'relative', height: '210px', overflow: 'hidden', borderRadius: '14px 14px 0 0', backgroundColor: '#f1f5f9', flexShrink: 0 },
   serviceImage: { width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' },
   servicePlaceholder: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   serviceContent: { padding: '16px 18px', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' },
   serviceHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' },
   serviceName: { fontSize: '1.05rem', fontWeight: '700', color: '#0f172a', margin: 0, flex: 1, lineHeight: '1.35' },
-  promoPeriod: { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', color: '#dc2626', backgroundColor: '#fff1f2', padding: '4px 10px', borderRadius: '8px', border: '1px dashed #fca5a5', fontWeight: '600' },
+  promoPeriod: { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', color: '#dc2626', backgroundColor: '#fef2f2', padding: '4px 10px', borderRadius: '8px', border: '1px dashed #fecaca', fontWeight: '600' },
   statusSublabel: { fontSize: '0.78rem', fontWeight: '600', margin: 0, display: 'flex', alignItems: 'center', gap: '5px' },
   divider: { height: '1px', backgroundColor: '#f1f5f9', margin: '2px 0' },
   serviceInfo: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' },
   entrepriseInfo: { display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 },
-  entrepriseLogo: { width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${theme.colors.primaryLight}`, flexShrink: 0 },
-  entrepriseLogoPlaceholder: { width: '28px', height: '28px', borderRadius: '50%', backgroundColor: theme.colors.primary, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: '700', flexShrink: 0 },
+  entrepriseLogo: { width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #fecaca', flexShrink: 0 },
+  entrepriseLogoPlaceholder: { width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#dc2626', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: '700', flexShrink: 0 },
   entrepriseName: { fontSize: '0.82rem', color: '#475569', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' },
   serviceDescriptionRow: { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '10px', marginTop: 'auto' },
   serviceDescription: { color: '#64748b', fontSize: '0.85rem', lineHeight: '1.5', margin: 0, flex: 1 },
-  seeMoreLink: { display: 'inline-flex', alignItems: 'center', color: theme.colors.primary, fontWeight: '700', fontSize: '0.82rem', textDecoration: 'none', whiteSpace: 'nowrap', transition: 'all 0.2s ease' },
-  contactButton: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.primary, color: '#fff', border: 'none', padding: '13px 18px', fontSize: '0.95rem', fontWeight: '700', cursor: 'pointer', borderTop: `2px solid ${theme.colors.primaryLight}33`, borderRadius: '0 0 14px 14px', letterSpacing: '0.01em' },
-  ctaButton: { backgroundColor: theme.colors.primary, color: '#fff', padding: '1rem 2.5rem', borderRadius: theme.borderRadius.lg, textDecoration: 'none', fontWeight: '600', display: 'inline-flex', alignItems: 'center', boxShadow: theme.shadows.lg },
+  seeMoreLink: { display: 'inline-flex', alignItems: 'center', color: '#dc2626', fontWeight: '700', fontSize: '0.82rem', textDecoration: 'none', whiteSpace: 'nowrap', transition: 'all 0.2s ease' },
+  contactButton: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#dc2626', color: '#fff', border: 'none', padding: '13px 18px', fontSize: '0.95rem', fontWeight: '700', cursor: 'pointer', borderTop: '1px solid #fecaca', borderRadius: '0 0 14px 14px', letterSpacing: '0.01em' },
+  ctaButton: { backgroundColor: '#dc2626', color: '#fff', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: '600', display: 'inline-flex', alignItems: 'center', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', transition: 'all 0.3s ease' },
 
   // Partenaires
-  partnersSection: { padding: '4rem 0', backgroundColor: theme.colors.secondary, overflow: 'hidden' },
+  partnersSection: { padding: '4rem 0', backgroundColor: '#f8fafc', overflow: 'hidden' },
   partnersTrack: { overflow: 'hidden', padding: '1rem 0' },
   partnersSlide: { display: 'flex', gap: '3rem', width: 'max-content' },
-  partnerCard: { backgroundColor: theme.colors.background, padding: '2rem', borderRadius: theme.borderRadius.lg, textAlign: 'center', minWidth: '200px', border: `2px solid ${theme.colors.primaryLight}` },
-  partnerImage: { width: '90px', height: '90px', margin: '0 auto 1rem', borderRadius: '50%', objectFit: 'cover', border: `3px solid ${theme.colors.primaryLight}` },
-  partnerPlaceholder: { width: '90px', height: '90px', margin: '0 auto 1rem', borderRadius: '50%', backgroundColor: theme.colors.primary, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold' },
-  partnerName: { fontWeight: '600', color: theme.colors.text.primary, fontSize: '1rem' },
+  partnerCard: { backgroundColor: '#ffffff', padding: '2rem', borderRadius: '16px', textAlign: 'center', minWidth: '200px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
+  partnerImage: { width: '90px', height: '90px', margin: '0 auto 1rem', borderRadius: '50%', objectFit: 'cover', border: '3px solid #fecaca' },
+  partnerPlaceholder: { width: '90px', height: '90px', margin: '0 auto 1rem', borderRadius: '50%', backgroundColor: '#dc2626', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold' },
+  partnerName: { fontWeight: '600', color: '#1e293b', fontSize: '1rem' },
 
   // CTA final
-  ctaSection: { padding: '6rem 2rem', textAlign: 'center', background: `linear-gradient(135deg, ${theme.colors.primary}, #991b1b)` },
+  ctaSection: { padding: '6rem 2rem', textAlign: 'center', backgroundColor: '#dc2626' },
   ctaTitle: { fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 'bold', color: '#fff', marginBottom: '1rem' },
   ctaText: { fontSize: '1.25rem', color: 'rgba(255,255,255,0.9)', marginBottom: '2.5rem', maxWidth: '600px', margin: '0 auto 2.5rem' },
-  ctaButtonLarge: { backgroundColor: '#fff', color: theme.colors.primary, padding: '1.25rem 3rem', borderRadius: theme.borderRadius.xl, textDecoration: 'none', fontWeight: '600', fontSize: '1.25rem', display: 'inline-block', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' },
+  ctaButtonLarge: { backgroundColor: '#fff', color: '#dc2626', padding: '1.25rem 3rem', borderRadius: '999px', textDecoration: 'none', fontWeight: '600', fontSize: '1.25rem', display: 'inline-block', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s ease' },
 
   // Modal contact
   contactModalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '1rem', backdropFilter: 'blur(10px)' },
-  contactModal: { backgroundColor: '#fff', borderRadius: theme.borderRadius.xl, width: '100%', maxWidth: '450px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 30px 60px rgba(0,0,0,0.4)', overflow: 'hidden', animation: 'modalSlideIn 0.4s cubic-bezier(0.4,0,0.2,1)' },
-  contactModalHeader: { display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#f8fafc', borderBottom: `2px solid ${theme.colors.primaryLight}`, position: 'relative' },
+  contactModal: { backgroundColor: '#fff', borderRadius: '24px', width: '100%', maxWidth: '450px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 30px 60px rgba(0,0,0,0.4)', overflow: 'hidden', animation: 'modalSlideIn 0.4s cubic-bezier(0.4,0,0.2,1)' },
+  contactModalHeader: { display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', position: 'relative' },
   contactModalAvatar: { marginRight: '1rem' },
-  contactModalLogo: { width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', border: `2px solid ${theme.colors.primary}` },
-  contactModalLogoPlaceholder: { width: '60px', height: '60px', borderRadius: '12px', backgroundColor: theme.colors.primary, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.5rem' },
+  contactModalLogo: { width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', border: '2px solid #dc2626' },
+  contactModalLogoPlaceholder: { width: '60px', height: '60px', borderRadius: '12px', backgroundColor: '#dc2626', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.5rem' },
   contactModalInfo: { flex: 1 },
-  contactModalTitle: { fontSize: '1.25rem', fontWeight: 'bold', color: theme.colors.text.primary, margin: '0 0 0.25rem 0' },
-  contactModalService: { fontSize: '0.95rem', color: theme.colors.text.secondary, margin: 0 },
-  contactModalClose: { position: 'absolute', top: '1rem', right: '1rem', backgroundColor: 'transparent', border: 'none', color: theme.colors.text.secondary, fontSize: '1.25rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '50%' },
+  contactModalTitle: { fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', margin: '0 0 0.25rem 0' },
+  contactModalService: { fontSize: '0.95rem', color: '#64748b', margin: 0 },
+  contactModalClose: { position: 'absolute', top: '1rem', right: '1rem', backgroundColor: 'transparent', border: 'none', color: '#64748b', fontSize: '1.25rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '50%', transition: 'all 0.3s ease' },
   contactModalBody: { padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' },
-  contactModalInstruction: { textAlign: 'center', color: theme.colors.text.secondary, fontSize: '1rem', margin: 0 },
+  contactModalInstruction: { textAlign: 'center', color: '#64748b', fontSize: '1rem', margin: 0 },
   contactMethodsGrid: { display: 'flex', flexDirection: 'column', gap: '1rem' },
-  contactMethodButton: { display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: theme.borderRadius.lg, border: '2px solid #e2e8f0', backgroundColor: '#fff', cursor: 'pointer', textAlign: 'left', width: '100%' },
+  contactMethodButton: { display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: '16px', border: '2px solid #e2e8f0', backgroundColor: '#fff', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.3s ease' },
   contactMethodIcon: { width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', color: '#fff', flexShrink: 0 },
   contactMethodContent: { flex: 1 },
-  contactMethodTitle: { fontSize: '1.1rem', fontWeight: '600', color: theme.colors.text.primary, marginBottom: '0.25rem' },
-  contactMethodSubtitle: { fontSize: '0.9rem', color: theme.colors.text.secondary },
-  contactMethodArrow: { color: theme.colors.primary, fontSize: '1.5rem', opacity: 0.7 },
-  contactModalFooter: { paddingTop: '1rem', borderTop: `2px solid ${theme.colors.primaryLight}40` },
-  contactModalNote: { fontSize: '0.9rem', color: theme.colors.text.secondary, textAlign: 'center', margin: 0, lineHeight: '1.6', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: theme.borderRadius.lg },
+  contactMethodTitle: { fontSize: '1.1rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.25rem' },
+  contactMethodSubtitle: { fontSize: '0.9rem', color: '#64748b' },
+  contactMethodArrow: { color: '#dc2626', fontSize: '1.5rem', opacity: 0.7 },
+  contactModalFooter: { paddingTop: '1rem', borderTop: '1px solid #e2e8f0' },
+  contactModalNote: { fontSize: '0.9rem', color: '#64748b', textAlign: 'center', margin: 0, lineHeight: '1.6', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '12px' },
 };

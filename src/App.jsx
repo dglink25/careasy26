@@ -79,6 +79,16 @@ function App() {
                       <Route path="/" element={<Home />} />
                       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
+
+
+                      {/* Public */}
+                      <Route path="/entreprises" element={<PublicEntreprises />} />
+                      <Route path="/entreprises/:id" element={<PublicEntrepriseDetails />} />
+                      <Route path="/services" element={<PublicServices />} />
+                      <Route path="/service/:id" element={<PublicServiceDetails />} />
+                      <Route path="/partenaires" element={<Partners />} />
+                      <Route path="/faq" element={<FAQ />} />
+
                       {/* Entreprises */}
                       <Route path="/mes-entreprises" element={<ProtectedRoute><MesEntreprises /></ProtectedRoute>} />
                       <Route path="/entreprises/creer" element={<ProtectedRoute><CreerEntreprise /></ProtectedRoute>} />
@@ -102,7 +112,7 @@ function App() {
                       <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
                       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
-                      {/* ✅ NOUVELLE ROUTE NOTIFICATIONS */}
+                    
                       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
                       {/* Admin */}
@@ -111,14 +121,7 @@ function App() {
                       <Route path="/admin/entreprises/:id" element={<AdminRoute><AdminEntrepriseDetails /></AdminRoute>} />
                       <Route path="/admin/plans" element={<AdminRoute><PlanAdmin /></AdminRoute>} />
 
-                      {/* Public */}
-                      <Route path="/entreprises" element={<PublicEntreprises />} />
-                      <Route path="/entreprises/:id" element={<PublicEntrepriseDetails />} />
-                      <Route path="/services" element={<PublicServices />} />
-                      <Route path="/service/:id" element={<PublicServiceDetails />} />
-                      <Route path="/partenaires" element={<Partners />} />
-                      <Route path="/faq" element={<FAQ />} />
-
+                      
                       {/* Abonnements - UNIFIÉ */}
                       <Route path="/abonnements" element={<ProtectedRoute><AbonnementsPage /></ProtectedRoute>} />
                       

@@ -76,10 +76,27 @@ export default function PublicEntrepriseDetails() {
     }
   }, [id, navigate]);
 
-  // ── Bouton principal "Contacter" ──
+  // PublicEntrepriseDetails.jsx - Modifiez la fonction handleOpenContact :
+
   const handleOpenContact = () => {
-    requireAuth(() => setShowContactModal(true));
+    if (!user) {
+      // Sauvegarder l'intention d'ouvrir le modal après connexion
+      sessionStorage.setItem('pendingContactModal', 'true');
+      sessionStorage.setItem('pendingEntrepriseId', id);
+      navigate('/login', { state: { from: `/entreprises/${id}` } });
+      return;
+    }
+    setShowContactModal(true);
   };
+
+  // Ajoutez cet effet pour ouvrir le modal après retour de connexion :
+  useEffect(() => {
+    if (user && sessionStorage.getItem('pendingContactModal') === 'true') {
+      sessionStorage.removeItem('pendingContactModal');
+      sessionStorage.removeItem('pendingEntrepriseId');
+      setShowContactModal(true);
+    }
+  }, [user]);
 
   const handleRefresh = () => { setRefreshing(true); fetchEntreprise(); };
 
@@ -311,7 +328,7 @@ export default function PublicEntrepriseDetails() {
                     </div>
                     <span style={styles.mainContactBtnArrow}>›</span>
                   </button>
-                  {!user && <p style={styles.authHint}>🔒 Connexion requise.</p>}
+                  {!user && <p style={styles.authHint}>Connexion requise.</p>}
                 </div>
               </div>
 
@@ -348,7 +365,7 @@ export default function PublicEntrepriseDetails() {
                     ) : (
                       /* ── Non connecté : bloc de verrouillage ── */
                       <div style={styles.lockedInfo}>
-                        <div style={styles.lockedIcon}>🔒</div>
+          
                         <p style={styles.lockedTitle}>Coordonnées protégées</p>
                         <p style={styles.lockedText}>
                           Connectez-vous pour accéder au téléphone, à l'email et à l'adresse complète.

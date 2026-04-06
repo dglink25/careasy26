@@ -439,7 +439,7 @@ export default function PublicEntreprises() {
                       </button>
                     </div>
                     {!user && (
-                      <p style={styles.cardAuthHint}>🔒 Connexion requise pour contacter</p>
+                      <p style={styles.cardAuthHint}> Connexion requise pour contacter</p>
                     )}
                   </div>
                 </div>
