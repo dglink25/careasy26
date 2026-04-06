@@ -448,3 +448,380 @@ button:focus-visible {
 .loading-spinner {
   animation: spin 1s linear infinite;
 }
+
+
+/* ============================================================
+   CarEasy — Responsive Global Fixes
+   Inclure dans index.css ou importer dans App.jsx
+   ============================================================ */
+
+/* Reset débordement */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* ---- Conteneurs génériques ---- */
+.container, [class*="content"], [class*="Content"] {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ---- Images ---- */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ---- Grilles auto-fit ---- */
+.grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 1.5rem;
+}
+
+/* ============================================================
+   BREAKPOINTS
+   xs  < 480px
+   sm  < 640px
+   md  < 768px
+   lg  < 1024px
+   xl  < 1280px
+   ============================================================ */
+
+/* ---- Navigation ---- */
+@media (max-width: 768px) {
+  nav > div {
+    padding: 0 1rem !important;
+  }
+}
+
+/* ---- Hero sections ---- */
+@media (max-width: 768px) {
+  .hero-section,
+  [class*="heroSection"],
+  [class*="hero"] {
+    height: 60vh !important;
+    min-height: 320px !important;
+  }
+  [class*="heroTitle"],
+  [class*="hero-title"] {
+    font-size: clamp(1.4rem, 6vw, 2.5rem) !important;
+  }
+  [class*="heroSubtitle"],
+  [class*="hero-subtitle"] {
+    font-size: clamp(1rem, 4vw, 1.4rem) !important;
+  }
+  [class*="heroButtons"],
+  [class*="hero-buttons"] {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+  }
+  [class*="heroButtons"] a,
+  [class*="hero-buttons"] a {
+    width: 90% !important;
+    text-align: center !important;
+  }
+}
+
+/* ---- Cards grids ---- */
+@media (max-width: 1024px) {
+  [class*="servicesGrid"],
+  [class*="domainesGrid"],
+  [class*="plansGrid"],
+  [class*="statsGrid"],
+  [class*="mainGrid"],
+  [class*="contentGrid"],
+  [class*="grid"] {
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  [class*="servicesGrid"],
+  [class*="domainesGrid"],
+  [class*="plansGrid"] {
+    grid-template-columns: 1fr !important;
+  }
+  [class*="statsGrid"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 400px) {
+  [class*="statsGrid"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ---- Two-column layouts → single column ---- */
+@media (max-width: 900px) {
+  [class*="contentGrid"],
+  [class*="mainGrid"],
+  [class*="twoCol"],
+  [class*="leftColumn"] + [class*="rightColumn"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ---- Stepper responsive ---- */
+@media (max-width: 768px) {
+  [class*="stepper"],
+  [class*="steps"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+  }
+  [class*="stepConnector"] {
+    width: 2px !important;
+    height: 20px !important;
+    align-self: center !important;
+    margin: 0 !important;
+  }
+  [class*="stepButton"] {
+    min-width: auto !important;
+    width: 100% !important;
+  }
+}
+
+/* ---- Forms ---- */
+@media (max-width: 640px) {
+  [class*="formRow"] {
+    grid-template-columns: 1fr !important;
+  }
+  [class*="headerActions"],
+  [class*="navigationButtons"],
+  [class*="modalActions"],
+  [class*="formActions"] {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  [class*="headerActions"] a,
+  [class*="headerActions"] button,
+  [class*="navigationButtons"] button,
+  [class*="formActions"] button,
+  [class*="formActions"] a {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  [class*="navButton"],
+  [class*="submitButton"],
+  [class*="createButton"],
+  [class*="cancelButton"] {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* ---- Header ---- */
+@media (max-width: 768px) {
+  [class*="headerMain"],
+  [class*="headerTop"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+  }
+  [class*="title"],
+  [class*="Title"] {
+    font-size: clamp(1.4rem, 5vw, 2rem) !important;
+  }
+  [class*="subtitle"],
+  [class*="Subtitle"] {
+    font-size: clamp(0.875rem, 3vw, 1rem) !important;
+  }
+}
+
+/* ---- Plan card en-tête ---- */
+@media (max-width: 640px) {
+  [class*="planCardHeader"],
+  [class*="planProgress"] {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  [class*="planProgress"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ---- Chat widget ---- */
+@media (max-width: 480px) {
+  [class*="AIChatWidget"],
+  div[style*="width: 400px"],
+  div[style*="width:400px"] {
+    width: calc(100vw - 16px) !important;
+    right: 8px !important;
+    left: 8px !important;
+    bottom: 8px !important;
+    max-width: 100% !important;
+  }
+}
+
+/* ---- Tables overflow ---- */
+table {
+  width: 100%;
+  table-layout: auto;
+  word-break: break-word;
+}
+@media (max-width: 640px) {
+  [class*="comparisonContainer"],
+  [class*="tableWrapper"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ---- Sidebar / Info grids ---- */
+@media (max-width: 768px) {
+  [class*="infoGrid"],
+  [class*="entrepriseCardInfo"],
+  [class*="summaryCards"],
+  [class*="tipsGrid"],
+  [class*="domainesGrid"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ---- Image galleries ---- */
+@media (max-width: 640px) {
+  [class*="mediaGrid"],
+  [class*="previewsGrid"],
+  [class*="thumbnailsContainer"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  [class*="mainImageContainer"],
+  [class*="galleryContainer"],
+  div[style*="height: 450px"],
+  div[style*="height:450px"] {
+    height: 260px !important;
+  }
+}
+
+/* ---- App download section ---- */
+@media (max-width: 768px) {
+  [class*="appDownload"] div[style*="display: flex"],
+  div.app-download-container {
+    flex-direction: column !important;
+  }
+  [class*="float-animation"] {
+    display: none !important;
+  }
+}
+
+/* ---- Footer grid ---- */
+@media (max-width: 768px) {
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .footer-bottom-inner {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center;
+  }
+}
+
+/* ---- Public service details ---- */
+@media (max-width: 900px) {
+  div[style*="grid-template-columns: 1fr 380px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ---- Entreprises cards ---- */
+@media (max-width: 600px) {
+  [class*="cardActions"] {
+    flex-direction: column !important;
+  }
+  [class*="contactButton"],
+  [class*="viewButton"] {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* ---- Modal ---- */
+@media (max-width: 480px) {
+  [class*="modalContent"],
+  [class*="detailsModal"],
+  [class*="comparisonModal"] {
+    width: 96vw !important;
+    max-height: 95vh !important;
+    margin: 0 auto !important;
+    border-radius: 12px !important;
+  }
+  [class*="modalFooter"],
+  [class*="modalActions"] {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+}
+
+/* ---- Phone mockup hide on small screen ---- */
+@media (max-width: 768px) {
+  [class*="rightContent"] [class*="phoneMockup"],
+  [class*="phoneMockup"] {
+    display: none !important;
+  }
+}
+
+/* ---- Abonnements summary cards ---- */
+@media (max-width: 600px) {
+  [class*="summaryCards"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ---- Public entreprises page ---- */
+@media (max-width: 640px) {
+  [class*="hero"] > div[style*="display: grid"] {
+    grid-template-columns: 1fr !important;
+  }
+  [class*="heroStats"] {
+    flex-wrap: wrap !important;
+    gap: 0.75rem !important;
+  }
+  [class*="resultsHeader"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  [class*="resultsSort"] {
+    width: 100% !important;
+  }
+  [class*="sortSelect"] {
+    width: 100% !important;
+  }
+}
+
+/* ---- Service details page ---- */
+@media (max-width: 768px) {
+  [class*="headerActions"] {
+    flex-wrap: wrap !important;
+  }
+  [class*="planMiniCard"] {
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+}
+
+/* ---- Prevent button transform conflict ---- */
+@media (max-width: 640px) {
+  button:hover:not(:disabled) {
+    transform: none !important;
+  }
+}
+
+/* ---- Overflow safety ---- */
+@media (max-width: 640px) {
+  body * {
+    max-width: 100%;
+    word-break: break-word;
+  }
+  pre, code {
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+}
