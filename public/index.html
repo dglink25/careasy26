@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CarEasy</title>
+    
+    <!-- ← AJOUT : Lien vers le manifest PWA (pour les notifications et l'installation) -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- ← AJOUT : Thème couleur pour la barre d'adresse sur mobile -->
+    <meta name="theme-color" content="#ef4444" />
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+
+    <meta name="description" content="CarEasy est la plateforme automobile #1 au Bénin. Trouvez un garage, une carrosserie, une auto-école ou une assurance auto à Cotonou et dans tout le Bénin. Comparez, contactez et prenez rendez-vous en ligne." />
+    <meta name="keywords" content="garage Cotonou, mécanicien Bénin, carrosserie Cotonou, auto-école Bénin, assurance voiture Bénin, pneus Cotonou, révision voiture Bénin, prestataire automobile Bénin, CarEasy" />
+    <meta name="author" content="CarEasy" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="language" content="fr" />
+    <meta name="geo.region" content="BJ" />
+    <meta name="geo.placename" content="Cotonou, Bénin" />
+    <link rel="canonical" href="https://careasy26.vercel.app/" />
+
+    <!-- ── OPEN GRAPH (Facebook, WhatsApp, LinkedIn) ── -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://careasy26.vercel.app/" />
+    <meta property="og:title" content="CarEasy — Trouvez un Garagiste ou Prestataire Auto au Bénin" />
+    <meta property="og:description" content="La plateforme automobile #1 au Bénin. Garages, carrosseries, auto-écoles, assurances. Comparez, contactez et prenez rendez-vous en ligne." />
+    <meta property="og:image" content="https://careasy26.vercel.app/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="CarEasy — Services automobiles au Bénin" />
+    <meta property="og:site_name" content="CarEasy" />
+    <meta property="og:locale" content="fr_BJ" />
+
+    <!-- ── TWITTER / X CARDS ── -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@careasy_benin" />
+    <meta name="twitter:title" content="CarEasy — Services Auto au Bénin" />
+    <meta name="twitter:description" content="Trouvez un garage, carrosserie, auto-école ou assurance auto à Cotonou. Comparez et prenez rendez-vous en ligne." />
+    <meta name="twitter:image" content="https://careasy26.vercel.app/og-image.jpg" />
+
+    <!-- ── FAVICON & ICÔNES ── -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#dc2626" />
+
+    <!-- ── PERFORMANCE : Preconnect ── -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- ── JSON-LD : Organisation ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "CarEasy",
+      "url": "https://careasy26.vercel.app",
+      "logo": "https://careasy26.vercel.app/logo.png",
+      "description": "Plateforme automobile #1 au Bénin — Trouvez garages, carrosseries, auto-écoles et assurances auto à Cotonou et dans tout le Bénin.",
+      "email": "careasy26@gmail.com",
+      "foundingDate": "2024",
+      "areaServed": {
+        "@type": "Country",
+        "name": "Bénin"
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Cotonou",
+        "addressCountry": "BJ"
+      },
+      "sameAs": [
+        "https://www.facebook.com/careasy",
+        "https://www.instagram.com/careasy_benin"
+      ]
+    }
+    </script>
+
+    <!-- ── JSON-LD : WebSite + SearchAction (Sitelinks Search Box) ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "CarEasy",
+      "url": "https://careasy26.vercel.app",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://careasy26.vercel.app/services?search={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- ── JSON-LD : LocalBusiness (présence locale Cotonou) ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "CarEasy",
+      "image": "https://careasy26.vercel.app/logo.png",
+      "url": "https://careasy26.vercel.app",
+      "telephone": "+22990000000",
+      "email": "careasy26@gmail.com",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Cotonou",
+        "addressLocality": "Cotonou",
+        "addressRegion": "Littoral",
+        "postalCode": "",
+        "addressCountry": "BJ"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 6.3654,
+        "longitude": 2.4183
+      },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+        "opens": "00:00",
+        "closes": "23:59"
+      },
+      "priceRange": "Gratuit",
+      "description": "Plateforme en ligne de mise en relation entre conducteurs et prestataires automobiles certifiés au Bénin.",
+      "currenciesAccepted": "XOF",
+      "paymentAccepted": "Cash, Mobile Money"
+    }
+    </script>
+
+    <!-- ── JSON-LD : FAQ (boost dans les résultats Google) ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Comment trouver un garagiste à Cotonou ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sur CarEasy, accédez à la rubrique Entreprises ou Services, puis filtrez par domaine (Mécanique, Carrosserie…). Vous verrez les prestataires vérifiés near de vous à Cotonou avec leurs coordonnées et horaires."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "CarEasy est-il gratuit ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, l'accès à CarEasy est totalement gratuit pour les particuliers. Vous pouvez parcourir les prestataires, envoyer des messages et obtenir des devis sans frais."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Comment inscrire mon garage sur CarEasy ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Créez un compte sur careasy26.vercel.app, accédez à 'Mes Entreprises' puis 'Créer une entreprise'. Fournissez votre IFU, RCCM et certificat d'activité. Notre équipe valide votre dossier sous 24 à 72h."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "CarEasy couvre-t-il toute la ville de Cotonou ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, CarEasy couvre Cotonou et tout le Bénin : Porto-Novo, Parakou, Abomey-Calavi et plus. Le réseau s'étend chaque semaine avec de nouveaux prestataires certifiés."
+          }
+        }
+      ]
+    }
+    </script>
+
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- ← AJOUT : Enregistrement du Service Worker pour les notifications push -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('[SW] ✅ Service Worker enregistré avec succès:', registration.scope);
+              
+              // ← OPTIONNEL : Vérifier les mises à jour du Service Worker
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('[SW] 📦 Nouvelle version détectée');
+                
+                newWorker.addEventListener('statechange', () => {
+                  console.log('[SW] 🔄 Nouvel état:', newWorker.state);
+                });
+              });
+            })
+            .catch(error => {
+              console.error('[SW] ❌ Erreur lors de l\'enregistrement:', error);
+            });
+        });
+        
+        // ← OPTIONNEL : Gérer les messages du Service Worker
+        navigator.serviceWorker.addEventListener('message', event => {
+          console.log('[SW] 📨 Message reçu:', event.data);
+        });
+      } else {
+        console.log('[SW] ⚠️ Les Service Workers ne sont pas supportés par ce navigateur');
+      }
+    </script>
+  </body>
+</html>

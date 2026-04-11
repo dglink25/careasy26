@@ -1,0 +1,39 @@
+# robots.txt — CarEasy
+# https://careasy26.vercel.app
+
+User-agent: *
+
+# Autoriser l'indexation des pages publiques importantes
+Allow: /
+Allow: /entreprises
+Allow: /services
+Allow: /service/
+Allow: /partenaires
+Allow: /faq
+Allow: /login
+Allow: /register
+
+# Bloquer les pages privées / dashboard / admin
+Disallow: /dashboard
+Disallow: /admin/
+Disallow: /mes-entreprises
+Disallow: /mes-services
+Disallow: /mes-rendez-vous
+Disallow: /messages
+Disallow: /settings
+Disallow: /notifications
+Disallow: /abonnements
+Disallow: /paiement/
+Disallow: /auth/
+Disallow: /rendez-vous/gestion
+Disallow: /rendez-vous/calendrier
+Disallow: /entreprises/creer
+Disallow: /services/creer
+Disallow: /services/modifier/
+
+# Bloquer les paramètres non pertinents
+Disallow: /*?tab=*
+Disallow: /*?view=list*
+
+# Sitemap
+Sitemap: https://careasy26.vercel.app/sitemap.xml
