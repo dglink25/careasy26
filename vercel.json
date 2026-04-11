@@ -2,8 +2,8 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index.html",
-      "buildCommand": "npm run generate:sitemap && vite build"
+      "destination": "/index.html"
     }
-  ]
+  ],
+  "buildCommand": "npm run generate:sitemap && vite build"
 }
