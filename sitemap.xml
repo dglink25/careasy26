@@ -54,28 +54,4 @@
     <priority>0.4</priority>
   </url>
 
-  <!-- 
-    NOTE : Les pages dynamiques /entreprises/:id et /service/:id
-    doivent être ajoutées dynamiquement via un script backend.
-    
-    Exemple de script Node.js pour générer ce sitemap automatiquement :
-    voir fichier generate-sitemap.js ci-joint
-    
-    Exemple de page entreprise :
-    <url>
-      <loc>https://careasy26.vercel.app/entreprises/1</loc>
-      <lastmod>2025-01-01</lastmod>
-      <changefreq>weekly</changefreq>
-      <priority>0.8</priority>
-    </url>
-    
-    Exemple de page service :
-    <url>
-      <loc>https://careasy26.vercel.app/service/1</loc>
-      <lastmod>2025-01-01</lastmod>
-      <changefreq>weekly</changefreq>
-      <priority>0.8</priority>
-    </url>
-  -->
-
 </urlset>
