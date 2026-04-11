@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import StarRating from '../../components/Services/StarRating';
 import { publicApi } from '../../api/publicApi';
+import SEOHead from '../../components/SEOHead';
+
 
 import { 
   FaWrench, FaFire, FaTag, FaClock, 
@@ -750,6 +752,12 @@ export default function PublicServices() {
 
   return (
     <div style={styles.container}>
+      <SEOHead
+        title="Services Automobiles au Bénin — Mécanique, Peinture, Pneumatique, Climatisation"
+        description="Découvrez des centaines de services automobiles professionnels au Bénin : révision, mécanique, peinture, pneus, climatisation, vidange. Meilleur prix garanti."
+        canonical="/services"
+        keywords="service auto Cotonou, révision voiture Bénin, pneus Cotonou, climatisation auto, mécanique Bénin"
+      />
       <div style={styles.content}>
         <div style={styles.hero}>
           <h1 style={styles.heroTitle}>Services Automobiles</h1>

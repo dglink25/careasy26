@@ -5,6 +5,7 @@ import ChatModal from '../components/Chat/ChatModal';
 import { publicApi } from './../api/publicApi';
 import StarRating from '../components/Services/StarRating';
 import theme from './../config/theme';
+import SEOHead from '../components/SEOHead';
 
 import {
   FaWrench, FaPaintBrush, FaCog, FaSnowflake,
@@ -810,6 +811,12 @@ export default function Home() {
 
   return (
     <div style={styles.container}>
+      <SEOHead
+        title="Trouvez un Prestataire Auto au Bénin"
+        description="La plateforme automobile #1 au Bénin. Garages certifiés, carrosseries, auto-écoles, assurances auto à Cotonou. Comparez et prenez rendez-vous en ligne."
+        canonical="/"
+        keywords="garage Cotonou, mécanicien Bénin, carrosserie Cotonou, auto-école Bénin, assurance voiture"
+      />
       {/* Hero Carousel */}
       <div style={styles.heroSection}>
         {heroSlides.map((slide, index) => (

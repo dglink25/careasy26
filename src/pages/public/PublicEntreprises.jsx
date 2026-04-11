@@ -7,6 +7,8 @@ import ChatModal from '../../components/Chat/ChatModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import theme from '../../config/theme';
+import SEOHead from '../../components/SEOHead';
+
 
 import {
   FiSearch, FiFilter, FiChevronRight, FiMapPin, FiTool,
@@ -200,6 +202,12 @@ export default function PublicEntreprises() {
 
   return (
     <div style={styles.container}>
+      <SEOHead
+        title="Entreprises Automobiles au Bénin —  Prestataires Certifiés"
+        description="Trouvez et comparez les meilleures entreprises automobiles certifiées au Bénin. Garages, carrosseries, auto-écoles et assureurs à Cotonou et partout au Bénin."
+        canonical="/entreprises"
+        keywords="garage Cotonou, carrosserie Bénin, atelier mécanique Cotonou, prestataire automobile Bénin"
+      />
       <div style={styles.content}>
 
         {/* Hero */}

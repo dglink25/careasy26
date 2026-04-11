@@ -184,6 +184,11 @@ export default function FAQ() {
 
   return (
     <div style={styles.page}>
+      <SEOHead
+        title="Aide & FAQ — Questions Fréquentes sur CarEasy"
+        description="Centre d'aide CarEasy : inscription, création d'entreprise, messagerie, sécurité. Toutes les réponses à vos questions."
+        canonical="/faq"
+      />
       {/* HERO */}
       <div style={styles.hero}>
         <div style={styles.heroInner}>

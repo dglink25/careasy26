@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../contexts/ModalContext';
 import Logo from '../components/Logo';
 import theme from '../config/theme';
+import SEOHead from '../components/SEOHead';
 import { 
   FaEye, 
   FaEyeSlash, 
@@ -247,6 +248,7 @@ export default function Register({ isModal = false, onClose }) {
       ...styles.container,
       ...(isModal ? styles.modalContainer : {}),
     }}>
+      <SEOHead title="Inscription" noindex={true} />
       <div style={{
         ...styles.card,
         ...(isModal ? styles.modalCard : {}),
