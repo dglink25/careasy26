@@ -111,6 +111,14 @@
     gtag('config', 'G-WHDEQJK5B7');
   </script>
 
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-PKFVQZNX');</script>
+  <!-- End Google Tag Manager -->
+
 
     <!-- ── JSON-LD : LocalBusiness (présence locale Cotonou) ── -->
     <script type="application/ld+json">
@@ -192,6 +200,11 @@
 
   </head>
   <body>
+
+    <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKFVQZNX"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     
@@ -201,12 +214,12 @@
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then(registration => {
-              console.log('[SW] ✅ Service Worker enregistré avec succès:', registration.scope);
+              console.log('[SW] Service Worker enregistré avec succès:', registration.scope);
               
               // ← OPTIONNEL : Vérifier les mises à jour du Service Worker
               registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
-                console.log('[SW] 📦 Nouvelle version détectée');
+                console.log('[SW] Nouvelle version détectée');
                 
                 newWorker.addEventListener('statechange', () => {
                   console.log('[SW] 🔄 Nouvel état:', newWorker.state);
