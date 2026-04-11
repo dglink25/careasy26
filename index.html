@@ -1,22 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CarEasy</title>
-    
-    <!-- ← AJOUT : Lien vers le manifest PWA (pour les notifications et l'installation) -->
+
+    <!-- ══ TITRE SEO OPTIMISÉ ══ -->
+    <title>CarEasy — Trouvez un Garagiste ou Prestataire Auto au Bénin | Cotonou</title>
+
+    <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="manifest" href="/manifest.json" />
-    
-    <!-- ← AJOUT : Thème couleur pour la barre d'adresse sur mobile -->
-    <meta name="theme-color" content="#ef4444" />
+    <meta name="theme-color" content="#dc2626" />
 
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+    <!-- ══ VÉRIFICATION GOOGLE ══ -->
     <meta name="google-site-verification" content="hvUpUq9Zdsu-hrLGnFT--Fra_bem43AIu3vnj-GAW2s" />
 
+    <!-- ══ META SEO ══ -->
     <meta name="description" content="CarEasy est la plateforme automobile #1 au Bénin. Trouvez un garage, une carrosserie, une auto-école ou une assurance auto à Cotonou et dans tout le Bénin. Comparez, contactez et prenez rendez-vous en ligne." />
     <meta name="keywords" content="garage Cotonou, mécanicien Bénin, carrosserie Cotonou, auto-école Bénin, assurance voiture Bénin, pneus Cotonou, révision voiture Bénin, prestataire automobile Bénin, CarEasy" />
     <meta name="author" content="CarEasy" />
@@ -26,7 +24,7 @@
     <meta name="geo.placename" content="Cotonou, Bénin" />
     <link rel="canonical" href="https://careasy26.vercel.app/" />
 
-    <!-- ── OPEN GRAPH (Facebook, WhatsApp, LinkedIn) ── -->
+    <!-- ══ OPEN GRAPH ══ -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://careasy26.vercel.app/" />
     <meta property="og:title" content="CarEasy — Trouvez un Garagiste ou Prestataire Auto au Bénin" />
@@ -38,24 +36,22 @@
     <meta property="og:site_name" content="CarEasy" />
     <meta property="og:locale" content="fr_BJ" />
 
-    <!-- ── TWITTER / X CARDS ── -->
+    <!-- ══ TWITTER CARDS ══ -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@careasy_benin" />
     <meta name="twitter:title" content="CarEasy — Services Auto au Bénin" />
     <meta name="twitter:description" content="Trouvez un garage, carrosserie, auto-école ou assurance auto à Cotonou. Comparez et prenez rendez-vous en ligne." />
     <meta name="twitter:image" content="https://careasy26.vercel.app/og-image.jpg" />
 
-    <!-- ── FAVICON & ICÔNES ── -->
+    <!-- ══ FAVICON ══ -->
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#dc2626" />
 
-    <!-- ── PERFORMANCE : Preconnect ── -->
+    <!-- ══ PERFORMANCE ══ -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- ── JSON-LD : Organisation ── -->
+    <!-- ══ JSON-LD : Organisation ══ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -66,23 +62,13 @@
       "description": "Plateforme automobile #1 au Bénin — Trouvez garages, carrosseries, auto-écoles et assurances auto à Cotonou et dans tout le Bénin.",
       "email": "careasy26@gmail.com",
       "foundingDate": "2024",
-      "areaServed": {
-        "@type": "Country",
-        "name": "Bénin"
-      },
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Cotonou",
-        "addressCountry": "BJ"
-      },
-      "sameAs": [
-        "https://www.facebook.com/careasy",
-        "https://www.instagram.com/careasy_benin"
-      ]
+      "areaServed": { "@type": "Country", "name": "Bénin" },
+      "address": { "@type": "PostalAddress", "addressLocality": "Cotonou", "addressCountry": "BJ" },
+      "sameAs": ["https://www.facebook.com/careasy", "https://www.instagram.com/careasy_benin"]
     }
     </script>
 
-    <!-- ── JSON-LD : WebSite + SearchAction (Sitelinks Search Box) ── -->
+    <!-- ══ JSON-LD : WebSite + SearchAction ══ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -91,36 +77,13 @@
       "url": "https://careasy26.vercel.app",
       "potentialAction": {
         "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://careasy26.vercel.app/services?search={search_term_string}"
-        },
+        "target": { "@type": "EntryPoint", "urlTemplate": "https://careasy26.vercel.app/services?search={search_term_string}" },
         "query-input": "required name=search_term_string"
       }
     }
     </script>
 
-
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-WHDEQJK5B7"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-WHDEQJK5B7');
-  </script>
-
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-PKFVQZNX');</script>
-  <!-- End Google Tag Manager -->
-
-
-    <!-- ── JSON-LD : LocalBusiness (présence locale Cotonou) ── -->
+    <!-- ══ JSON-LD : LocalBusiness ══ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -135,14 +98,9 @@
         "streetAddress": "Cotonou",
         "addressLocality": "Cotonou",
         "addressRegion": "Littoral",
-        "postalCode": "",
         "addressCountry": "BJ"
       },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": 6.3654,
-        "longitude": 2.4183
-      },
+      "geo": { "@type": "GeoCoordinates", "latitude": 6.3654, "longitude": 2.4183 },
       "openingHoursSpecification": {
         "@type": "OpeningHoursSpecification",
         "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
@@ -156,7 +114,7 @@
     }
     </script>
 
-    <!-- ── JSON-LD : FAQ (boost dans les résultats Google) ── -->
+    <!-- ══ JSON-LD : FAQ ══ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -165,78 +123,111 @@
         {
           "@type": "Question",
           "name": "Comment trouver un garagiste à Cotonou ?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Sur CarEasy, accédez à la rubrique Entreprises ou Services, puis filtrez par domaine (Mécanique, Carrosserie…). Vous verrez les prestataires vérifiés near de vous à Cotonou avec leurs coordonnées et horaires."
-          }
+          "acceptedAnswer": { "@type": "Answer", "text": "Sur CarEasy, accédez à la rubrique Entreprises ou Services, puis filtrez par domaine (Mécanique, Carrosserie). Vous verrez les prestataires vérifiés à Cotonou avec leurs coordonnées et horaires." }
         },
         {
           "@type": "Question",
           "name": "CarEasy est-il gratuit ?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Oui, l'accès à CarEasy est totalement gratuit pour les particuliers. Vous pouvez parcourir les prestataires, envoyer des messages et obtenir des devis sans frais."
-          }
+          "acceptedAnswer": { "@type": "Answer", "text": "Oui, l'accès à CarEasy est totalement gratuit pour les particuliers. Vous pouvez parcourir les prestataires, envoyer des messages et obtenir des devis sans frais." }
         },
         {
           "@type": "Question",
           "name": "Comment inscrire mon garage sur CarEasy ?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Créez un compte sur careasy26.vercel.app, accédez à 'Mes Entreprises' puis 'Créer une entreprise'. Fournissez votre IFU, RCCM et certificat d'activité. Notre équipe valide votre dossier sous 24 à 72h."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "CarEasy couvre-t-il toute la ville de Cotonou ?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Oui, CarEasy couvre Cotonou et tout le Bénin : Porto-Novo, Parakou, Abomey-Calavi et plus. Le réseau s'étend chaque semaine avec de nouveaux prestataires certifiés."
-          }
+          "acceptedAnswer": { "@type": "Answer", "text": "Créez un compte sur careasy26.vercel.app, accédez à Mes Entreprises puis Créer une entreprise. Fournissez votre IFU, RCCM et certificat d'activité. Notre équipe valide votre dossier sous 24 à 72h." }
         }
       ]
     }
     </script>
 
+    <!-- ══ Google Analytics 4 ══ -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-WHDEQJK5B7"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-WHDEQJK5B7');
+    </script>
+
+    <!-- ══ Google Tag Manager ══ -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-PKFVQZNX');</script>
+
   </head>
   <body>
 
     <!-- Google Tag Manager (noscript) -->
-  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKFVQZNX"
-  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-  <!-- End Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKFVQZNX"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+    <!-- ══════════════════════════════════════════════════════════
+         CONTENU SEO STATIQUE — LU PAR GOOGLE MÊME SANS JAVASCRIPT
+         Ce bloc est hors écran visuellement mais parfaitement lisible
+         par les robots de recherche. Technique SEO 100% légale.
+    ══════════════════════════════════════════════════════════════ -->
+    <div id="seo-static-content" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+
+      <h1>CarEasy — Plateforme Automobile au Bénin</h1>
+      <p>CarEasy est la plateforme automobile numéro 1 au Bénin. Trouvez un garage, une carrosserie, une auto-école ou une assurance auto à Cotonou et dans tout le Bénin. Comparez les prestataires certifiés, consultez les avis et prenez rendez-vous en ligne gratuitement.</p>
+
+      <h2>Trouvez un Garagiste à Cotonou</h2>
+      <p>Recherchez parmi des dizaines de garages et ateliers mécaniques certifiés à Cotonou. Vérification IFU, RCCM et certificat d'activité pour chaque prestataire. Comparez les tarifs, les horaires et contactez directement par téléphone, WhatsApp ou messagerie.</p>
+
+      <h2>Services Automobiles Disponibles au Bénin</h2>
+      <ul>
+        <li>Mécanique automobile et réparation moteur à Cotonou</li>
+        <li>Carrosserie, débosselage et peinture auto au Bénin</li>
+        <li>Pneumatique, pneus neufs et vulcanisation à Cotonou</li>
+        <li>Climatisation automobile, recharge gaz au Bénin</li>
+        <li>Auto-école permis B et formation conduite à Cotonou</li>
+        <li>Assurance automobile tous risques au Bénin</li>
+        <li>Vidange, entretien et révision voiture Cotonou</li>
+        <li>Électricité automobile et diagnostic Bénin</li>
+        <li>Lavage auto et nettoyage véhicule Cotonou</li>
+        <li>Location de voiture au Bénin</li>
+      </ul>
+
+      <h2>Entreprises Automobiles Certifiées</h2>
+      <p>Découvrez les meilleures entreprises automobiles certifiées à Cotonou et dans tout le Bénin. Chaque prestataire est vérifié par notre équipe : documents légaux, identité du dirigeant et localisation GPS confirmée.</p>
+
+      <h2>Zones Couvertes par CarEasy</h2>
+      <p>CarEasy couvre tout le Bénin : Cotonou, Porto-Novo, Parakou, Abomey-Calavi, Bohicon, Ouidah, Lokossa, Natitingou, Kandi, Djougou et de nombreuses autres villes. Notre réseau de prestataires s'agrandit chaque semaine.</p>
+
+      <h2>Comment fonctionne CarEasy ?</h2>
+      <ol>
+        <li>Recherchez un service automobile (mécanique, carrosserie, pneus...)</li>
+        <li>Comparez les prestataires certifiés près de chez vous à Cotonou</li>
+        <li>Contactez directement par téléphone, WhatsApp ou messagerie</li>
+        <li>Prenez rendez-vous en ligne et suivez vos interventions</li>
+      </ol>
+
+      <h2>CarEasy est Gratuit</h2>
+      <p>L'utilisation de CarEasy est totalement gratuite pour les particuliers. Pas de frais d'inscription, pas de commission cachée. Trouvez votre prestataire automobile au Bénin sans payer quoi que ce soit.</p>
+
+      <nav>
+        <a href="/">Accueil CarEasy</a>
+        <a href="/entreprises">Entreprises automobiles au Bénin</a>
+        <a href="/services">Services automobiles à Cotonou</a>
+        <a href="/faq">Questions fréquentes</a>
+        <a href="/register">Créer un compte gratuit</a>
+        <a href="/login">Se connecter</a>
+      </nav>
+    </div>
+
+    <!-- Application React -->
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    
-    <!-- ← AJOUT : Enregistrement du Service Worker pour les notifications push -->
+
+    <!-- Service Worker -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('[SW] Service Worker enregistré avec succès:', registration.scope);
-              
-              // ← OPTIONNEL : Vérifier les mises à jour du Service Worker
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                console.log('[SW] Nouvelle version détectée');
-                
-                newWorker.addEventListener('statechange', () => {
-                  console.log('[SW] 🔄 Nouvel état:', newWorker.state);
-                });
-              });
-            })
-            .catch(error => {
-              console.error('[SW] ❌ Erreur lors de l\'enregistrement:', error);
-            });
+            .then(r => console.log('[SW] Enregistré:', r.scope))
+            .catch(e => console.error('[SW] Erreur:', e));
         });
-        
-        // ← OPTIONNEL : Gérer les messages du Service Worker
-        navigator.serviceWorker.addEventListener('message', event => {
-          console.log('[SW] 📨 Message reçu:', event.data);
-        });
-      } else {
-        console.log('[SW] ⚠️ Les Service Workers ne sont pas supportés par ce navigateur');
       }
     </script>
   </body>
