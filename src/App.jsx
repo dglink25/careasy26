@@ -16,7 +16,8 @@ import AuthCallback from './pages/AuthCallback';
 import { ModalProvider } from './contexts/ModalContext';
 import FAQ from './pages/FAQ';
 import GoogleCallback from './pages/GoogleCallback';
-
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import AIChatWidget from './components/Chat/AIChatWidget';
 
 // Entreprises
@@ -88,6 +89,8 @@ function App() {
                       <Route path="/service/:id" element={<PublicServiceDetails />} />
                       <Route path="/partenaires" element={<Partners />} />
                       <Route path="/faq" element={<FAQ />} />
+                      <Route path="/privacy" element={<Privacy />} />
+                      <Route path="/terms" element={<Terms />} />
 
                       {/* Entreprises */}
                       <Route path="/mes-entreprises" element={<ProtectedRoute><MesEntreprises /></ProtectedRoute>} />

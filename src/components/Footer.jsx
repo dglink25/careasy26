@@ -168,9 +168,9 @@ export default function Footer() {
               © {currentYear} <strong style={styles.brandName}>CarEasy</strong> — {t('footer.copyright')}
             </p>
             <div style={styles.bottomLinks}>
-              <a href="#" style={styles.bottomLink}>{t('footer.privacy')}</a>
+              <li><Link to="/privacy" style={styles.navLink}>Politique de confidentialité</Link></li>
               <span style={styles.dot}>·</span>
-              <a href="#" style={styles.bottomLink}>{t('footer.terms')}</a>
+              <li><Link to="/terms" style={styles.navLink}>Conditions d'utilisation</Link></li>
               <span style={styles.dot}>·</span>
               <a href="#" style={styles.bottomLink}>{t('footer.cookies')}</a>
               <span style={styles.dot}>·</span>
