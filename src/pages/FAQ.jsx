@@ -1,8 +1,8 @@
-// src/pages/FAQ.jsx
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaChevronDown, FaSearch, FaCar, FaBuilding, FaTools, FaComments, FaShieldAlt, FaCreditCard, FaQuestionCircle } from 'react-icons/fa';
 import { FiArrowRight, FiMail, FiPhone } from 'react-icons/fi';
+import SEOHead from '../components/SEOHead'; 
 
 const faqCategories = [
   {
@@ -396,6 +396,61 @@ export default function FAQ() {
         }
         * { box-sizing: border-box; }
         input:focus { outline: none; border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.15) !important; }
+        
+        @media (max-width: 768px) {
+          .layout {
+            grid-template-columns: 1fr !important;
+            gap: 1.5rem !important;
+          }
+          .sidebar {
+            position: static !important;
+          }
+          .panelHeader {
+            flex-direction: column !important;
+            text-align: center !important;
+          }
+          .bottomCtaInner {
+            flex-direction: column !important;
+            text-align: center !important;
+          }
+          .accordionBtn {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .hero {
+            padding: 3rem 1rem 4rem !important;
+          }
+          .heroStats {
+            gap: 1rem !important;
+          }
+          .heroStatNum {
+            font-size: 1.25rem !important;
+          }
+          .heroStatLabel {
+            font-size: 0.7rem !important;
+          }
+          .panelHeaderIcon {
+            width: 44px !important;
+            height: 44px !important;
+            font-size: 1.25rem !important;
+          }
+          .panelTitle {
+            font-size: 1.25rem !important;
+          }
+          .accordionBtn {
+            padding: 1rem !important;
+          }
+          .accordionQ {
+            font-size: 0.9rem !important;
+          }
+          .accordionAnswer {
+            font-size: 0.85rem !important;
+            margin-left: 1rem !important;
+          }
+        }
       `}</style>
     </div>
   );
@@ -608,6 +663,7 @@ const styles = {
     fontSize: '0.9rem',
     fontWeight: '600',
     color: '#374151',
+    width: '100%',
   },
   sidebarBtnIcon: {
     display: 'flex',
