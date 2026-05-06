@@ -1,7 +1,3 @@
-// src/components/Settings/NotificationSettingsPanel.jsx
-// À intégrer dans Settings.jsx — onglet "Notifications" (remplace l'actuel)
-// et onglet "Confidentialité" (ajouter la section notifications push)
-
 import { useState, useEffect } from 'react';
 import { useNotifications } from '../../contexts/NotificationContext';
 import {
@@ -24,12 +20,12 @@ export default function NotificationSettingsPanel({ colors: c, notifications, on
   /* ── Status badge ────────────────────────────────────────── */
   const statusInfo = (() => {
     if (permission === 'granted' && pushSubscribed)
-      return { label: 'Push actif',       color: '#10b981', icon: '✅' };
+      return { label: 'Push actif',       color: '#10b981', icon: '' };
     if (permission === 'granted')
-      return { label: 'In-app seulement', color: '#3b82f6', icon: '💬' };
+      return { label: 'In-app seulement', color: '#3b82f6', icon: '' };
     if (permission === 'denied')
-      return { label: 'Bloqué',           color: '#ef4444', icon: '🚫' };
-    return       { label: 'Non configuré', color: '#f59e0b', icon: '⚙️' };
+      return { label: 'Bloqué',           color: '#ef4444', icon: '' };
+    return       { label: 'Non configuré', color: '#f59e0b', icon: '' };
   })();
 
   /* ── Demander permission ─────────────────────────────────── */
@@ -42,21 +38,6 @@ export default function NotificationSettingsPanel({ colors: c, notifications, on
     } else if (result.reason === 'denied') {
       setTestResult({ type: 'error', msg: 'Bloqué. Modifiez les paramètres de votre navigateur.' });
     }
-  };
-
-  /* ── Tester ──────────────────────────────────────────────── */
-  const handleTest = async (type) => {
-    notificationSounds.play(type);
-    await notify({
-      title: 'Test CarEasy',
-      body:  'Ceci est une notification de test.',
-      type,
-      url:   '/',
-      showNative: true,
-      showToast:  true,
-    });
-    setTestResult({ type: 'success', msg: 'Test envoyé !' });
-    setTimeout(() => setTestResult(null), 3000);
   };
 
   const s = {
@@ -139,9 +120,9 @@ export default function NotificationSettingsPanel({ colors: c, notifications, on
       <div style={s.card}>
         <div style={{ ...s.label, marginBottom: '1rem' }}>Canaux de notification</div>
         {[
-          { key: 'email', title: 'Email',    desc: 'Notifications par email',      icon: '📧' },
-          { key: 'push',  title: 'Push App', desc: 'Notifications dans le navigateur', icon: '🔔' },
-          { key: 'sms',   title: 'SMS',      desc: 'Notifications par SMS',        icon: '📱' },
+          { key: 'email', title: 'Email',    desc: 'Notifications par email',      icon: '' },
+          { key: 'push',  title: 'Push App', desc: 'Notifications dans le navigateur', icon: '' },
+          { key: 'sms',   title: 'SMS',      desc: 'Notifications par SMS',        icon: '' },
         ].map(({ key, title, desc, icon }) => (
           <div key={key} style={{ ...s.row, paddingBottom: '.875rem', marginBottom: '.875rem', borderBottom: `1px solid ${c?.border || 'var(--border-color)'}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
@@ -186,28 +167,6 @@ export default function NotificationSettingsPanel({ colors: c, notifications, on
             <FiVolume2 size={18} color={c?.brand || 'var(--brand-primary)'} />
           </div>
         )}
-      </div>
-
-      {/* ── Tests ── */}
-      <div style={s.card}>
-        <div style={{ ...s.label, marginBottom: '.5rem' }}>
-          <FiSliders style={{ marginRight: '.5rem' }} />Tester les sons & notifications
-        </div>
-        <div style={s.desc}>Cliquez pour prévisualiser chaque type</div>
-        <div style={{ ...s.grid, marginTop: '1rem' }}>
-          {[
-            { type: 'message',             label: '💬 Message',    color: '#3b82f6' },
-            { type: 'rdv_confirmed',       label: '✅ RDV confirmé', color: '#10b981' },
-            { type: 'rdv_cancelled',       label: '❌ RDV annulé',  color: '#ef4444' },
-            { type: 'entreprise_approved', label: '🏢 Validé',      color: '#10b981' },
-            { type: 'entreprise_rejected', label: '⚠️ Rejeté',      color: '#ef4444' },
-            { type: 'default',             label: '🔔 Défaut',      color: '#6b7280' },
-          ].map(({ type, label, color }) => (
-            <button key={type} onClick={() => handleTest(type)} style={s.testBtn(color)}>
-              {label}
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );
