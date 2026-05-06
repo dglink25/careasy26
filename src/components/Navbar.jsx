@@ -1,4 +1,4 @@
-// src/components/Navbar.jsx (version corrigée avec responsivité améliorée)
+// src/components/Navbar.jsx (version finale avec lien Aide & Support)
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -18,7 +18,8 @@ import {
 import {
   FiMessageSquare, FiSettings, FiUser, FiLock,
   FiBell, FiMoon, FiShield, FiShoppingBag, FiHeart, FiCalendar, FiAward,
-  FiChevronDown as FiChevronDownIcon, FiClock, FiTrash2, FiCheckSquare
+  FiChevronDown as FiChevronDownIcon, FiClock, FiTrash2, FiCheckSquare,
+  FiHelpCircle
 } from 'react-icons/fi';
 import { MdDashboard } from 'react-icons/md';
 
@@ -476,11 +477,12 @@ export default function Navbar() {
 
   const settingsSections = [
     { id: 'profile',       label: 'Profil',         icon: FiUser,   description: 'Gérer vos informations',       color: '#3b82f6' },
-    { id: 'security',      label: 'Sécurité',        icon: FiLock,   description: 'Mot de passe',                 color: '#ef4444' },
-    { id: 'sessions',      label: 'Appareils',       icon: FiShield, description: 'Sessions & appareils connectés', color: '#8b5cf6' },
-    { id: 'notifications', label: 'Notifications',   icon: FiBell,   description: 'Préférences de notifications', color: '#f59e0b' },
-    { id: 'appearance',    label: 'Apparence',        icon: FiMoon,   description: 'Thème et affichage',           color: '#8b5cf6' },
-    { id: 'privacy',       label: 'Confidentialité', icon: FiShield, description: 'Vie privée',                   color: '#10b981' },
+    { id: 'security',      label: 'Sécurité',       icon: FiLock,   description: 'Mot de passe',                 color: '#ef4444' },
+    { id: 'sessions',      label: 'Appareils',      icon: FiShield, description: 'Sessions & appareils connectés', color: '#8b5cf6' },
+    { id: 'notifications', label: 'Notifications',  icon: FiBell,   description: 'Préférences de notifications', color: '#f59e0b' },
+    { id: 'appearance',    label: 'Apparence',      icon: FiMoon,   description: 'Thème et affichage',           color: '#8b5cf6' },
+    { id: 'privacy',       label: 'Confidentialité',icon: FiShield, description: 'Vie privée',                   color: '#10b981' },
+    { id: 'aide',          label: 'Aide & Support', icon: FiHelpCircle, description: 'FAQ, documentation et contact', color: '#ef4444' },
   ];
 
   const providerLinks = [
@@ -605,6 +607,31 @@ export default function Navbar() {
                         ))}
                       </div>
                       <div style={{ padding: '0.75rem 1.5rem 1.25rem', borderTop: '1px solid var(--border-color)' }}>
+                        {/* Lien vers le centre d'aide */}
+                        <Link 
+                          to="/faq" 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            gap: '0.5rem', 
+                            width: '100%', 
+                            padding: '0.75rem', 
+                            marginBottom: '0.75rem',
+                            backgroundColor: 'transparent', 
+                            color: 'var(--brand-primary)', 
+                            border: '2px solid var(--brand-primary)', 
+                            borderRadius: '0.5rem', 
+                            cursor: 'pointer', 
+                            fontWeight: 600, 
+                            fontSize: '0.9rem',
+                            textDecoration: 'none'
+                          }}
+                          onClick={() => setShowSettingsDropdown(false)}
+                        >
+                          <FiHelpCircle /> Centre d'aide
+                        </Link>
+                        
                         <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.75rem', backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>
                           <FaSignOutAlt />{t('nav.logout')}
                         </button>
@@ -712,6 +739,7 @@ export default function Navbar() {
                     </>
                   )}
                   <MobileLink to="/settings" icon={FiSettings} label="Paramètres" onClick={() => setMobileMenuOpen(false)} />
+                  <MobileLink to="/faq" icon={FiHelpCircle} label="Centre d'aide" onClick={() => setMobileMenuOpen(false)} />
                   <div
                     style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: '0.5rem', backgroundColor: 'var(--bg-secondary)', cursor: 'pointer', border: '1px solid var(--border-color)' }}
                     onClick={() => { setMobileMenuOpen(false); navigate('/notifications'); }}

@@ -1,8 +1,18 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaChevronDown, FaSearch, FaCar, FaBuilding, FaTools, FaComments, FaShieldAlt, FaCreditCard, FaQuestionCircle } from 'react-icons/fa';
+import { 
+  FaChevronDown, FaSearch, FaCar, FaBuilding, FaTools, FaComments, 
+  FaShieldAlt, FaCreditCard, FaQuestionCircle, FaDownload, FaEye,
+  FaLock, FaSearchPlus, FaCalendarAlt, FaComments as FaCommentsIcon,
+  FaBuilding as FaBuildingIcon, FaStar, FaFilePdf, FaHeadset,
+  FaEnvelope, FaPhoneAlt, FaArrowRight, FaBookOpen, FaMobileAlt,
+  FaGlobe, FaCheckCircle
+} from 'react-icons/fa';
 import { FiArrowRight, FiMail, FiPhone } from 'react-icons/fi';
-import SEOHead from '../components/SEOHead'; 
+import { MdOutlineContactSupport, MdOutlineLibraryBooks } from 'react-icons/md';
+import SEOHead from '../components/SEOHead';
+
+const PDF_URL = '/Manuel_Utilisateur_CarEasy.pdf'; 
 
 const faqCategories = [
   {
@@ -157,6 +167,159 @@ const faqCategories = [
   }
 ];
 
+function GuideDownloadSection() {
+  return (
+    <div style={guideStyles.wrapper}>
+      <div style={guideStyles.header}>
+        <div style={guideStyles.headerIcon}>
+          <MdOutlineLibraryBooks style={{ fontSize: '1.75rem', color: '#ef4444' }} />
+        </div>
+        <div>
+          <h2 style={guideStyles.title}>Ressources & Guides</h2>
+          <p style={guideStyles.subtitle}>Téléchargez le manuel complet pour maîtriser CarEasy</p>
+        </div>
+      </div>
+
+      <div style={guideStyles.card}>
+        <div style={guideStyles.pdfIcon}>
+          <FaFilePdf style={{ fontSize: '2rem', color: '#ef4444' }} />
+          <span style={guideStyles.pdfBadge}>PDF</span>
+        </div>
+        <div style={guideStyles.cardInfo}>
+          <h3 style={guideStyles.cardTitle}>Manuel Utilisateur CarEasy</h3>
+          <p style={guideStyles.cardMeta}>
+            Guide complet · Version 1.0.0 · 2025-2026 · 61 pages
+          </p>
+          <div style={guideStyles.tags}>
+            <span style={guideStyles.tag}><FaUsers style={{ marginRight: '0.25rem', fontSize: '0.65rem' }} /> Clients & Prestataires</span>
+            <span style={guideStyles.tag}><FaMobileAlt style={{ marginRight: '0.25rem', fontSize: '0.65rem' }} /> Mobile & Web</span>
+            <span style={guideStyles.tag}><FaGlobe style={{ marginRight: '0.25rem', fontSize: '0.65rem' }} /> Français</span>
+            <span style={{ ...guideStyles.tag, backgroundColor: '#d1fae5', color: '#065f46' }}><FaCheckCircle style={{ marginRight: '0.25rem', fontSize: '0.65rem' }} /> Gratuit</span>
+          </div>
+          <p style={guideStyles.cardDesc}>
+            Apprenez à créer votre compte, trouver un prestataire, gérer vos rendez-vous,
+            utiliser l'assistant CarAI et bien plus encore.
+          </p>
+        </div>
+        <div style={guideStyles.cardActions}>
+          <a
+            href={PDF_URL}
+            download="Manuel_Utilisateur_CarEasy_v1.0.0.pdf"
+            style={guideStyles.btnPrimary}
+          >
+            <FaDownload style={{ marginRight: '0.4rem' }} /> Télécharger le PDF
+          </a>
+          <a
+            href={PDF_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={guideStyles.btnSecondary}
+          >
+            <FaEye style={{ marginRight: '0.4rem' }} /> Consulter en ligne
+          </a>
+        </div>
+      </div>
+
+      <div style={guideStyles.chapters}>
+        {[
+          { icon: <FaLock />, title: 'Connexion & Inscription', desc: 'Créer un compte, se connecter' },
+          { icon: <FaSearchPlus />, title: 'Rechercher un service', desc: 'Trouver le bon prestataire' },
+          { icon: <FaCalendarAlt />, title: 'Rendez-vous', desc: 'Réserver et gérer vos RDV' },
+          { icon: <FaCommentsIcon />, title: 'Messagerie & CarAI', desc: 'Communiquer avec les pros' },
+          { icon: <FaBuildingIcon />, title: 'Espace Prestataire', desc: "Inscrire et gérer son entreprise" },
+          { icon: <FaStar />, title: 'Avis & Notation', desc: 'Évaluer les prestataires' },
+        ].map((ch, i) => (
+          <div key={i} style={guideStyles.chapterItem}>
+            <span style={{ fontSize: '1.25rem', color: '#ef4444' }}>{ch.icon}</span>
+            <div>
+              <div style={guideStyles.chapterTitle}>{ch.title}</div>
+              <div style={guideStyles.chapterDesc}>{ch.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Ajout de l'import manquant pour FaUsers
+import { FaUsers } from 'react-icons/fa';
+
+const guideStyles = {
+  wrapper: {
+    backgroundColor: '#fff',
+    borderRadius: '1.25rem',
+    border: '1.5px solid #e2e8f0',
+    padding: '2rem',
+    margin: '2rem 0',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+  },
+  header: {
+    display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem',
+  },
+  headerIcon: {
+    width: '52px', height: '52px', borderRadius: '0.875rem',
+    backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', fontSize: '1.75rem', flexShrink: 0,
+  },
+  title: { fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', margin: 0 },
+  subtitle: { fontSize: '0.9rem', color: '#64748b', margin: '0.25rem 0 0' },
+  card: {
+    display: 'flex', alignItems: 'flex-start', gap: '1.25rem',
+    backgroundColor: '#f8fafc', borderRadius: '1rem',
+    border: '1.5px solid #ef4444', padding: '1.5rem', marginBottom: '1.5rem',
+    flexWrap: 'wrap',
+  },
+  pdfIcon: {
+    position: 'relative', width: '60px', height: '72px',
+    backgroundColor: '#fee2e2', borderRadius: '0.75rem',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  pdfBadge: {
+    position: 'absolute', bottom: '-8px', left: '50%', transform: 'translateX(-50%)',
+    backgroundColor: '#ef4444', color: '#fff', fontSize: '0.6rem',
+    fontWeight: '800', padding: '2px 6px', borderRadius: '4px',
+  },
+  cardInfo: { flex: 1, minWidth: '200px' },
+  cardTitle: { fontSize: '1.1rem', fontWeight: '700', color: '#1e293b', margin: '0 0 0.25rem' },
+  cardMeta: { fontSize: '0.8rem', color: '#64748b', margin: '0 0 0.75rem' },
+  tags: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' },
+  tag: {
+    fontSize: '0.72rem', fontWeight: '600',
+    backgroundColor: '#e0f2fe', color: '#0369a1',
+    padding: '3px 8px', borderRadius: '999px',
+    display: 'inline-flex', alignItems: 'center',
+  },
+  cardDesc: { fontSize: '0.875rem', color: '#475569', lineHeight: '1.6', margin: 0 },
+  cardActions: {
+    display: 'flex', flexDirection: 'column', gap: '0.6rem', flexShrink: 0,
+  },
+  btnPrimary: {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    gap: '0.4rem', backgroundColor: '#ef4444', color: '#fff',
+    padding: '0.75rem 1.25rem', borderRadius: '0.75rem',
+    fontWeight: '700', textDecoration: 'none', fontSize: '0.875rem',
+    whiteSpace: 'nowrap',
+  },
+  btnSecondary: {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    gap: '0.4rem', backgroundColor: '#fff', color: '#ef4444',
+    border: '1.5px solid #ef4444', padding: '0.75rem 1.25rem',
+    borderRadius: '0.75rem', fontWeight: '600',
+    textDecoration: 'none', fontSize: '0.875rem', whiteSpace: 'nowrap',
+  },
+  chapters: {
+    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem',
+  },
+  chapterItem: {
+    display: 'flex', alignItems: 'center', gap: '0.75rem',
+    backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+    borderRadius: '0.75rem', padding: '0.875rem',
+  },
+  chapterTitle: { fontSize: '0.875rem', fontWeight: '600', color: '#1e293b' },
+  chapterDesc: { fontSize: '0.75rem', color: '#64748b', marginTop: '2px' },
+};
+
 export default function FAQ() {
   const [activeCategory, setActiveCategory] = useState('general');
   const [openQuestions, setOpenQuestions] = useState({});
@@ -169,7 +332,6 @@ export default function FAQ() {
 
   const isOpen = (catId, qIndex) => !!openQuestions[`${catId}-${qIndex}`];
 
-  // Search mode: filter all questions
   const allQuestions = faqCategories.flatMap(cat =>
     cat.questions.map(q => ({ ...q, catId: cat.id, catLabel: cat.label, catColor: cat.color, catIcon: cat.icon }))
   );
@@ -189,7 +351,6 @@ export default function FAQ() {
         description="Centre d'aide CarEasy : inscription, création d'entreprise, messagerie, sécurité. Toutes les réponses à vos questions."
         canonical="/faq"
       />
-      {/* HERO */}
       <div style={styles.hero}>
         <div style={styles.heroInner}>
           <div style={styles.heroBadge}>
@@ -199,7 +360,6 @@ export default function FAQ() {
           <h1 style={styles.heroTitle}>Comment pouvons-nous<br /><span style={styles.heroAccent}>vous aider ?</span></h1>
           <p style={styles.heroSub}>Trouvez rapidement des réponses à toutes vos questions sur CarEasy.</p>
 
-          {/* Search */}
           <div style={styles.searchBox}>
             <FaSearch style={styles.searchIconStyle} />
             <input
@@ -214,7 +374,6 @@ export default function FAQ() {
             )}
           </div>
 
-          {/* Stats */}
           <div style={styles.heroStats}>
             <div style={styles.heroStat}><span style={styles.heroStatNum}>6</span><span style={styles.heroStatLabel}>Catégories</span></div>
             <div style={styles.heroStatDiv} />
@@ -224,23 +383,20 @@ export default function FAQ() {
           </div>
         </div>
 
-        {/* Decorative shapes */}
         <div style={styles.deco1} />
         <div style={styles.deco2} />
         <div style={styles.deco3} />
       </div>
 
-      {/* MAIN CONTENT */}
       <div style={styles.mainWrap}>
         {filteredQuestions !== null ? (
-          /* SEARCH RESULTS */
           <div style={styles.searchResults}>
             <h2 style={styles.searchResultsTitle}>
               {filteredQuestions.length} résultat{filteredQuestions.length !== 1 ? 's' : ''} pour «&nbsp;{searchTerm}&nbsp;»
             </h2>
             {filteredQuestions.length === 0 ? (
               <div style={styles.noResults}>
-                <div style={styles.noResultsEmoji}>🔍</div>
+                <div style={styles.noResultsEmoji}><FaSearch style={{ fontSize: '3rem', color: '#94a3b8' }} /></div>
                 <h3 style={styles.noResultsTitle}>Aucun résultat</h3>
                 <p style={styles.noResultsText}>Essayez d'autres mots-clés ou parcourez les catégories ci-dessous.</p>
                 <button onClick={() => setSearchTerm('')} style={styles.noResultsBtn}>
@@ -274,100 +430,100 @@ export default function FAQ() {
             )}
           </div>
         ) : (
-          <div style={styles.layout}>
-            {/* SIDEBAR */}
-            <aside style={styles.sidebar}>
-              <p style={styles.sidebarLabel}>Catégories</p>
-              {faqCategories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  style={{
-                    ...styles.sidebarBtn,
-                    ...(activeCategory === cat.id ? { backgroundColor: cat.color, color: '#fff', boxShadow: `0 4px 20px ${cat.color}40` } : {})
-                  }}
-                >
-                  <span style={{
-                    ...styles.sidebarBtnIcon,
-                    backgroundColor: activeCategory === cat.id ? 'rgba(255,255,255,0.2)' : cat.bgColor,
-                    color: activeCategory === cat.id ? '#fff' : cat.color
-                  }}>
-                    {cat.icon}
-                  </span>
-                  <span style={styles.sidebarBtnLabel}>{cat.label}</span>
-                  <span style={{
-                    ...styles.sidebarBtnCount,
-                    backgroundColor: activeCategory === cat.id ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
-                    color: activeCategory === cat.id ? '#fff' : '#64748b'
-                  }}>
-                    {cat.questions.length}
-                  </span>
-                </button>
-              ))}
+          <>
+            <div style={styles.layout}>
+              <aside style={styles.sidebar}>
+                <p style={styles.sidebarLabel}>Catégories</p>
+                {faqCategories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
+                    style={{
+                      ...styles.sidebarBtn,
+                      ...(activeCategory === cat.id ? { backgroundColor: cat.color, color: '#fff', boxShadow: `0 4px 20px ${cat.color}40` } : {})
+                    }}
+                  >
+                    <span style={{
+                      ...styles.sidebarBtnIcon,
+                      backgroundColor: activeCategory === cat.id ? 'rgba(255,255,255,0.2)' : cat.bgColor,
+                      color: activeCategory === cat.id ? '#fff' : cat.color
+                    }}>
+                      {cat.icon}
+                    </span>
+                    <span style={styles.sidebarBtnLabel}>{cat.label}</span>
+                    <span style={{
+                      ...styles.sidebarBtnCount,
+                      backgroundColor: activeCategory === cat.id ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
+                      color: activeCategory === cat.id ? '#fff' : '#64748b'
+                    }}>
+                      {cat.questions.length}
+                    </span>
+                  </button>
+                ))}
 
-              {/* Contact CTA */}
-              <div style={styles.sidebarContact}>
-                <div style={styles.sidebarContactTitle}>Vous n'avez pas trouvé ?</div>
-                <p style={styles.sidebarContactText}>Notre équipe est disponible pour vous aider directement.</p>
-                <a href="mailto:careasy26@gmail.com" style={styles.sidebarContactBtn}>
-                  <FiMail style={{ marginRight: 6 }} /> Nous écrire
-                </a>
-                <a href="tel:+22990000000" style={styles.sidebarContactBtnSecond}>
-                  <FiPhone style={{ marginRight: 6 }} /> +229 90 00 00 00
-                </a>
-              </div>
-            </aside>
+                <div style={styles.sidebarContact}>
+                  <div style={styles.sidebarContactTitle}>Vous n'avez pas trouvé ?</div>
+                  <p style={styles.sidebarContactText}>Notre équipe est disponible pour vous aider directement.</p>
+                  <a href="mailto:careasy26@gmail.com" style={styles.sidebarContactBtn}>
+                    <FiMail style={{ marginRight: 6 }} /> Nous écrire
+                  </a>
+                  <a href="tel:+22990000000" style={styles.sidebarContactBtnSecond}>
+                    <FiPhone style={{ marginRight: 6 }} /> +229 90 00 00 00
+                  </a>
+                </div>
+              </aside>
 
-            {/* QUESTIONS PANEL */}
-            <main style={styles.panel}>
-              {currentCategory && (
-                <>
-                  <div style={styles.panelHeader}>
-                    <div style={{ ...styles.panelHeaderIcon, backgroundColor: currentCategory.bgColor, color: currentCategory.color }}>
-                      {currentCategory.icon}
-                    </div>
-                    <div>
-                      <h2 style={styles.panelTitle}>{currentCategory.label}</h2>
-                      <p style={styles.panelSub}>{currentCategory.questions.length} question{currentCategory.questions.length > 1 ? 's' : ''}</p>
-                    </div>
-                  </div>
-
-                  <div style={styles.accordionList}>
-                    {currentCategory.questions.map((item, i) => (
-                      <div key={i} style={{
-                        ...styles.accordionItem,
-                        ...(isOpen(currentCategory.id, i) ? { borderColor: currentCategory.color, boxShadow: `0 0 0 2px ${currentCategory.color}20` } : {})
-                      }}>
-                        <button
-                          onClick={() => toggleQuestion(currentCategory.id, i)}
-                          style={styles.accordionBtn}
-                        >
-                          <span style={styles.accordionQ}>{item.q}</span>
-                          <div style={{
-                            ...styles.chevron,
-                            backgroundColor: isOpen(currentCategory.id, i) ? currentCategory.color : '#f1f5f9',
-                            color: isOpen(currentCategory.id, i) ? '#fff' : '#64748b',
-                            transform: isOpen(currentCategory.id, i) ? 'rotate(180deg)' : 'rotate(0deg)'
-                          }}>
-                            <FaChevronDown />
-                          </div>
-                        </button>
-                        {isOpen(currentCategory.id, i) && (
-                          <div style={{ ...styles.accordionAnswer, borderLeftColor: currentCategory.color }}>
-                            {item.a}
-                          </div>
-                        )}
+              <main style={styles.panel}>
+                {currentCategory && (
+                  <>
+                    <div style={styles.panelHeader}>
+                      <div style={{ ...styles.panelHeaderIcon, backgroundColor: currentCategory.bgColor, color: currentCategory.color }}>
+                        {currentCategory.icon}
                       </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </main>
-          </div>
+                      <div>
+                        <h2 style={styles.panelTitle}>{currentCategory.label}</h2>
+                        <p style={styles.panelSub}>{currentCategory.questions.length} question{currentCategory.questions.length > 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+
+                    <div style={styles.accordionList}>
+                      {currentCategory.questions.map((item, i) => (
+                        <div key={i} style={{
+                          ...styles.accordionItem,
+                          ...(isOpen(currentCategory.id, i) ? { borderColor: currentCategory.color, boxShadow: `0 0 0 2px ${currentCategory.color}20` } : {})
+                        }}>
+                          <button
+                            onClick={() => toggleQuestion(currentCategory.id, i)}
+                            style={styles.accordionBtn}
+                          >
+                            <span style={styles.accordionQ}>{item.q}</span>
+                            <div style={{
+                              ...styles.chevron,
+                              backgroundColor: isOpen(currentCategory.id, i) ? currentCategory.color : '#f1f5f9',
+                              color: isOpen(currentCategory.id, i) ? '#fff' : '#64748b',
+                              transform: isOpen(currentCategory.id, i) ? 'rotate(180deg)' : 'rotate(0deg)'
+                            }}>
+                              <FaChevronDown />
+                            </div>
+                          </button>
+                          {isOpen(currentCategory.id, i) && (
+                            <div style={{ ...styles.accordionAnswer, borderLeftColor: currentCategory.color }}>
+                              {item.a}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </main>
+            </div>
+            
+            <GuideDownloadSection />
+          </>
         )}
       </div>
 
-      {/* BOTTOM CTA */}
       <div style={styles.bottomCta}>
         <div style={styles.bottomCtaInner}>
           <div style={styles.bottomCtaLeft}>
@@ -462,8 +618,6 @@ const styles = {
     backgroundColor: '#f8fafc',
     fontFamily: "'Segoe UI', system-ui, sans-serif",
   },
-
-  /* HERO */
   hero: {
     position: 'relative',
     background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #1e1b4b 100%)',
@@ -510,8 +664,6 @@ const styles = {
     marginBottom: '2.5rem',
     lineHeight: '1.7',
   },
-
-  /* Search */
   searchBox: {
     position: 'relative',
     maxWidth: '520px',
@@ -550,8 +702,6 @@ const styles = {
     padding: '0.25rem',
     zIndex: 1,
   },
-
-  /* Hero stats */
   heroStats: {
     display: 'flex',
     alignItems: 'center',
@@ -582,8 +732,6 @@ const styles = {
     height: '40px',
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
-
-  /* Decorative */
   deco1: {
     position: 'absolute',
     top: '-80px',
@@ -614,8 +762,6 @@ const styles = {
     backgroundColor: 'rgba(239,68,68,0.6)',
     boxShadow: '0 0 20px rgba(239,68,68,0.4)',
   },
-
-  /* MAIN */
   mainWrap: {
     maxWidth: '1200px',
     margin: '-3rem auto 0',
@@ -623,16 +769,12 @@ const styles = {
     position: 'relative',
     zIndex: 3,
   },
-
-  /* Layout */
   layout: {
     display: 'grid',
     gridTemplateColumns: '280px 1fr',
     gap: '2rem',
     alignItems: 'start',
   },
-
-  /* Sidebar */
   sidebar: {
     position: 'sticky',
     top: '1.5rem',
@@ -732,8 +874,6 @@ const styles = {
     transition: 'all 0.2s',
     border: '1px solid rgba(255,255,255,0.1)',
   },
-
-  /* Panel */
   panel: {
     backgroundColor: '#fff',
     borderRadius: '1.25rem',
@@ -769,8 +909,6 @@ const styles = {
     color: '#94a3b8',
     margin: '0.25rem 0 0',
   },
-
-  /* Accordion */
   accordionList: {
     padding: '1.5rem',
     display: 'flex',
@@ -843,8 +981,6 @@ const styles = {
     paddingLeft: '1.25rem',
     animation: 'fadeInUp 0.2s ease-out',
   },
-
-  /* Search results */
   searchResults: {
     backgroundColor: '#fff',
     borderRadius: '1.25rem',
@@ -886,8 +1022,6 @@ const styles = {
     fontWeight: '600',
     cursor: 'pointer',
   },
-
-  /* Bottom CTA */
   bottomCta: {
     background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
     padding: '4rem 1.5rem',

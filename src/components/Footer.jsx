@@ -132,6 +132,16 @@ export default function Footer() {
                 <li><Link to="/faq" style={styles.navLink} className="footer-nav-link">{t('footer.helpCenter')}</Link></li>
                 <li><Link to="/guide-prestataire" style={styles.navLink} className="footer-nav-link">{t('footer.providerGuide')}</Link></li>
                 <li><Link to="/suggestions" style={styles.navLink} className="footer-nav-link">{t('footer.suggestFeature')}</Link></li>
+                <li>
+                  <a 
+                    href="/Manuel_Utilisateur_CarEasy.pdf" 
+                    download="Manuel_Utilisateur_CarEasy_v1.0.0.pdf"
+                    style={styles.navLink} 
+                    className="footer-nav-link"
+                  >
+                     {/*t('footer.userManual') ||*/ 'Manuel utilisateur (PDF)'}
+                  </a>
+                </li>
                 <li><Link to="/privacy" style={styles.navLink} className="footer-nav-link">{t('footer.privacyPolicy')}</Link></li>
                 <li><Link to="/terms" style={styles.navLink} className="footer-nav-link">{t('footer.termsOfUse')}</Link></li>
               </ul>

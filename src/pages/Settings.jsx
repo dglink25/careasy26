@@ -1,6 +1,6 @@
 // src/pages/Settings.jsx
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePrivacy } from '../contexts/PrivacyContext';
@@ -10,8 +10,11 @@ import SessionsSecurityPanel from '../components/Settings/SessionsSecurityPanel'
 import {
   FiUser, FiMail, FiLock, FiBell, FiEye, FiMoon, FiSun, FiMonitor,
   FiCamera, FiSave, FiAlertCircle, FiCheckCircle, FiX, FiSettings,
-  FiShield, FiGlobe, FiPhone, FiSmartphone,
+  FiShield, FiGlobe, FiPhone, FiSmartphone, FiHelpCircle, FiDownload,
+  FiExternalLink, FiBookOpen, FiSearch, FiCalendar, FiMessageSquare,
+  FiStar, FiBriefcase, FiArrowRight
 } from 'react-icons/fi';
+import { FaFilePdf, FaDownload, FaEye } from 'react-icons/fa';
 
 /* ─── helper : couleurs selon le thème actuel ─── */
 function useColors() {
@@ -50,7 +53,6 @@ export default function Settings() {
     current_password: '', new_password: '', new_password_confirmation: '',
   });
   const [notifications, setNotifications] = useState({ email: true, push: true, sms: false });
-  // Plus d'état local pour privacy — on lit directement le contexte global
 
   useEffect(() => { loadUserData(); }, []);
   useEffect(() => {
@@ -73,7 +75,6 @@ export default function Settings() {
         profile_photo: null,
         profile_photo_url: profileRes.user.profile_photo_url,
       });
-      // Synchroniser le contexte global avec les données backend
       syncFromBackend(settingsRes.settings?.privacy);
       setNotifications(notificationRes.notifications);
     } catch (e) {
@@ -176,25 +177,21 @@ export default function Settings() {
     } catch { showMessage('Erreur', 'error'); }
   };
 
-  // Met à jour le contexte global EN PREMIER → Navbar et useOnlineStatus réagissent instantanément
   const handlePrivacyChange = async (key, value) => {
     const updated = { ...privacy, [key]: value };
-    updatePrivacy(updated); // ← contexte global, effet immédiat partout
+    updatePrivacy(updated);
     try {
       await userSettingsApi.updateSettings({ privacy: updated });
       showMessage('Confidentialité mise à jour');
     } catch {
-      // En cas d'erreur API, rollback
       updatePrivacy(privacy);
       showMessage('Erreur de sauvegarde', 'error');
     }
   };
 
-  /* ── déterminer le thème "effectif" affiché ── */
   const savedRaw = localStorage.getItem('careasy-theme');
   const displayTheme = savedRaw === 'system' ? 'system' : theme;
 
-  /* ────────────────────── styles inline ────────────────────── */
   const s = {
     page:        { minHeight: '100vh', backgroundColor: c.bg, padding: '2rem 0 4rem', color: c.text },
     wrap:        { maxWidth: 900, margin: '0 auto', padding: '0 1.5rem' },
@@ -264,6 +261,16 @@ export default function Settings() {
     themeCheck:  { position: 'absolute', top: '.5rem', right: '.5rem', fontSize: '1.25rem', color: c.brand },
   };
 
+  const TABS = [
+    { id: 'profile',       label: 'Profil',           Icon: FiUser },
+    { id: 'security',      label: 'Sécurité',         Icon: FiLock },
+    { id: 'sessions',      label: 'Appareils',        Icon: FiShield },
+    { id: 'notifications', label: 'Notifications',    Icon: FiBell },
+    { id: 'appearance',    label: 'Apparence',        Icon: FiMoon },
+    { id: 'privacy',       label: 'Confidentialité',  Icon: FiShield },
+    { id: 'aide',          label: 'Aide',             Icon: FiHelpCircle },
+  ];
+
   if (loading) return (
     <div style={{ ...s.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
@@ -272,16 +279,6 @@ export default function Settings() {
       </div>
     </div>
   );
-
-  // TABS avec l'onglet 'sessions' ajouté
-  const TABS = [
-    { id: 'profile',       label: 'Profil',           Icon: FiUser },
-    { id: 'security',      label: 'Sécurité',         Icon: FiLock },
-    { id: 'sessions',      label: 'Appareils',        Icon: FiShield },
-    { id: 'notifications', label: 'Notifications',    Icon: FiBell },
-    { id: 'appearance',    label: 'Apparence',        Icon: FiMoon },
-    { id: 'privacy',       label: 'Confidentialité',  Icon: FiShield },
-  ];
 
   return (
     <div style={s.page}>
@@ -308,7 +305,6 @@ export default function Settings() {
         </div>
 
         <div style={s.panel}>
-
           {/* ── PROFIL ── */}
           {activeTab === 'profile' && (
             <div style={s.section}>
@@ -388,7 +384,7 @@ export default function Settings() {
             </div>
           )}
 
-          {/* ── APPAREILS (SESSIONS) ── NOUVEAU */}
+          {/* ── APPAREILS (SESSIONS) ── */}
           {activeTab === 'sessions' && (
             <SessionsSecurityPanel colors={c} />
           )}
@@ -467,6 +463,116 @@ export default function Settings() {
             </div>
           )}
 
+          {/* ── AIDE & DOCUMENTATION ── */}
+          {activeTab === 'aide' && (
+            <div style={s.section}>
+              <h2 style={s.sectionTitle}>Aide & Documentation</h2>
+              <p style={{ color: c.textSec, marginBottom: '1.5rem' }}>
+                Téléchargez le guide complet pour maîtriser toutes les fonctionnalités de CarEasy.
+              </p>
+
+              {/* Carte principale PDF */}
+              <div style={{
+                backgroundColor: c.bgSec, borderRadius: '1rem',
+                border: `2px solid ${c.brand}`, padding: '1.5rem',
+                display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'flex-start',
+              }}>
+                <div style={{
+                  width: '56px', height: '68px', backgroundColor: '#fee2e2',
+                  borderRadius: '0.75rem', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: '2rem', flexShrink: 0, position: 'relative',
+                }}>
+                  <FaFilePdf style={{ fontSize: '2rem', color: '#ef4444' }} />
+                  <span style={{
+                    position: 'absolute', bottom: '-8px', left: '50%', transform: 'translateX(-50%)',
+                    backgroundColor: '#ef4444', color: '#fff', fontSize: '0.55rem',
+                    fontWeight: '800', padding: '2px 5px', borderRadius: '4px',
+                  }}>PDF</span>
+                </div>
+                <div style={{ flex: 1, minWidth: '180px' }}>
+                  <div style={{ fontWeight: '700', fontSize: '1rem', color: c.text, marginBottom: '0.25rem' }}>
+                    Manuel Utilisateur CarEasy
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: c.textSec, marginBottom: '1rem' }}>
+                    Guide complet · V1.0.0 · 2025-2026 · 61 pages · Clients & Prestataires
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <a
+                      href="/Manuel_Utilisateur_CarEasy.pdf"
+                      download="Manuel_Utilisateur_CarEasy_v1.0.0.pdf"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                        backgroundColor: c.brand, color: '#fff', padding: '0.65rem 1.25rem',
+                        borderRadius: '0.65rem', fontWeight: '600', textDecoration: 'none', fontSize: '0.875rem',
+                      }}
+                    >
+                      <FaDownload style={{ fontSize: '0.875rem' }} /> Télécharger
+                    </a>
+                    <a
+                      href="/Manuel_Utilisateur_CarEasy.pdf"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                        border: `2px solid ${c.brand}`, color: c.brand, backgroundColor: 'transparent',
+                        padding: '0.65rem 1.25rem', borderRadius: '0.65rem',
+                        fontWeight: '600', textDecoration: 'none', fontSize: '0.875rem',
+                      }}
+                    >
+                      <FaEye style={{ fontSize: '0.875rem' }} /> Consulter
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Chapitres rapides - Version corrigée sans les icônes problématiques */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem', marginTop: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: c.bgSec, border: `1px solid ${c.border}`, borderRadius: '0.75rem', padding: '0.875rem' }}>
+                  <FiLock style={{ fontSize: '1.25rem', color: c.brand }} />
+                  <div><div style={{ fontSize: '0.85rem', fontWeight: '600', color: c.text }}>Connexion & Compte</div><div style={{ fontSize: '0.7rem', color: c.textSec }}>p.4</div></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: c.bgSec, border: `1px solid ${c.border}`, borderRadius: '0.75rem', padding: '0.875rem' }}>
+                  <FiSearch style={{ fontSize: '1.25rem', color: c.brand }} />
+                  <div><div style={{ fontSize: '0.85rem', fontWeight: '600', color: c.text }}>Recherche de services</div><div style={{ fontSize: '0.7rem', color: c.textSec }}>p.11</div></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: c.bgSec, border: `1px solid ${c.border}`, borderRadius: '0.75rem', padding: '0.875rem' }}>
+                  <FiCalendar style={{ fontSize: '1.25rem', color: c.brand }} />
+                  <div><div style={{ fontSize: '0.85rem', fontWeight: '600', color: c.text }}>Rendez-vous</div><div style={{ fontSize: '0.7rem', color: c.textSec }}>p.19</div></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: c.bgSec, border: `1px solid ${c.border}`, borderRadius: '0.75rem', padding: '0.875rem' }}>
+                  <FiMessageSquare style={{ fontSize: '1.25rem', color: c.brand }} />
+                  <div><div style={{ fontSize: '0.85rem', fontWeight: '600', color: c.text }}>Messagerie & CarAI</div><div style={{ fontSize: '0.7rem', color: c.textSec }}>p.28</div></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: c.bgSec, border: `1px solid ${c.border}`, borderRadius: '0.75rem', padding: '0.875rem' }}>
+                  <FiBriefcase style={{ fontSize: '1.25rem', color: c.brand }} />
+                  <div><div style={{ fontSize: '0.85rem', fontWeight: '600', color: c.text }}>Espace Prestataire</div><div style={{ fontSize: '0.7rem', color: c.textSec }}>p.33</div></div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: c.bgSec, border: `1px solid ${c.border}`, borderRadius: '0.75rem', padding: '0.875rem' }}>
+                  <FiStar style={{ fontSize: '1.25rem', color: c.brand }} />
+                  <div><div style={{ fontSize: '0.85rem', fontWeight: '600', color: c.text }}>Avis & Notation</div><div style={{ fontSize: '0.7rem', color: c.textSec }}>p.47</div></div>
+                </div>
+              </div>
+
+              {/* Lien FAQ */}
+              <div style={{
+                marginTop: '1.5rem', padding: '1rem 1.25rem',
+                backgroundColor: c.bgSec, border: `1px solid ${c.border}`, borderRadius: '0.75rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem',
+              }}>
+                <div>
+                  <div style={{ fontWeight: '600', color: c.text, marginBottom: '0.25rem' }}>Des questions ?</div>
+                  <div style={{ fontSize: '0.85rem', color: c.textSec }}>Consultez notre centre d'aide avec 26 questions répondues.</div>
+                </div>
+                <Link to="/faq" style={{
+                  backgroundColor: c.brand, color: '#fff', padding: '0.65rem 1.25rem',
+                  borderRadius: '0.65rem', fontWeight: '600', textDecoration: 'none', fontSize: '0.875rem',
+                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem'
+                }}>
+                  Voir la FAQ <FiArrowRight style={{ fontSize: '0.875rem' }} />
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
