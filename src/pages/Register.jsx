@@ -1,903 +1,692 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../contexts/ModalContext';
 import Logo from '../components/Logo';
 import theme from '../config/theme';
 import SEOHead from '../components/SEOHead';
-import { 
-  FaEye, 
-  FaEyeSlash, 
-  FaGoogle, 
-  FaTimes, 
-  FaEnvelope, 
-  FaPhone,
-  FaUser,
-  FaLock,
-  FaCheckCircle
+import api from '../api/axios';
+import {
+  FaEye, FaEyeSlash, FaGoogle, FaTimes,
+  FaEnvelope, FaPhone, FaLock, FaCheckCircle, FaArrowLeft
 } from 'react-icons/fa';
 import { MdEmail, MdPhone } from 'react-icons/md';
 
-export default function Register({ isModal = false, onClose }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    password_confirmation: ''
-  });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [registrationMethod, setRegistrationMethod] = useState('email'); // 'email' ou 'phone'
-  
-  const [showPassword, setShowPassword] = useState(false);
-  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState({});
-  
-  const { register } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { openModal } = useModal();
+// ─── Constantes ───────────────────────────────────────────────────────────────
+const STEP_CONTACT = 'contact';   // Saisie email ou téléphone
+const STEP_OTP     = 'otp';       // Vérification OTP
+const STEP_PROFILE = 'profile';   // Nom + mot de passe
 
-  // Validation en temps réel
-  const validateField = (name, value) => {
-    const errors = { ...fieldErrors };
-    
-    switch(name) {
-      case 'email':
-        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          errors.email = 'Format d\'email invalide';
-        } else {
-          delete errors.email;
-        }
-        break;
-        
-      case 'phone':
-        if (value && !/^[0-9+\-\s]{8,15}$/.test(value.replace(/\s/g, ''))) {
-          errors.phone = 'Numéro de téléphone invalide (8-15 chiffres)';
-        } else {
-          delete errors.phone;
-        }
-        break;
-        
-      case 'password':
-        if (value && value.length < 8) {
-          errors.password = 'Le mot de passe doit contenir au moins 8 caractères';
-        } else {
-          delete errors.password;
-        }
-        break;
-        
-      case 'password_confirmation':
-        if (value && value !== formData.password) {
-          errors.password_confirmation = 'Les mots de passe ne correspondent pas';
-        } else {
-          delete errors.password_confirmation;
-        }
-        break;
-    }
-    
-    setFieldErrors(errors);
-  };
+// ─── Composant OTP 6 cases ────────────────────────────────────────────────────
+function OtpInput({ value, onChange, disabled }) {
+  const inputs = useRef([]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    
-    // Validation en temps réel
-    validateField(name, value);
-    
-    // Effacer l'erreur générale quand l'utilisateur corrige
-    if (error) setError('');
-    if (success) setSuccess('');
-  };
-
-  const handleMethodChange = (method) => {
-    setRegistrationMethod(method);
-    // Réinitialiser les champs non utilisés
-    setFormData({
-      ...formData,
-      email: '',
-      phone: ''
-    });
-    setFieldErrors({});
-    setError('');
-  };
-
-  const validateForm = () => {
-    const errors = {};
-    
-    if (!formData.name || formData.name.length < 2) {
-      errors.name = 'Le nom doit contenir au moins 2 caractères';
-    }
-    
-    if (registrationMethod === 'email') {
-      if (!formData.email) {
-        errors.email = 'L\'email est requis';
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        errors.email = 'Format d\'email invalide';
+  const handleKey = (e, i) => {
+    if (e.key === 'Backspace') {
+      if (!value[i] && i > 0) {
+        inputs.current[i - 1]?.focus();
       }
-    } else {
-      if (!formData.phone) {
-        errors.phone = 'Le téléphone est requis';
-      } else if (!/^[0-9+\-\s]{8,15}$/.test(formData.phone.replace(/\s/g, ''))) {
-        errors.phone = 'Numéro de téléphone invalide';
-      }
-    }
-    
-    if (!formData.password) {
-      errors.password = 'Le mot de passe est requis';
-    } else if (formData.password.length < 8) {
-      errors.password = 'Le mot de passe doit contenir au moins 8 caractères';
-    }
-    
-    if (formData.password !== formData.password_confirmation) {
-      errors.password_confirmation = 'Les mots de passe ne correspondent pas';
-    }
-    
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    
-    // Validation finale
-    if (!validateForm()) {
+      const arr = value.split('');
+      arr[i] = '';
+      onChange(arr.join(''));
       return;
     }
-
-    setLoading(true);
-    
-    // Préparer les données selon la méthode choisie
-    const registerData = {
-      name: formData.name,
-      password: formData.password,
-      password_confirmation: formData.password_confirmation
-    };
-    
-    if (registrationMethod === 'email') {
-      registerData.email = formData.email;
-    } else {
-      registerData.phone = formData.phone;
-    }
-    
-    const result = await register(registerData);
-    
-    if (result.success) {
-      setSuccess('Inscription réussie ! Redirection en cours...');
-      
-      setTimeout(() => {
-        if (isModal && onClose) {
-          onClose();
-        }
-        
-        const from = location.state?.from || '/dashboard';
-        const openContactModal = location.state?.openContactModal;
-        const selectedService = location.state?.selectedService;
-        
-        navigate(from, { 
-          state: { 
-            openContactModal, 
-            selectedService 
-          } 
-        });
-      }, 150);
-    } 
-    else {
-      setError(result.message || 'Une erreur est survenue lors de l\'inscription');
-    }
-    
-    setLoading(false);
+    if (e.key === 'ArrowLeft' && i > 0) { inputs.current[i - 1]?.focus(); return; }
+    if (e.key === 'ArrowRight' && i < 5) { inputs.current[i + 1]?.focus(); return; }
   };
 
-  const handleGoogleLogin = () => {
-    const from = location.state?.from || '/';
-    const openContactModal = location.state?.openContactModal;
-    const selectedService = location.state?.selectedService;
-    
-    if (openContactModal && selectedService) {
-      sessionStorage.setItem('redirectAfterGoogle', JSON.stringify({
-        from,
-        openContactModal,
-        selectedService
-      }));
+  const handleChange = (e, i) => {
+    const val = e.target.value.replace(/\D/g, '').slice(-1);
+    if (!val) return;
+    const arr = value.padEnd(6, ' ').split('');
+    arr[i] = val;
+    const next = arr.join('').replace(/ /g, '');
+    onChange(next);
+    if (i < 5) inputs.current[i + 1]?.focus();
+  };
+
+  const handlePaste = (e) => {
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted) {
+      onChange(pasted.padEnd(6, ' ').trim());
+      const idx = Math.min(pasted.length, 5);
+      inputs.current[idx]?.focus();
     }
-    
-    const apiUrl = import.meta.env.VITE_APP_URL || 'http://localhost:8000';
-    const baseUrl = apiUrl.endsWith('/auth') ? apiUrl.replace('/auth', '') : apiUrl;
-    const googleAuthUrl = `${baseUrl}/auth/google`;
-    window.location.href = googleAuthUrl;
+    e.preventDefault();
   };
-
-  const handleLoginClick = () => {
-    if (isModal && onClose) {
-      setTimeout(() => openModal('login'), 50);
-    } else {
-      navigate('/login', { 
-        state: { 
-          from: location.state?.from,
-          openContactModal: location.state?.openContactModal,
-          selectedService: location.state?.selectedService
-        } 
-      });
-    }
-  };
-
-  // Vérifier la force du mot de passe
-  const getPasswordStrength = (password) => {
-    if (!password) return 0;
-    let strength = 0;
-    if (password.length >= 8) strength += 1;
-    if (/[A-Z]/.test(password)) strength += 1;
-    if (/[0-9]/.test(password)) strength += 1;
-    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-    return strength;
-  };
-
-  const passwordStrength = getPasswordStrength(formData.password);
 
   return (
-    <div style={{
-      ...styles.container,
-      ...(isModal ? styles.modalContainer : {}),
-    }}>
-      <SEOHead title="Inscription" noindex={true} />
-      <div style={{
-        ...styles.card,
-        ...(isModal ? styles.modalCard : {}),
-      }}>
-        {/* Bouton fermer pour modal */}
-        {isModal && (
-          <button 
-            onClick={onClose}
-            style={styles.closeButton}
-            aria-label="Fermer"
-          >
-            <FaTimes style={styles.closeIcon} />
-          </button>
-        )}
-
-        <div style={styles.logoContainer}>
-          <Logo size={isModal ? "md" : "lg"} showText={true} />
-        </div>
-
-        <h2 style={styles.title}>Créer un compte</h2>
-        <p style={styles.subtitle}>Rejoignez CarEasy dès aujourd'hui</p>
-        
-        {/* Message de succès */}
-        {success && (
-          <div style={styles.success}>
-            <FaCheckCircle style={styles.successIcon} />
-            <span>{success}</span>
-          </div>
-        )}
-        
-        {/* Message d'erreur */}
-        {error && (
-          <div style={styles.error}>
-            {error}
-          </div>
-        )}
-
-        {/* Sélecteur de méthode d'inscription */}
-        <div style={styles.methodSelector}>
-          <button
-            type="button"
-            onClick={() => handleMethodChange('email')}
-            style={{
-              ...styles.methodButton,
-              ...(registrationMethod === 'email' ? styles.methodButtonActive : {}),
-              borderTopLeftRadius: theme.borderRadius.md,
-              borderBottomLeftRadius: theme.borderRadius.md,
-            }}
-          >
-            <MdEmail style={styles.methodIcon} />
-            <span>Email</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleMethodChange('phone')}
-            style={{
-              ...styles.methodButton,
-              ...(registrationMethod === 'phone' ? styles.methodButtonActive : {}),
-              borderTopRightRadius: theme.borderRadius.md,
-              borderBottomRightRadius: theme.borderRadius.md,
-            }}
-          >
-            <MdPhone style={styles.methodIcon} />
-            <span>Téléphone</span>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={styles.form}>
-          {/* Nom complet */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              <FaUser style={styles.inputIcon} />
-              Nom complet
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              style={{
-                ...styles.input,
-                ...(fieldErrors.name ? styles.inputError : {})
-              }}
-              placeholder="Ex: Jean Dupont"
-            />
-            {fieldErrors.name && (
-              <span style={styles.fieldError}>{fieldErrors.name}</span>
-            )}
-          </div>
-
-          {/* Champ conditionnel selon la méthode choisie */}
-          {registrationMethod === 'email' ? (
-            <div style={styles.formGroup}>
-              <label style={styles.label}>
-                <FaEnvelope style={styles.inputIcon} />
-                Adresse email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                style={{
-                  ...styles.input,
-                  ...(fieldErrors.email ? styles.inputError : {})
-                }}
-                placeholder="votre@email.com"
-              />
-              {fieldErrors.email && (
-                <span style={styles.fieldError}>{fieldErrors.email}</span>
-              )}
-            </div>
-          ) : (
-            <div style={styles.formGroup}>
-              <label style={styles.label}>
-                <FaPhone style={styles.inputIcon} />
-                Numéro de téléphone
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                required
-                style={{
-                  ...styles.input,
-                  ...(fieldErrors.phone ? styles.inputError : {})
-                }}
-                placeholder="+229 01 99 95 50 78"
-              />
-              {fieldErrors.phone && (
-                <span style={styles.fieldError}>{fieldErrors.phone}</span>
-              )}
-            </div>
-          )}
-
-          {/* Mot de passe avec indicateur de force */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              <FaLock style={styles.inputIcon} />
-              Mot de passe
-            </label>
-            <div style={styles.passwordInputContainer}>
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                minLength="8"
-                style={{
-                  ...styles.passwordInput,
-                  ...(fieldErrors.password ? styles.inputError : {})
-                }}
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={styles.toggleButton}
-                tabIndex="-1"
-              >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </button>
-            </div>
-            
-            {/* Indicateur de force du mot de passe */}
-            {formData.password && (
-              <div style={styles.passwordStrength}>
-                <div style={styles.strengthBars}>
-                  {[1, 2, 3, 4].map((level) => (
-                    <div
-                      key={level}
-                      style={{
-                        ...styles.strengthBar,
-                        backgroundColor: level <= passwordStrength 
-                          ? passwordStrength === 1 ? theme.colors.error
-                            : passwordStrength === 2 ? '#ffa500'
-                            : passwordStrength === 3 ? theme.colors.primary
-                            : theme.colors.success
-                          : theme.colors.primaryLight,
-                        width: level <= passwordStrength ? '25%' : '25%',
-                      }}
-                    />
-                  ))}
-                </div>
-                <span style={styles.strengthText}>
-                  {passwordStrength === 0 && 'Très faible'}
-                  {passwordStrength === 1 && 'Faible'}
-                  {passwordStrength === 2 && 'Moyen'}
-                  {passwordStrength === 3 && 'Fort'}
-                  {passwordStrength === 4 && 'Très fort'}
-                </span>
-              </div>
-            )}
-            
-            {fieldErrors.password && (
-              <span style={styles.fieldError}>{fieldErrors.password}</span>
-            )}
-          </div>
-
-          {/* Confirmation mot de passe */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              <FaLock style={styles.inputIcon} />
-              Confirmer le mot de passe
-            </label>
-            <div style={styles.passwordInputContainer}>
-              <input
-                type={showPasswordConfirmation ? "text" : "password"}
-                name="password_confirmation"
-                value={formData.password_confirmation}
-                onChange={handleChange}
-                required
-                style={{
-                  ...styles.passwordInput,
-                  ...(fieldErrors.password_confirmation ? styles.inputError : {})
-                }}
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
-                style={styles.toggleButton}
-                tabIndex="-1"
-              >
-                {showPasswordConfirmation ? <FaEyeSlash /> : <FaEye />}
-              </button>
-            </div>
-            {fieldErrors.password_confirmation && (
-              <span style={styles.fieldError}>{fieldErrors.password_confirmation}</span>
-            )}
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading || Object.keys(fieldErrors).length > 0}
-            style={{
-              ...styles.button,
-              opacity: (loading || Object.keys(fieldErrors).length > 0) ? 0.6 : 1,
-              cursor: (loading || Object.keys(fieldErrors).length > 0) ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? 'Inscription en cours...' : 'Créer mon compte'}
-          </button>
-        </form>
-
-        <div style={styles.divider}>
-          <span style={styles.dividerText}>OU</span>
-        </div>
-
-        {/* Bouton Google */}
-        <button 
-          onClick={handleGoogleLogin}
-          style={styles.googleButton}
-          type="button"
-        >
-          <FaGoogle style={styles.googleIcon} />
-          <span>Continuer avec Google</span>
-        </button>
-
-        <div style={styles.footer}>
-          <span style={styles.footerText}>Vous avez déjà un compte ?</span>
-          {isModal ? (
-            <button 
-              onClick={handleLoginClick}
-              style={styles.linkButton}
-            >
-              Se connecter
-            </button>
-          ) : (
-            <Link to="/login" style={styles.link}>
-              Se connecter
-            </Link>
-          )}
-        </div>
-      </div>
+    <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center' }} onPaste={handlePaste}>
+      {[0, 1, 2, 3, 4, 5].map(i => (
+        <input
+          key={i}
+          ref={el => inputs.current[i] = el}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          disabled={disabled}
+          value={value[i] || ''}
+          onChange={e => handleChange(e, i)}
+          onKeyDown={e => handleKey(e, i)}
+          style={{
+            width: 48,
+            height: 58,
+            textAlign: 'center',
+            fontSize: '1.6rem',
+            fontWeight: 800,
+            border: `2px solid ${value[i] ? theme.colors.primary : theme.colors.primaryLight}`,
+            borderRadius: 10,
+            outline: 'none',
+            backgroundColor: value[i] ? '#fff5f5' : '#fff',
+            color: theme.colors.primary,
+            transition: 'all 0.2s',
+            cursor: disabled ? 'not-allowed' : 'text',
+            opacity: disabled ? 0.6 : 1,
+            fontFamily: 'monospace',
+          }}
+          onFocus={e => { e.target.style.borderColor = theme.colors.primary; e.target.style.boxShadow = `0 0 0 3px ${theme.colors.primary}20`; }}
+          onBlur={e =>  { e.target.style.boxShadow = 'none'; }}
+        />
+      ))}
     </div>
   );
 }
 
-const styles = {
+// ─── Composant principal ──────────────────────────────────────────────────────
+export default function Register({ isModal = false, onClose }) {
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const { register } = useAuth();
+  const { openModal } = useModal();
+
+  // ── État global ──────────────────────────────────────────────────────────
+  const [step,         setStep]         = useState(STEP_CONTACT);
+  const [regMethod,    setRegMethod]    = useState('email'); // 'email' | 'phone'
+  const [identifier,   setIdentifier]   = useState('');      // email ou téléphone saisi
+  const [verifyToken,  setVerifyToken]  = useState('');      // token après OTP validé
+  const [maskedContact,setMaskedContact]= useState('');      // ex: jea***@gmail.com
+
+  // ── Étape Contact ────────────────────────────────────────────────────────
+  const [contError,   setContError]   = useState('');
+  const [contLoading, setContLoading] = useState(false);
+
+  // ── Étape OTP ────────────────────────────────────────────────────────────
+  const [otp,          setOtp]          = useState('');
+  const [otpError,     setOtpError]     = useState('');
+  const [otpLoading,   setOtpLoading]   = useState(false);
+  const [resendTimer,  setResendTimer]  = useState(0);
+  const [resendLoading,setResendLoading]= useState(false);
+
+  // ── Étape Profil ─────────────────────────────────────────────────────────
+  const [name,              setName]              = useState('');
+  const [password,          setPassword]          = useState('');
+  const [passwordConfirm,   setPasswordConfirm]   = useState('');
+  const [showPwd,           setShowPwd]           = useState(false);
+  const [showPwdC,          setShowPwdC]          = useState(false);
+  const [profError,         setProfError]         = useState('');
+  const [profLoading,       setProfLoading]        = useState(false);
+  const [fieldErrors,       setFieldErrors]       = useState({});
+  const [success,           setSuccess]           = useState('');
+
+  // ── Timer renvoi ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (resendTimer <= 0) return;
+    const t = setTimeout(() => setResendTimer(s => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendTimer]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ÉTAPE 1 : envoyer l'OTP
+  // ─────────────────────────────────────────────────────────────────────────
+  const handleSendOtp = async (e) => {
+    if (e) e.preventDefault();
+    setContError('');
+
+    // Validation rapide côté client
+    const clean = identifier.trim();
+    if (!clean) {
+      setContError(regMethod === 'email' ? 'Entrez votre adresse email.' : 'Entrez votre numéro de téléphone.');
+      return;
+    }
+    if (regMethod === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+      setContError('Format d\'email invalide.');
+      return;
+    }
+    if (regMethod === 'phone') {
+      const digits = clean.replace(/\D/g, '');
+      if (digits.length < 8 || digits.length > 15) {
+        setContError('Numéro invalide (8–15 chiffres).');
+        return;
+      }
+    }
+
+    setContLoading(true);
+    try {
+      const res = await api.post('/verify-contact/send', {
+        identifier: clean,
+        type: regMethod,
+      });
+
+      setMaskedContact(res.data.masked || clean);
+      setResendTimer(res.data.resend_after || 60);
+      setStep(STEP_OTP);
+    } catch (err) {
+      const code = err.response?.data?.code;
+      const msg  = err.response?.data?.message;
+
+      if (code === 'ALREADY_USED') {
+        setContError(msg || 'Ce contact est déjà utilisé.');
+      } else if (code === 'INVALID_FORMAT') {
+        setContError(msg || 'Format invalide.');
+      } else if (code === 'SEND_FAILED') {
+        setContError(msg || 'Impossible d\'envoyer le code. Vérifiez votre ' + (regMethod === 'email' ? 'email.' : 'numéro.'));
+      } else if (code === 'RESEND_TOO_SOON') {
+        setContError(msg || 'Attendez avant de renvoyer.');
+        setResendTimer(err.response?.data?.wait_seconds || 60);
+        setStep(STEP_OTP); // Aller quand même à l'étape OTP
+      } else {
+        setContError(msg || 'Une erreur est survenue. Réessayez.');
+      }
+    } finally {
+      setContLoading(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ÉTAPE 2 : vérifier l'OTP
+  // ─────────────────────────────────────────────────────────────────────────
+  const handleVerifyOtp = async () => {
+    if (otp.replace(/\s/g, '').length < 6) {
+      setOtpError('Entrez les 6 chiffres du code.');
+      return;
+    }
+    setOtpError('');
+    setOtpLoading(true);
+
+    try {
+      const res = await api.post('/verify-contact/check', {
+        identifier: identifier.trim(),
+        type: regMethod,
+        code: otp,
+      });
+
+      setVerifyToken(res.data.verify_token);
+      setOtp('');
+      setStep(STEP_PROFILE);
+    } catch (err) {
+      const code = err.response?.data?.code;
+      const msg  = err.response?.data?.message;
+
+      if (code === 'OTP_EXPIRED') {
+        setOtpError('Code expiré. Cliquez sur « Renvoyer le code ».');
+      } else if (code === 'WRONG_CODE') {
+        const rem = err.response?.data?.attempts_remaining ?? '';
+        setOtpError(msg || `Code incorrect${rem ? ` (${rem} essai(s) restant(s))` : ''}.`);
+      } else if (code === 'MAX_ATTEMPTS') {
+        setOtpError('Trop de tentatives. Demandez un nouveau code.');
+      } else {
+        setOtpError(msg || 'Vérification échouée. Réessayez.');
+      }
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Renvoi du code
+  const handleResend = async () => {
+    if (resendTimer > 0 || resendLoading) return;
+    setResendLoading(true);
+    setOtpError('');
+    setOtp('');
+
+    try {
+      const res = await api.post('/verify-contact/send', {
+        identifier: identifier.trim(),
+        type: regMethod,
+      });
+      setResendTimer(res.data.resend_after || 60);
+    } catch (err) {
+      setOtpError(err.response?.data?.message || 'Erreur lors du renvoi.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ÉTAPE 3 : créer le compte
+  // ─────────────────────────────────────────────────────────────────────────
+  const validateProfile = () => {
+    const errs = {};
+    if (!name.trim() || name.trim().length < 2) errs.name = 'Minimum 2 caractères.';
+    if (!password) errs.password = 'Mot de passe requis.';
+    else if (password.length < 8) errs.password = 'Minimum 8 caractères.';
+    if (password !== passwordConfirm) errs.passwordConfirm = 'Les mots de passe ne correspondent pas.';
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    if (!validateProfile()) return;
+
+    setProfLoading(true);
+    setProfError('');
+
+    const payload = {
+      name: name.trim(),
+      password,
+      password_confirmation: passwordConfirm,
+      verify_token: verifyToken,
+    };
+    if (regMethod === 'email') payload.email = identifier.trim();
+    else                       payload.phone = identifier.trim();
+
+    const result = await register(payload);
+
+    if (result.success) {
+      setSuccess('Compte créé avec succès ! Redirection…');
+      setTimeout(() => {
+        if (isModal && onClose) onClose();
+        const from = location.state?.from || '/dashboard';
+        navigate(from, { state: { openContactModal: location.state?.openContactModal, selectedService: location.state?.selectedService } });
+      }, 800);
+    } else {
+      const code = result.code;
+      if (code === 'CONTACT_NOT_VERIFIED' || code === 'VERIFY_TOKEN_EXPIRED') {
+        setProfError('La vérification a expiré. Recommencez.');
+        setTimeout(() => { setStep(STEP_CONTACT); setOtp(''); setVerifyToken(''); }, 2000);
+      } else {
+        setProfError(result.message || 'Une erreur est survenue.');
+      }
+    }
+    setProfLoading(false);
+  };
+
+  // ── Helpers Google ────────────────────────────────────────────────────────
+  const handleGoogle = () => {
+    const apiUrl = import.meta.env.VITE_APP_URL || 'http://localhost:8000';
+    window.location.href = `${apiUrl.replace('/auth', '')}/auth/google`;
+  };
+
+  const handleLoginClick = () => {
+    if (isModal && onClose) { setTimeout(() => openModal('login'), 50); }
+    else navigate('/login', { state: location.state });
+  };
+
+  // ── Force mot de passe ────────────────────────────────────────────────────
+  const pwdStrength = (() => {
+    if (!password) return 0;
+    let s = 0;
+    if (password.length >= 8) s++;
+    if (/[A-Z]/.test(password)) s++;
+    if (/[0-9]/.test(password)) s++;
+    if (/[^A-Za-z0-9]/.test(password)) s++;
+    return s;
+  })();
+  const pwdColors = ['', '#ef4444', '#f59e0b', theme.colors.primary, '#10b981'];
+  const pwdLabels = ['', 'Très faible', 'Moyen', 'Fort', 'Très fort'];
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDU
+  // ─────────────────────────────────────────────────────────────────────────
+  return (
+    <div style={{ ...s.container, ...(isModal ? s.modalContainer : {}) }}>
+      <SEOHead title="Inscription" noindex={true} />
+
+      <div style={{ ...s.card, ...(isModal ? s.modalCard : {}) }}>
+        {isModal && (
+          <button onClick={onClose} style={s.closeBtn} aria-label="Fermer">
+            <FaTimes />
+          </button>
+        )}
+
+        {/* Logo + titre */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+          <Logo size={isModal ? 'md' : 'lg'} showText />
+        </div>
+
+        {/* ── Indicateur d'étapes ── */}
+        <div style={s.steps}>
+          {['Contact', 'Vérification', 'Profil'].map((label, i) => {
+            const stepKeys  = [STEP_CONTACT, STEP_OTP, STEP_PROFILE];
+            const current   = stepKeys.indexOf(step);
+            const isDone    = i < current;
+            const isActive  = i === current;
+            return (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i < 2 ? 1 : 'none' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    backgroundColor: isDone ? '#10b981' : isActive ? theme.colors.primary : theme.colors.primaryLight,
+                    color: (isDone || isActive) ? '#fff' : theme.colors.text.secondary,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 800, fontSize: '0.85rem',
+                    transition: 'all 0.3s',
+                  }}>
+                    {isDone ? '✓' : i + 1}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: isActive ? theme.colors.primary : theme.colors.text.secondary, fontWeight: isActive ? 700 : 400 }}>
+                    {label}
+                  </span>
+                </div>
+                {i < 2 && (
+                  <div style={{ flex: 1, height: 2, margin: '0 4px 20px', backgroundColor: isDone ? '#10b981' : theme.colors.primaryLight, transition: 'all 0.3s' }} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ════════════════════════════════════════════════════════════════
+            ÉTAPE 1 — Contact
+        ════════════════════════════════════════════════════════════════ */}
+        {step === STEP_CONTACT && (
+          <>
+            <h2 style={s.title}>Créer un compte</h2>
+            <p style={s.subtitle}>Commencez par vérifier votre contact</p>
+
+            {/* Sélecteur Email / Téléphone */}
+            <div style={s.methodSelector}>
+              {[
+                { key: 'email', icon: MdEmail, label: 'Email' },
+                { key: 'phone', icon: MdPhone, label: 'Téléphone' },
+              ].map(({ key, icon: Icon, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => { setRegMethod(key); setIdentifier(''); setContError(''); }}
+                  style={{
+                    ...s.methodBtn,
+                    ...(regMethod === key ? s.methodBtnActive : {}),
+                    borderRadius: key === 'email' ? '8px 0 0 8px' : '0 8px 8px 0',
+                  }}
+                >
+                  <Icon style={{ fontSize: '1.2rem' }} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+
+            {contError && <div style={s.errorBox}>{contError}</div>}
+
+            <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={s.formGroup}>
+                <label style={s.label}>
+                  {regMethod === 'email' ? <FaEnvelope style={s.labelIcon} /> : <FaPhone style={s.labelIcon} />}
+                  {regMethod === 'email' ? 'Adresse email' : 'Numéro de téléphone'}
+                </label>
+                <input
+                  type={regMethod === 'email' ? 'email' : 'tel'}
+                  value={identifier}
+                  onChange={e => { setIdentifier(e.target.value); setContError(''); }}
+                  style={s.input}
+                  placeholder={regMethod === 'email' ? 'votre@email.com' : '+229 01 23 45 67 89'}
+                  autoFocus
+                />
+                {regMethod === 'phone' && (
+                  <small style={{ color: theme.colors.text.secondary, fontSize: '0.78rem' }}>
+                    Un code SMS / WhatsApp vous sera envoyé
+                  </small>
+                )}
+              </div>
+
+              <button type="submit" disabled={contLoading} style={{ ...s.btn, opacity: contLoading ? 0.7 : 1 }}>
+                {contLoading ? 'Envoi du code…' : `Envoyer le code de vérification`}
+              </button>
+            </form>
+
+            <div style={s.divider}><span style={s.dividerTxt}>ou</span></div>
+
+            <button onClick={handleGoogle} style={s.googleBtn} type="button">
+              <FaGoogle style={{ color: '#EA4335', fontSize: '1.2rem' }} />
+              Continuer avec Google
+            </button>
+
+            <div style={s.footer}>
+              <span style={{ color: theme.colors.text.secondary }}>Déjà un compte ?</span>
+              <button onClick={handleLoginClick} style={s.linkBtn}>Se connecter</button>
+            </div>
+          </>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════════
+            ÉTAPE 2 — OTP
+        ════════════════════════════════════════════════════════════════ */}
+        {step === STEP_OTP && (
+          <>
+            <button
+              onClick={() => { setStep(STEP_CONTACT); setOtp(''); setOtpError(''); }}
+              style={s.backBtn}
+            >
+              <FaArrowLeft style={{ marginRight: 6 }} /> Modifier
+            </button>
+
+            <h2 style={s.title}>Vérification</h2>
+            <p style={s.subtitle}>
+              Code envoyé à <strong style={{ color: theme.colors.primary }}>{maskedContact}</strong>
+            </p>
+
+            {/* Icône animée */}
+            <div style={{ textAlign: 'center', fontSize: '3.5rem', margin: '0.5rem 0 1.5rem', animation: 'pulse 1.5s ease-in-out infinite' }}>
+              {regMethod === 'email' ? '📧' : '📱'}
+            </div>
+
+            {otpError && <div style={s.errorBox}>{otpError}</div>}
+
+            <OtpInput value={otp} onChange={setOtp} disabled={otpLoading} />
+
+            <button
+              onClick={handleVerifyOtp}
+              disabled={otpLoading || otp.replace(/\s/g, '').length < 6}
+              style={{ ...s.btn, marginTop: '1.5rem', opacity: (otpLoading || otp.length < 6) ? 0.6 : 1 }}
+            >
+              {otpLoading ? 'Vérification…' : 'Confirmer le code'}
+            </button>
+
+            {/* Renvoi */}
+            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+              {resendTimer > 0 ? (
+                <p style={{ color: theme.colors.text.secondary, fontSize: '0.875rem' }}>
+                  Renvoyer dans <strong style={{ color: theme.colors.primary }}>{resendTimer}s</strong>
+                </p>
+              ) : (
+                <button
+                  onClick={handleResend}
+                  disabled={resendLoading}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.colors.primary, fontWeight: 600, fontSize: '0.875rem', textDecoration: 'underline' }}
+                >
+                  {resendLoading ? 'Envoi…' : 'Renvoyer le code'}
+                </button>
+              )}
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: theme.colors.text.secondary, textAlign: 'center', marginTop: '1rem', lineHeight: 1.5 }}>
+              {regMethod === 'email'
+                ? 'Vérifiez aussi vos spams / courriers indésirables.'
+                : 'Vérifiez vos messages SMS et WhatsApp.'}
+            </p>
+          </>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════════
+            ÉTAPE 3 — Profil
+        ════════════════════════════════════════════════════════════════ */}
+        {step === STEP_PROFILE && (
+          <>
+            <h2 style={s.title}>Finalisez votre compte</h2>
+            <p style={s.subtitle}>
+              <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span>{' '}
+              {maskedContact} vérifié
+            </p>
+
+            {success && (
+              <div style={{ ...s.successBox }}>
+                <FaCheckCircle style={{ color: '#10b981', marginRight: 8 }} />{success}
+              </div>
+            )}
+            {profError && <div style={s.errorBox}>{profError}</div>}
+
+            <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Nom */}
+              <div style={s.formGroup}>
+                <label style={s.label}>Nom complet</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => { setName(e.target.value); setFieldErrors(p => ({ ...p, name: '' })); }}
+                  style={{ ...s.input, ...(fieldErrors.name ? s.inputErr : {}) }}
+                  placeholder="Jean Dupont"
+                  autoFocus
+                />
+                {fieldErrors.name && <span style={s.fieldErr}>{fieldErrors.name}</span>}
+              </div>
+
+              {/* Mot de passe */}
+              <div style={s.formGroup}>
+                <label style={s.label}><FaLock style={s.labelIcon} /> Mot de passe</label>
+                <div style={s.pwdWrap}>
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: '' })); }}
+                    style={{ ...s.pwdInput, ...(fieldErrors.password ? s.inputErr : {}) }}
+                    placeholder="••••••••"
+                  />
+                  <button type="button" onClick={() => setShowPwd(v => !v)} style={s.eyeBtn} tabIndex="-1">
+                    {showPwd ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                {password && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                    <div style={{ flex: 1, height: 4, borderRadius: 2, background: theme.colors.primaryLight, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pwdStrength * 25}%`, backgroundColor: pwdColors[pwdStrength], transition: 'all 0.3s', borderRadius: 2 }} />
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: pwdColors[pwdStrength], fontWeight: 600, minWidth: 70 }}>{pwdLabels[pwdStrength]}</span>
+                  </div>
+                )}
+                {fieldErrors.password && <span style={s.fieldErr}>{fieldErrors.password}</span>}
+              </div>
+
+              {/* Confirmation */}
+              <div style={s.formGroup}>
+                <label style={s.label}><FaLock style={s.labelIcon} /> Confirmer le mot de passe</label>
+                <div style={s.pwdWrap}>
+                  <input
+                    type={showPwdC ? 'text' : 'password'}
+                    value={passwordConfirm}
+                    onChange={e => { setPasswordConfirm(e.target.value); setFieldErrors(p => ({ ...p, passwordConfirm: '' })); }}
+                    style={{ ...s.pwdInput, ...(fieldErrors.passwordConfirm ? s.inputErr : {}) }}
+                    placeholder="••••••••"
+                  />
+                  <button type="button" onClick={() => setShowPwdC(v => !v)} style={s.eyeBtn} tabIndex="-1">
+                    {showPwdC ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                {fieldErrors.passwordConfirm && <span style={s.fieldErr}>{fieldErrors.passwordConfirm}</span>}
+              </div>
+
+              <button
+                type="submit"
+                disabled={profLoading}
+                style={{ ...s.btn, opacity: profLoading ? 0.7 : 1, marginTop: '0.5rem' }}
+              >
+                {profLoading ? 'Création du compte…' : 'Créer mon compte 🚀'}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const s = {
   container: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.background,
-    padding: '2rem 1rem',
+    minHeight: '100vh', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', backgroundColor: theme.colors.background, padding: '2rem 1rem',
   },
-  modalContainer: {
-    minHeight: 'auto',
-    backgroundColor: 'transparent',
-    padding: 0,
-  },
+  modalContainer: { minHeight: 'auto', backgroundColor: 'transparent', padding: 0 },
   card: {
-    backgroundColor: theme.colors.secondary,
-    padding: '2.5rem',
-    borderRadius: theme.borderRadius.xl,
-    boxShadow: theme.shadows.xl,
-    width: '100%',
-    maxWidth: '500px',
-    border: `2px solid ${theme.colors.primaryLight}`,
-    position: 'relative',
-    animation: 'fadeIn 0.5s ease',
-    '@media (max-width: 768px)': {
-      padding: '1.5rem',
-    },
+    backgroundColor: theme.colors.secondary, padding: '2.5rem',
+    borderRadius: '1.5rem', boxShadow: theme.shadows.xl,
+    width: '100%', maxWidth: 500, border: `2px solid ${theme.colors.primaryLight}`,
+    position: 'relative', animation: 'fadeIn 0.4s ease',
   },
-  modalCard: {
-    maxWidth: '420px',
-    padding: '2rem',
+  modalCard: { maxWidth: 440, padding: '2rem' },
+  closeBtn: {
+    position: 'absolute', top: '1rem', right: '1rem',
+    background: 'none', border: 'none', cursor: 'pointer',
+    color: theme.colors.text.secondary, fontSize: '1.2rem', padding: '0.4rem',
   },
-  closeButton: {
-    position: 'absolute',
-    top: '1rem',
-    right: '1rem',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '0.5rem',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: theme.colors.text.secondary,
-    transition: 'all 0.3s',
-    ':hover': {
-      backgroundColor: theme.colors.primaryLight,
-      color: theme.colors.primary,
-      transform: 'rotate(90deg)',
-    },
-  },
-  closeIcon: {
-    fontSize: '1.25rem',
-  },
-  logoContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    marginBottom: '1.5rem',
-  },
-  title: {
-    fontSize: '1.75rem',
-    fontWeight: 'bold',
-    marginBottom: '0.5rem',
-    textAlign: 'center',
-    color: theme.colors.text.primary,
-    '@media (max-width: 768px)': {
-      fontSize: '1.5rem',
-    },
-  },
-  subtitle: {
-    color: theme.colors.text.secondary,
-    textAlign: 'center',
-    marginBottom: '1.5rem',
-    fontSize: '0.95rem',
-  },
+  steps: { display: 'flex', alignItems: 'flex-start', marginBottom: '1.5rem' },
+  title: { fontSize: '1.6rem', fontWeight: 800, color: theme.colors.text.primary, textAlign: 'center', marginBottom: '0.4rem' },
+  subtitle: { fontSize: '0.9rem', color: theme.colors.text.secondary, textAlign: 'center', marginBottom: '1.25rem' },
   methodSelector: {
-    display: 'flex',
-    marginBottom: '2rem',
-    border: `2px solid ${theme.colors.primaryLight}`,
-    borderRadius: theme.borderRadius.md,
-    overflow: 'hidden',
+    display: 'flex', marginBottom: '1.25rem',
+    border: `2px solid ${theme.colors.primaryLight}`, borderRadius: 8, overflow: 'hidden',
   },
-  methodButton: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    padding: '1rem',
-    backgroundColor: 'white',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '1rem',
-    fontWeight: '500',
-    color: theme.colors.text.secondary,
-    transition: 'all 0.3s',
-    ':hover': {
-      backgroundColor: theme.colors.primaryLight,
-    },
+  methodBtn: {
+    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    padding: '0.85rem', backgroundColor: '#fff', border: 'none', cursor: 'pointer',
+    fontWeight: 500, color: theme.colors.text.secondary, transition: 'all 0.2s', fontSize: '0.95rem',
   },
-  methodButtonActive: {
-    backgroundColor: theme.colors.primary,
-    color: 'white',
-    ':hover': {
-      backgroundColor: theme.colors.primaryDark,
-    },
+  methodBtnActive: { backgroundColor: theme.colors.primary, color: '#fff' },
+  errorBox: {
+    backgroundColor: '#fef2f2', color: theme.colors.error, padding: '0.85rem',
+    borderRadius: 8, marginBottom: '1rem', border: `1px solid ${theme.colors.error}`,
+    fontSize: '0.9rem', lineHeight: 1.5,
   },
-  methodIcon: {
-    fontSize: '1.25rem',
+  successBox: {
+    backgroundColor: '#d1fae5', color: '#065f46', padding: '0.85rem',
+    borderRadius: 8, marginBottom: '1rem', border: '1px solid #6ee7b7',
+    fontSize: '0.9rem', display: 'flex', alignItems: 'center',
   },
-  inputIcon: {
-    marginRight: '0.5rem',
-    color: theme.colors.primary,
-    fontSize: '1rem',
-  },
-  success: {
-    backgroundColor: '#d4edda',
-    color: '#155724',
-    padding: '1rem',
-    borderRadius: theme.borderRadius.md,
-    marginBottom: '1rem',
-    border: '1px solid #c3e6cb',
-    fontSize: '0.95rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-  },
-  successIcon: {
-    fontSize: '1.25rem',
-    color: '#28a745',
-  },
-  error: {
-    backgroundColor: theme.colors.primaryLight,
-    color: theme.colors.error,
-    padding: '1rem',
-    borderRadius: theme.borderRadius.md,
-    marginBottom: '1rem',
-    border: `1px solid ${theme.colors.error}`,
-    fontSize: '0.95rem',
-  },
-  fieldError: {
-    color: theme.colors.error,
-    fontSize: '0.85rem',
-    marginTop: '0.25rem',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1.25rem',
-  },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
-  },
-  label: {
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-    fontSize: '0.95rem',
-    display: 'flex',
-    alignItems: 'center',
-  },
+  formGroup: { display: 'flex', flexDirection: 'column', gap: '0.4rem' },
+  label: { fontWeight: 600, color: theme.colors.text.primary, fontSize: '0.9rem', display: 'flex', alignItems: 'center' },
+  labelIcon: { marginRight: 6, color: theme.colors.primary },
   input: {
-    padding: '1rem',
-    border: `2px solid ${theme.colors.primaryLight}`,
-    borderRadius: theme.borderRadius.md,
-    fontSize: '1rem',
-    transition: 'all 0.3s',
-    outline: 'none',
-    width: '100%',
-    ':focus': {
-      borderColor: theme.colors.primary,
-      boxShadow: `0 0 0 3px ${theme.colors.primary}20`,
-    },
-    '@media (max-width: 768px)': {
-      padding: '0.875rem',
-    },
+    padding: '0.875rem', border: `2px solid ${theme.colors.primaryLight}`,
+    borderRadius: 8, fontSize: '1rem', outline: 'none', width: '100%',
+    transition: 'border-color 0.2s',
   },
-  inputError: {
-    borderColor: theme.colors.error,
-    ':focus': {
-      borderColor: theme.colors.error,
-      boxShadow: `0 0 0 3px ${theme.colors.error}20`,
-    },
+  inputErr: { borderColor: theme.colors.error },
+  fieldErr: { color: theme.colors.error, fontSize: '0.8rem' },
+  pwdWrap: { position: 'relative', display: 'flex', alignItems: 'center' },
+  pwdInput: {
+    padding: '0.875rem', paddingRight: '3rem', border: `2px solid ${theme.colors.primaryLight}`,
+    borderRadius: 8, fontSize: '1rem', outline: 'none', flex: 1, width: '100%',
   },
-  passwordInputContainer: {
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center',
+  eyeBtn: {
+    position: 'absolute', right: '0.75rem', background: 'none', border: 'none',
+    cursor: 'pointer', color: theme.colors.text.secondary, padding: '0.3rem',
   },
-  passwordInput: {
-    padding: '1rem',
-    paddingRight: '3rem',
-    border: `2px solid ${theme.colors.primaryLight}`,
-    borderRadius: theme.borderRadius.md,
-    fontSize: '1rem',
-    transition: 'all 0.3s',
-    outline: 'none',
-    flex: 1,
-    width: '100%',
-    ':focus': {
-      borderColor: theme.colors.primary,
-      boxShadow: `0 0 0 3px ${theme.colors.primary}20`,
-    },
+  btn: {
+    backgroundColor: theme.colors.primary, color: '#fff', padding: '1rem',
+    border: 'none', borderRadius: 8, fontSize: '1rem', fontWeight: 700,
+    cursor: 'pointer', transition: 'all 0.2s', boxShadow: theme.shadows.md,
   },
-  toggleButton: {
-    position: 'absolute',
-    right: '0.75rem',
-    background: 'none',
-    border: 'none',
+  googleBtn: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+    width: '100%', padding: '0.9rem', backgroundColor: '#fff', color: '#4285F4',
+    border: '2px solid #EA4335', borderRadius: 8, fontSize: '1rem', fontWeight: 600,
     cursor: 'pointer',
-    padding: '0.5rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: theme.colors.text.secondary,
-    transition: 'color 0.3s',
-    ':hover': {
-      color: theme.colors.primary,
-    },
   },
-  passwordStrength: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    marginTop: '0.5rem',
+  divider: { display: 'flex', alignItems: 'center', margin: '1.25rem 0' },
+  dividerTxt: {
+    padding: '0 1rem', color: theme.colors.text.secondary, fontSize: '0.85rem',
+    backgroundColor: theme.colors.secondary, margin: '0 auto',
   },
-  strengthBars: {
-    display: 'flex',
-    gap: '0.25rem',
-    flex: 1,
-  },
-  strengthBar: {
-    height: '4px',
-    borderRadius: '2px',
-    transition: 'all 0.3s',
-  },
-  strengthText: {
-    fontSize: '0.85rem',
-    color: theme.colors.text.secondary,
-    minWidth: '70px',
-  },
-  button: {
-    backgroundColor: theme.colors.primary,
-    color: theme.colors.text.white,
-    padding: '1rem',
-    border: 'none',
-    borderRadius: theme.borderRadius.md,
-    fontSize: '1rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    marginTop: '0.5rem',
-    transition: 'all 0.3s',
-    boxShadow: theme.shadows.md,
-    ':hover': {
-      backgroundColor: theme.colors.primaryDark,
-      transform: 'translateY(-2px)',
-      boxShadow: theme.shadows.lg,
-    },
-    ':disabled': {
-      backgroundColor: theme.colors.primaryLight,
-      transform: 'none',
-    },
-  },
-  googleButton: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.75rem',
-    width: '100%',
-    padding: '1rem',
-    backgroundColor: 'white',
-    color: '#4285F4',
-    border: `2px solid #EA4335`,
-    borderRadius: theme.borderRadius.md,
-    fontSize: '1rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.3s',
-    ':hover': {
-      backgroundColor: '#F8F9FA',
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-    },
-  },
-  googleIcon: {
-    fontSize: '1.25rem',
-    color: '#EA4335',
-  },
-  divider: {
-    display: 'flex',
-    alignItems: 'center',
-    margin: '1.5rem 0',
-    position: 'relative',
-    '::before': {
-      content: '""',
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      height: '1px',
-      backgroundColor: theme.colors.primaryLight,
-      zIndex: 0,
-    },
-  },
-  dividerText: {
-    padding: '0 1rem',
-    color: theme.colors.text.secondary,
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    backgroundColor: theme.colors.secondary,
-    zIndex: 1,
-    margin: '0 auto',
-  },
-  footer: {
-    marginTop: '1.5rem',
-    textAlign: 'center',
-    display: 'flex',
-    gap: '0.5rem',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  footerText: {
-    color: theme.colors.text.secondary,
-  },
-  linkButton: {
-    color: theme.colors.primary,
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '1rem',
-    padding: 0,
-    textDecoration: 'underline',
-    ':hover': {
-      color: theme.colors.primaryDark,
-    },
-  },
-  link: {
-    color: theme.colors.primary,
-    textDecoration: 'none',
-    fontWeight: '600',
-    ':hover': {
-      textDecoration: 'underline',
-    },
+  footer: { marginTop: '1.25rem', textAlign: 'center', display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center' },
+  linkBtn: { color: theme.colors.primary, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '1rem', textDecoration: 'underline' },
+  backBtn: {
+    display: 'flex', alignItems: 'center', background: 'none', border: 'none',
+    cursor: 'pointer', color: theme.colors.text.secondary, fontSize: '0.875rem',
+    marginBottom: '0.75rem', padding: 0, fontWeight: 500,
   },
 };
-
-// Ajouter les animations globales
-const globalStyles = `
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-`;
-
-// Injecter les styles globaux
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style');
-  style.textContent = globalStyles;
-  document.head.appendChild(style);
-}
