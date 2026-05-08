@@ -649,12 +649,12 @@ export default function Navbar() {
                 ))}
                 <div style={{ position: 'relative' }} onMouseEnter={() => setShowServicesDropdown(true)} onMouseLeave={() => setShowServicesDropdown(false)}>
                   <Link to="/services" className="nav-link" style={{ ...navLinkStyle, color: isActive('/services') ? 'var(--brand-primary)' : 'var(--text-primary)' }}>
-                    <FaTools style={{ fontSize: '1rem' }} /><span className="nav-label">Services</span><FaChevronDown style={{ fontSize: '0.75rem' }} />
+                    <FaTools style={{ fontSize: '1rem' }} /><span className="nav-label">Domaines</span><FaChevronDown style={{ fontSize: '0.75rem' }} />
                   </Link>
                   {showServicesDropdown && (
                     <div className="mega-dropdown" style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '0.5rem', backgroundColor: 'var(--bg-card)', borderRadius: '1rem', boxShadow: 'var(--shadow-lg)', border: '2px solid var(--border-color)', width: '90vw', maxWidth: '700px', maxHeight: '70vh', overflow: 'auto' }}>
                       <div style={{ padding: '1.5rem', borderBottom: '2px solid var(--border-color)', background: 'var(--bg-secondary)', borderRadius: '1rem 1rem 0 0' }}>
-                        <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--brand-primary)', marginBottom: '0.25rem' }}>Nos Services</h3>
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--brand-primary)', marginBottom: '0.25rem' }}>Nos Domaines</h3>
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{loadingDomaines ? 'Chargement...' : `${domaines.length} domaines disponibles`}</p>
                       </div>
                       {loadingDomaines ? (
@@ -756,7 +756,7 @@ export default function Navbar() {
                 <>
                   <MobileLink to="/"            icon={FaHome}     label="Accueil"     onClick={() => setMobileMenuOpen(false)} />
                   <MobileLink to="/entreprises" icon={FaBuilding}  label="Entreprises" onClick={() => setMobileMenuOpen(false)} />
-                  <MobileLink to="/services"    icon={FaTools}    label="Services"    onClick={() => setMobileMenuOpen(false)} />
+                  <MobileLink to="/services"    icon={FaTools}    label="Domaines"    onClick={() => setMobileMenuOpen(false)} />
                   <MobileLink to="/login"       icon={FaUser}     label="Connexion"   onClick={() => setMobileMenuOpen(false)} />
                   <MobileLink to="/register"    icon={FaUser}     label="Inscription" onClick={() => setMobileMenuOpen(false)} />
                 </>
