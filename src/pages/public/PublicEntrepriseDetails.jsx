@@ -5,6 +5,7 @@ import { publicApi } from '../../api/publicApi';
 import ChatModal from '../../components/Chat/ChatModal';
 import ContactModal from '../../components/ContactModal';
 import ItineraryModal from '../../components/ItineraryModal';
+import ShareModal from '../../components/ShareModal';
 import theme from '../../config/theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePendingAction } from '../../hooks/usePendingAction';
@@ -47,6 +48,7 @@ export default function PublicEntrepriseDetails() {
   // Modales
   const [showContactModal, setShowContactModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [itineraryModal, setItineraryModal] = useState({ isOpen: false });
 
   useEffect(() => {
@@ -76,11 +78,8 @@ export default function PublicEntrepriseDetails() {
     }
   }, [id, navigate]);
 
-  // PublicEntrepriseDetails.jsx - Modifiez la fonction handleOpenContact :
-
   const handleOpenContact = () => {
     if (!user) {
-      // Sauvegarder l'intention d'ouvrir le modal après connexion
       sessionStorage.setItem('pendingContactModal', 'true');
       sessionStorage.setItem('pendingEntrepriseId', id);
       navigate('/login', { state: { from: `/entreprises/${id}` } });
@@ -89,7 +88,6 @@ export default function PublicEntrepriseDetails() {
     setShowContactModal(true);
   };
 
-  // Ajoutez cet effet pour ouvrir le modal après retour de connexion :
   useEffect(() => {
     if (user && sessionStorage.getItem('pendingContactModal') === 'true') {
       sessionStorage.removeItem('pendingContactModal');
@@ -111,12 +109,7 @@ export default function PublicEntrepriseDetails() {
   };
 
   const handleShare = () => {
-    if (navigator.share && entreprise) {
-      navigator.share({ title: entreprise.name, url: window.location.href });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Lien copié !');
-    }
+    setShowShareModal(true);
   };
 
   const formatPrice = (price) => price ? `${parseFloat(price).toLocaleString('fr-FR')} FCFA` : 'Prix sur demande';
@@ -195,7 +188,7 @@ export default function PublicEntrepriseDetails() {
             )}
           </div>
 
-          {/* ── Bouton unique Contacter (zone visible et accessible) ── */}
+          {/* ── Bouton unique Contacter ── */}
           <div style={styles.contactBannerWrap}>
             <button onClick={handleOpenContact} style={styles.contactBanner} className="contact-banner-btn">
               <div style={styles.contactBannerIcon}><FaComments /></div>
@@ -319,7 +312,6 @@ export default function PublicEntrepriseDetails() {
                   <h2 style={styles.cardTitle}>Contact & Rendez-vous</h2>
                 </div>
                 <div style={styles.cardBody}>
-                  {/* Bouton unique */}
                   <button onClick={handleOpenContact} style={styles.mainContactBtn} className="main-contact-btn">
                     <div style={styles.mainContactBtnIcon}><FaComments /></div>
                     <div style={styles.mainContactBtnText}>
@@ -332,7 +324,7 @@ export default function PublicEntrepriseDetails() {
                 </div>
               </div>
 
-              {/* Infos générales — coordonnées masquées si non connecté */}
+              {/* Infos générales */}
               {(entreprise.siege || entreprise.call_phone || entreprise.phone || entreprise.email) && (
                 <div style={styles.card}>
                   <div style={styles.cardHeader}>
@@ -341,7 +333,6 @@ export default function PublicEntrepriseDetails() {
                   </div>
                   <div style={styles.cardBody}>
                     {user ? (
-                      /* ── Connecté : afficher toutes les infos ── */
                       <div style={styles.infoList}>
                         {entreprise.siege && (
                           <div style={styles.infoItem}>
@@ -363,9 +354,7 @@ export default function PublicEntrepriseDetails() {
                         )}
                       </div>
                     ) : (
-                      /* ── Non connecté : bloc de verrouillage ── */
                       <div style={styles.lockedInfo}>
-          
                         <p style={styles.lockedTitle}>Coordonnées protégées</p>
                         <p style={styles.lockedText}>
                           Connectez-vous pour accéder au téléphone, à l'email et à l'adresse complète.
@@ -420,6 +409,15 @@ export default function PublicEntrepriseDetails() {
         destination={entreprise}
       />
 
+      {/* ── ShareModal ── */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={entreprise?.name}
+        url={window.location.href}
+        description={entreprise?.description || ''}
+      />
+
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
@@ -468,7 +466,6 @@ const styles = {
   heroPlaceholder: { height: '180px', backgroundColor: '#dbeafe', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' },
   heroPlaceholderIcon: { fontSize: '4rem', color: '#3b82f6' },
 
-  // Bannière contacter
   contactBannerWrap: { marginBottom: '2rem' },
   contactBanner: {
     display: 'flex', alignItems: 'center', gap: '1rem', width: '100%',
@@ -523,7 +520,6 @@ const styles = {
   noServicesIcon: { fontSize: '3rem', marginBottom: '1rem' },
   noServicesText: { textAlign: 'center', fontSize: '0.875rem' },
 
-  // Bouton principal contacter (dans la carte)
   mainContactBtn: {
     display: 'flex', alignItems: 'center', gap: '1rem', width: '100%',
     padding: '1rem 1.15rem', borderRadius: '14px', border: 'none',
@@ -552,7 +548,6 @@ const styles = {
   ctaPrimaryButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: theme.colors.primary, color: '#fff', border: 'none', padding: '0.9rem 1.75rem', borderRadius: theme.borderRadius.lg, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', flexShrink: 0 },
   ctaButtonIcon: { fontSize: '1.1rem' },
 
-  // Bloc infos verrouillées (non connecté)
   lockedInfo: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', padding: '1.5rem 1rem', textAlign: 'center' },
   lockedIcon: { fontSize: '2.5rem' },
   lockedTitle: { fontSize: '1rem', fontWeight: '700', color: '#1e293b', margin: 0 },

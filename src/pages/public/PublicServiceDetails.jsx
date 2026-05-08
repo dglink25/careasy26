@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { publicApi } from '../../api/publicApi';
 import ChatModal from '../../components/Chat/ChatModal';
 import ContactModal from '../../components/ContactModal';
+import ShareModal from '../../components/ShareModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import StarRating from '../../components/Services/StarRating';
@@ -129,7 +130,7 @@ const StatusBadge = ({ status }) => {
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
-      background: status.isOpen ? '#fef2f2' : '#fef2f2',
+      background: '#fef2f2',
       color: '#dc2626',
       borderRadius: '16px',
       padding: '12px 20px',
@@ -196,7 +197,6 @@ const ScheduleCard = ({ schedule }) => {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '8px 0',
               borderBottom: idx < displayedSchedule.length - 1 ? '1px solid #e2e8f0' : 'none',
               background: day.isToday ? '#fef2f2' : 'transparent',
               borderRadius: '8px',
@@ -233,9 +233,7 @@ const LoadingSpinner = () => (
     justifyContent: 'center',
     backgroundColor: '#ffffff'
   }}>
-    <div className="loading-content" style={{
-      textAlign: 'center'
-    }}>
+    <div className="loading-content" style={{ textAlign: 'center' }}>
       <div className="spinner" style={{
         width: '60px',
         height: '60px',
@@ -348,27 +346,14 @@ const FullscreenModal = ({ isOpen, onClose, medias, initialIndex, serviceName })
         <img 
           src={medias[currentIndex]}
           alt={`${serviceName} - Vue agrandie`}
-          style={{
-            maxWidth: '100%',
-            maxHeight: '90vh',
-            objectFit: 'contain'
-          }}
+          style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain' }}
         />
         
         <button onClick={onClose} style={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
-          background: 'rgba(0,0,0,0.5)',
-          border: 'none',
-          color: '#fff',
-          width: '40px',
-          height: '40px',
-          borderRadius: '50%',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
+          position: 'absolute', top: '20px', right: '20px',
+          background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff',
+          width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
           <FiX size={20} />
         </button>
@@ -376,38 +361,18 @@ const FullscreenModal = ({ isOpen, onClose, medias, initialIndex, serviceName })
         {medias.length > 1 && (
           <>
             <button onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))} style={{
-              position: 'absolute',
-              left: '20px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: 'rgba(0,0,0,0.5)',
-              border: 'none',
-              color: '#fff',
-              width: '50px',
-              height: '50px',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)',
+              background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff',
+              width: '50px', height: '50px', borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
               <FiChevronLeft size={24} />
             </button>
             <button onClick={() => setCurrentIndex(prev => Math.min(medias.length - 1, prev + 1))} style={{
-              position: 'absolute',
-              right: '20px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: 'rgba(0,0,0,0.5)',
-              border: 'none',
-              color: '#fff',
-              width: '50px',
-              height: '50px',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)',
+              background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff',
+              width: '50px', height: '50px', borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
               <FiChevronRight size={24} />
             </button>
@@ -431,6 +396,7 @@ export default function PublicServiceDetails() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalImageIndex, setModalImageIndex] = useState(0);
 
@@ -469,17 +435,8 @@ export default function PublicServiceDetails() {
     setIsFavorite(!isFavorite);
   };
 
-  const handleShare = async () => {
-    if (navigator.share && service) {
-      try {
-        await navigator.share({ title: service.name, url: window.location.href });
-      } catch {}
-    } else {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        alert('Lien copié !');
-      } catch {}
-    }
+  const handleShare = () => {
+    setShowShareModal(true);
   };
 
   const nextImage = () => {
@@ -513,157 +470,62 @@ export default function PublicServiceDetails() {
   return (
     <>
       <style>{`
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
         @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-
-        .service-details {
-          animation: fadeInUp 0.6s ease-out;
-        }
-
-        .gallery-image {
-          transition: transform 0.3s ease;
-        }
-
-        .gallery-image:hover {
-          transform: scale(1.05);
-        }
-
-        .thumbnail {
-          transition: all 0.2s ease;
-        }
-
-        .thumbnail:hover {
-          transform: scale(1.05);
-          border-color: #dc2626;
-        }
-
-        .contact-btn {
-          transition: all 0.3s ease;
-        }
-
-        .contact-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(220,38,38,0.3);
-        }
-
-        @media (max-width: 768px) {
-          .service-name {
-            font-size: 1.75rem !important;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .service-name {
-            font-size: 1.5rem !important;
-          }
-          
-          .gallery-container {
-            height: 300px !important;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .service-name {
-            font-size: 1.25rem !important;
-          }
-          
-          .gallery-container {
-            height: 250px !important;
-          }
-        }
+        .service-details { animation: fadeInUp 0.6s ease-out; }
+        .gallery-image { transition: transform 0.3s ease; }
+        .gallery-image:hover { transform: scale(1.05); }
+        .thumbnail { transition: all 0.2s ease; }
+        .thumbnail:hover { transform: scale(1.05); border-color: #dc2626; }
+        .contact-btn { transition: all 0.3s ease; }
+        .contact-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(220,38,38,0.3); }
+        @media (max-width: 768px) { .service-name { font-size: 1.75rem !important; } }
+        @media (max-width: 640px) { .service-name { font-size: 1.5rem !important; } .gallery-container { height: 300px !important; } }
+        @media (max-width: 480px) { .service-name { font-size: 1.25rem !important; } .gallery-container { height: 250px !important; } }
       `}</style>
 
-      <div className="service-details" style={{
-        minHeight: '100vh',
-        backgroundColor: '#ffffff'
-      }}>
-        <div style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          padding: '2rem 1rem'
-        }}>
+      <div className="service-details" style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1rem' }}>
+
           <div style={{ marginBottom: '2rem' }}>
             <Link to="/services" style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#dc2626',
-              textDecoration: 'none',
-              fontWeight: '600',
-              padding: '8px 16px',
-              borderRadius: '12px',
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              transition: 'all 0.3s'
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              color: '#dc2626', textDecoration: 'none', fontWeight: '600',
+              padding: '8px 16px', borderRadius: '12px', background: '#fff',
+              border: '1px solid #e2e8f0', transition: 'all 0.3s'
             }}>
               <FiArrowLeft />
               <span>Retour aux services</span>
             </Link>
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 380px',
-            gap: '2rem',
-          }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '2rem' }}>
+
             {/* Left Column - Gallery */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div style={{
-                background: '#fff',
-                borderRadius: '24px',
-                overflow: 'hidden',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                background: '#fff', borderRadius: '24px', overflow: 'hidden',
+                border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
               }}>
                 <div className="gallery-container" style={{
-                  position: 'relative',
-                  height: '450px',
-                  background: '#f1f5f9',
-                  cursor: 'pointer',
+                  position: 'relative', height: '450px', background: '#f1f5f9', cursor: 'pointer',
                 }} onClick={() => openModal(currentImageIndex)}>
                   <img 
                     src={service.medias?.[currentImageIndex]} 
                     alt={service.name}
                     className="gallery-image"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
-                    }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                   
                   <button onClick={(e) => { e.stopPropagation(); openModal(currentImageIndex); }} style={{
-                    position: 'absolute',
-                    top: '16px',
-                    right: '16px',
-                    background: 'rgba(0,0,0,0.6)',
-                    border: 'none',
-                    color: '#fff',
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    position: 'absolute', top: '16px', right: '16px',
+                    background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff',
+                    width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                     backdropFilter: 'blur(5px)'
                   }}>
                     <FiMaximize2 size={20} />
@@ -672,38 +534,18 @@ export default function PublicServiceDetails() {
                   {service.medias?.length > 1 && (
                     <>
                       <button onClick={(e) => { e.stopPropagation(); prevImage(); }} style={{
-                        position: 'absolute',
-                        left: '16px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'rgba(0,0,0,0.6)',
-                        border: 'none',
-                        color: '#fff',
-                        width: '45px',
-                        height: '45px',
-                        borderRadius: '50%',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
+                        background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff',
+                        width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
                       }}>
                         <FiChevronLeft size={24} />
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); nextImage(); }} style={{
-                        position: 'absolute',
-                        right: '16px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'rgba(0,0,0,0.6)',
-                        border: 'none',
-                        color: '#fff',
-                        width: '45px',
-                        height: '45px',
-                        borderRadius: '50%',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)',
+                        background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff',
+                        width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
                       }}>
                         <FiChevronRight size={24} />
                       </button>
@@ -711,53 +553,32 @@ export default function PublicServiceDetails() {
                   )}
                   
                   <div style={{
-                    position: 'absolute',
-                    bottom: '16px',
-                    right: '16px',
-                    background: 'rgba(0,0,0,0.7)',
-                    color: '#fff',
-                    padding: '6px 12px',
-                    borderRadius: '20px',
-                    fontSize: '0.875rem',
-                    fontWeight: '600'
+                    position: 'absolute', bottom: '16px', right: '16px',
+                    background: 'rgba(0,0,0,0.7)', color: '#fff',
+                    padding: '6px 12px', borderRadius: '20px',
+                    fontSize: '0.875rem', fontWeight: '600'
                   }}>
                     {currentImageIndex + 1} / {service.medias?.length || 0}
                   </div>
                 </div>
                 
                 {service.medias?.length > 1 && (
-                  <div style={{
-                    display: 'flex',
-                    gap: '12px',
-                    padding: '16px',
-                    overflowX: 'auto',
-                    background: '#fff'
-                  }}>
+                  <div style={{ display: 'flex', gap: '12px', padding: '16px', overflowX: 'auto', background: '#fff' }}>
                     {service.medias.map((media, idx) => (
                       <button
                         key={idx}
                         onClick={() => setCurrentImageIndex(idx)}
                         className="thumbnail"
                         style={{
-                          width: '80px',
-                          height: '80px',
-                          borderRadius: '12px',
-                          overflow: 'hidden',
+                          width: '80px', height: '80px', borderRadius: '12px', overflow: 'hidden',
                           border: idx === currentImageIndex ? '3px solid #dc2626' : '2px solid #e2e8f0',
-                          cursor: 'pointer',
-                          padding: 0,
-                          background: 'transparent',
-                          flexShrink: 0
+                          cursor: 'pointer', padding: 0, background: 'transparent', flexShrink: 0
                         }}
                       >
                         <img 
                           src={media}
                           alt={`${service.name} ${idx + 1}`}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                          }}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       </button>
                     ))}
@@ -768,57 +589,35 @@ export default function PublicServiceDetails() {
               {/* Enterprise Card */}
               {service.entreprise && (
                 <div style={{
-                  background: '#fff',
-                  borderRadius: '20px',
-                  padding: '24px',
-                  border: '1px solid #e2e8f0',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                  background: '#fff', borderRadius: '20px', padding: '24px',
+                  border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}>
                   <h3 style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '1.25rem',
-                    marginBottom: '16px',
-                    color: '#1e293b'
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    fontSize: '1.25rem', marginBottom: '16px', color: '#1e293b'
                   }}>
                     <MdBusiness style={{ color: '#dc2626' }} />
                     Entreprise
                   </h3>
                   
                   <Link to={`/entreprises/${service.entreprise.id}`} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    textDecoration: 'none',
-                    padding: '16px',
-                    background: '#f8fafc',
-                    borderRadius: '16px',
-                    transition: 'all 0.3s'
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    textDecoration: 'none', padding: '16px', background: '#f8fafc',
+                    borderRadius: '16px', transition: 'all 0.3s'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                       {service.entreprise.logo ? (
                         <img 
                           src={service.entreprise.logo} 
                           alt={service.entreprise.name}
-                          style={{
-                            width: '60px',
-                            height: '60px',
-                            borderRadius: '12px',
-                            objectFit: 'cover'
-                          }}
+                          style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover' }}
                         />
                       ) : (
                         <div style={{
-                          width: '60px',
-                          height: '60px',
-                          borderRadius: '12px',
-                          backgroundColor: '#fef2f2',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '24px',
-                          color: '#dc2626'
+                          width: '60px', height: '60px', borderRadius: '12px',
+                          backgroundColor: '#fef2f2', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                          fontSize: '24px', color: '#dc2626'
                         }}>
                           <MdBusiness size={32} />
                         </div>
@@ -843,37 +642,25 @@ export default function PublicServiceDetails() {
 
             {/* Right Column - Details */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
               {/* Main Info Card */}
               <div style={{
-                background: '#fff',
-                borderRadius: '20px',
-                padding: '24px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                background: '#fff', borderRadius: '20px', padding: '24px',
+                border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                   <h1 className="service-name" style={{
-                    fontSize: '2rem',
-                    fontWeight: '700',
-                    color: '#1e293b',
-                    margin: 0,
-                    flex: 1
+                    fontSize: '2rem', fontWeight: '700', color: '#1e293b', margin: 0, flex: 1
                   }}>
                     {service.name}
                   </h1>
-                  
                 </div>
                 
                 {service.domaine && (
                   <div style={{
-                    display: 'inline-block',
-                    background: '#fef2f2',
-                    color: '#dc2626',
-                    padding: '6px 12px',
-                    borderRadius: '20px',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    marginBottom: '16px'
+                    display: 'inline-block', background: '#fef2f2', color: '#dc2626',
+                    padding: '6px 12px', borderRadius: '20px',
+                    fontSize: '0.875rem', fontWeight: '600', marginBottom: '16px'
                   }}>
                     {service.domaine.name}
                   </div>
@@ -884,22 +671,13 @@ export default function PublicServiceDetails() {
                 {service.descriptions && (
                   <div style={{ marginTop: '20px' }}>
                     <h3 style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '1rem',
-                      fontWeight: '600',
-                      marginBottom: '12px',
-                      color: '#475569'
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      fontSize: '1rem', fontWeight: '600', marginBottom: '12px', color: '#475569'
                     }}>
                       <MdOutlineDescription />
                       Description
                     </h3>
-                    <p style={{
-                      color: '#64748b',
-                      lineHeight: '1.6',
-                      fontSize: '0.95rem'
-                    }}>
+                    <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '0.95rem' }}>
                       {service.descriptions}
                     </p>
                   </div>
@@ -908,32 +686,20 @@ export default function PublicServiceDetails() {
 
               {/* Pricing Card */}
               <div style={{
-                background: '#fff',
-                borderRadius: '20px',
-                padding: '24px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                background: '#fff', borderRadius: '20px', padding: '24px',
+                border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
               }}>
                 <h3 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '1.25rem',
-                  marginBottom: '16px',
-                  color: '#1e293b'
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  fontSize: '1.25rem', marginBottom: '16px', color: '#1e293b'
                 }}>
                   <FiDollarSign style={{ color: '#dc2626' }} />
                   Tarification
                 </h3>
                 
                 <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '16px',
-                  background: '#f8fafc',
-                  borderRadius: '12px',
-                  marginBottom: '16px'
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '16px', background: '#f8fafc', borderRadius: '12px', marginBottom: '16px'
                 }}>
                   <span style={{ fontWeight: '600', color: '#475569' }}>Prix</span>
                   {hasActivePromo ? (
@@ -946,12 +712,9 @@ export default function PublicServiceDetails() {
                           {formatPrice(service.price_promo)}
                         </span>
                         <span style={{
-                          background: '#dc2626',
-                          color: '#fff',
-                          padding: '4px 8px',
-                          borderRadius: '20px',
-                          fontSize: '0.75rem',
-                          fontWeight: '700'
+                          background: '#dc2626', color: '#fff',
+                          padding: '4px 8px', borderRadius: '20px',
+                          fontSize: '0.75rem', fontWeight: '700'
                         }}>
                           -{discountPercentage}%
                         </span>
@@ -971,13 +734,8 @@ export default function PublicServiceDetails() {
                 
                 {service.is_price_on_request && (
                   <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '12px',
-                    background: '#fef2f2',
-                    borderRadius: '12px',
-                    color: '#dc2626'
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '12px', background: '#fef2f2', borderRadius: '12px', color: '#dc2626'
                   }}>
                     <FiInfo />
                     <span style={{ fontSize: '0.875rem' }}>Prix sur demande - Contactez le prestataire pour un devis personnalisé</span>
@@ -988,30 +746,20 @@ export default function PublicServiceDetails() {
               {/* Schedule Card */}
               {scheduleInfo && (
                 <div style={{
-                  background: '#fff',
-                  borderRadius: '20px',
-                  padding: '24px',
-                  border: '1px solid #e2e8f0',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                  background: '#fff', borderRadius: '20px', padding: '24px',
+                  border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}>
                   <h3 style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '1.25rem',
-                    marginBottom: '16px',
-                    color: '#1e293b'
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    fontSize: '1.25rem', marginBottom: '16px', color: '#1e293b'
                   }}>
                     <FiClock style={{ color: '#dc2626' }} />
                     Horaires & Disponibilité
                   </h3>
                   
                   <div style={{
-                    padding: '16px',
-                    background: scheduleInfo.isOpen ? '#fef2f2' : '#fef2f2',
-                    borderRadius: '12px',
-                    marginBottom: '16px',
-                    border: `1px solid #fecaca`
+                    padding: '16px', background: '#fef2f2', borderRadius: '12px',
+                    marginBottom: '16px', border: `1px solid #fecaca`
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       {scheduleInfo.isOpen ? (
@@ -1042,19 +790,12 @@ export default function PublicServiceDetails() {
 
               {/* Contact & Actions Card */}
               <div style={{
-                background: '#fff',
-                borderRadius: '20px',
-                padding: '24px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                background: '#fff', borderRadius: '20px', padding: '24px',
+                border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
               }}>
                 <h3 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '1.25rem',
-                  marginBottom: '16px',
-                  color: '#1e293b'
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  fontSize: '1.25rem', marginBottom: '16px', color: '#1e293b'
                 }}>
                   <FaComments style={{ color: '#dc2626' }} />
                   Contact & Actions
@@ -1064,20 +805,10 @@ export default function PublicServiceDetails() {
                   onClick={() => setShowContactModal(true)}
                   className="contact-btn"
                   style={{
-                    width: '100%',
-                    padding: '16px',
-                    background: '#dc2626',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '16px',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '12px',
-                    marginBottom: '16px'
+                    width: '100%', padding: '16px', background: '#dc2626', color: '#fff',
+                    border: 'none', borderRadius: '16px', fontSize: '1rem', fontWeight: '600',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', gap: '12px', marginBottom: '16px'
                   }}
                 >
                   <FaComments size={20} />
@@ -1088,20 +819,10 @@ export default function PublicServiceDetails() {
                   onClick={handleRendezVous}
                   className="contact-btn"
                   style={{
-                    width: '100%',
-                    padding: '16px',
-                    background: '#1e293b',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '16px',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '12px',
-                    marginBottom: '16px'
+                    width: '100%', padding: '16px', background: '#1e293b', color: '#fff',
+                    border: 'none', borderRadius: '16px', fontSize: '1rem', fontWeight: '600',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', gap: '12px', marginBottom: '16px'
                   }}
                 >
                   <FiCalendar size={20} />
@@ -1109,21 +830,11 @@ export default function PublicServiceDetails() {
                 </button>
                 
                 <div style={{ display: 'flex', gap: '12px' }}>
-                 
-                  
                   <button onClick={handleShare} style={{
-                    flex: 1,
-                    padding: '12px',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    color: '#475569',
-                    fontWeight: '500'
+                    flex: 1, padding: '12px', background: '#f8fafc',
+                    border: '1px solid #e2e8f0', borderRadius: '12px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    gap: '8px', color: '#475569', fontWeight: '500'
                   }}>
                     <FiShare2 />
                     Partager
@@ -1133,12 +844,8 @@ export default function PublicServiceDetails() {
 
               {/* Help Box */}
               <div style={{
-                background: '#fef2f2',
-                borderRadius: '20px',
-                padding: '20px',
-                display: 'flex',
-                gap: '16px',
-                alignItems: 'flex-start',
+                background: '#fef2f2', borderRadius: '20px', padding: '20px',
+                display: 'flex', gap: '16px', alignItems: 'flex-start',
                 border: '1px solid #fecaca'
               }}>
                 <FiInfo style={{ color: '#dc2626', fontSize: '24px', flexShrink: 0 }} />
@@ -1155,7 +862,7 @@ export default function PublicServiceDetails() {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* ── Modals ── */}
       <ContactModal
         isOpen={showContactModal}
         onClose={() => setShowContactModal(false)}
@@ -1178,6 +885,15 @@ export default function PublicServiceDetails() {
         medias={service?.medias}
         initialIndex={modalImageIndex}
         serviceName={service?.name}
+      />
+
+      {/* ── ShareModal ── */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={service?.name}
+        url={window.location.href}
+        description={service?.descriptions || ''}
       />
     </>
   );
