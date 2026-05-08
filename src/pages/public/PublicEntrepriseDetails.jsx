@@ -413,9 +413,12 @@ export default function PublicEntrepriseDetails() {
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
+        type="entreprise"
         title={entreprise?.name}
         url={window.location.href}
         description={entreprise?.description || ''}
+        location={entreprise?.siege || ''}
+        rating={entreprise?.average_rating || null}
       />
 
       <style>{`

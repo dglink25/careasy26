@@ -891,9 +891,19 @@ export default function PublicServiceDetails() {
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
+        type="service"
         title={service?.name}
         url={window.location.href}
         description={service?.descriptions || ''}
+        price={
+          service?.has_promo && service?.price_promo
+            ? formatPrice(service.price_promo)
+            : service?.price
+            ? formatPrice(service.price)
+            : ''
+        }
+        location={service?.entreprise?.siege || ''}
+        rating={service?.average_rating || null}
       />
     </>
   );
