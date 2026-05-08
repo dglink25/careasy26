@@ -18,18 +18,18 @@ export const serviceApi = {
     return response.data;
   },
 
-  // Récupérer les détails d'un service (authentifié)
-  // La route publique GET /services/{id} a un bug backend (filtre is_always_open=true)
-  // On utilise donc la liste des services du prestataire et on filtre par ID
   getServiceById: async (id) => {
+    const response = await api.get(`/services/${id}`);
+    return response.data;
+},
+
+getMyServiceById: async (id) => {
     const response = await api.get('/services/mine');
     const services = response.data;
     const service = services.find(s => String(s.id) === String(id));
-    if (!service) {
-      throw new Error('Service non trouvé');
-    }
+    if (!service) throw new Error('Service non trouvé');
     return service;
-  },
+},
 
   // Liste publique des services
   getPublicServices: async () => {

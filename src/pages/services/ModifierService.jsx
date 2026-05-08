@@ -106,7 +106,7 @@ export default function ModifierService() {
   const fetchService = async () => {
     try {
       setLoading(true);
-      const data = await serviceApi.getServiceById(id);
+      const data = await serviceApi.getMyServiceById(id);
       setService(data);
       
       setFormData({
@@ -115,8 +115,12 @@ export default function ModifierService() {
         price_promo: data.price_promo || '',
         is_price_on_request: data.is_price_on_request || false,
         has_promo: data.has_promo || false,
-        promo_start_date: data.promo_start_date ? data.promo_start_date.substring(0, 16) : '',
-        promo_end_date: data.promo_end_date ? data.promo_end_date.substring(0, 16) : '',
+        promo_start_date: data.promo_start_date 
+    ? data.promo_start_date.replace(' ', 'T').substring(0, 16) 
+    : '',
+promo_end_date: data.promo_end_date 
+    ? data.promo_end_date.replace(' ', 'T').substring(0, 16) 
+    : '',
         descriptions: data.descriptions || '',
       });
       

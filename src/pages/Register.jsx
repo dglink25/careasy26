@@ -468,7 +468,7 @@ export default function Register({ isModal = false, onClose }) {
 
             {/* Icône animée */}
             <div style={{ textAlign: 'center', fontSize: '3.5rem', margin: '0.5rem 0 1.5rem', animation: 'pulse 1.5s ease-in-out infinite' }}>
-              {regMethod === 'email' ? '📧' : '📱'}
+              {regMethod === 'email' ? '' : ''}
             </div>
 
             {otpError && <div style={s.errorBox}>{otpError}</div>}
@@ -590,7 +590,7 @@ export default function Register({ isModal = false, onClose }) {
                 disabled={profLoading}
                 style={{ ...s.btn, opacity: profLoading ? 0.7 : 1, marginTop: '0.5rem' }}
               >
-                {profLoading ? 'Création du compte…' : 'Créer mon compte 🚀'}
+                {profLoading ? 'Création du compte…' : 'Créer mon compte '}
               </button>
             </form>
           </>
