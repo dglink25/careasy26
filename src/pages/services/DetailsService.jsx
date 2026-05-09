@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { serviceApi } from '../../api/serviceApi';
 import { entrepriseApi } from '../../api/entrepriseApi';
 import ServiceVisibilityToggle from '../../components/Services/ServiceVisibilityToggle';
+import ReviewsSection from '../../components/Reviews/ReviewsSection';
 import theme from '../../config/theme';
 import { 
   FiDollarSign, 
@@ -684,11 +685,22 @@ export default function DetailsService() {
               )}
 
               {service.descriptions && (
-                <div style={styles.descriptionSection}>
-                  <h3 style={styles.sectionSubtitle}>Description</h3>
-                  <p style={styles.description}>{service.descriptions}</p>
-                </div>
-              )}
+                  <div style={{ marginTop: '20px' }}>
+                    <h3 style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      fontSize: '1rem', fontWeight: '600', marginBottom: '12px', color: '#475569'
+                      }}>
+                      <MdOutlineDescription />
+                      Description
+                    </h3>
+                    <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '0.95rem' }}>
+                      {service.descriptions}
+                    </p>
+                  </div>
+                )}
+
+                {/* Section avis - EN DEHORS du bloc descriptions */}
+                <ReviewsSection serviceId={service.id} />
             </div>
 
             <div style={styles.card}>
