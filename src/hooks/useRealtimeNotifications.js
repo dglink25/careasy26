@@ -1,10 +1,3 @@
-// src/hooks/useRealtimeNotifications.js
-//
-// ✅ VERSION CORRIGÉE — évite la double instance Pusher
-// Vérifie window.__careasyPusher avant de créer une nouvelle instance
-// N'utilise import('pusher-js') que si window.Pusher n'est pas déjà disponible
-//
-// UTILISATION : appeler UNE SEULE FOIS dans Layout.jsx
 
 import { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,8 +31,6 @@ export function useRealtimeNotifications() {
 
     const initPusher = async () => {
       try {
-        // ✅ CORRECTION : réutiliser l'instance existante si disponible
-        // Évite de créer une 2e instance concurrente avec useWebSocket
         if (window.__careasyPusher) {
           console.log('[Notif] Réutilisation de window.__careasyPusher existante');
           pusherRef.current = window.__careasyPusher;
@@ -47,9 +38,7 @@ export function useRealtimeNotifications() {
           return;
         }
 
-        // ✅ CORRECTION : préférer window.Pusher (déjà chargé via script) à import()
-        // Évite deux bundles Pusher différents en mémoire
-        let PusherLib;
+         let PusherLib;
         if (window.Pusher) {
           PusherLib = window.Pusher;
           console.log('[Notif] Utilisation de window.Pusher (SDK script déjà chargé)');
@@ -73,7 +62,6 @@ export function useRealtimeNotifications() {
           sessionStorage.getItem('token')    ||
           '';
 
-        // ✅ Vérifier une dernière fois (race condition entre les deux hooks)
         if (window.__careasyPusher) {
           console.log('[Notif] Instance créée entre-temps — réutilisation');
           pusherRef.current = window.__careasyPusher;
@@ -104,15 +92,14 @@ export function useRealtimeNotifications() {
 
         pusherRef.current = new PusherLib(PUSHER_KEY, options);
 
-        // ✅ Exposer immédiatement pour que useWebSocket le trouve
         window.__careasyPusher = pusherRef.current;
 
         if (import.meta.env.DEV) {
           pusherRef.current.connection.bind('connected', () =>
-            console.log(`[Pusher] ✅ Connecté — user #${user.id}`)
+            console.log(`[Pusher]  Connecté — user #${user.id}`)
           );
           pusherRef.current.connection.bind('error', (err) =>
-            console.warn('[Pusher] ❌ Erreur connexion:', err)
+            console.warn('[Pusher]  Erreur connexion:', err)
           );
         }
 
