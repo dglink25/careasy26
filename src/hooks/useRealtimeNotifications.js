@@ -1,288 +1,202 @@
-
+// src/hooks/useRealtimeNotifications.js — V3
+// Utilise usePusherSingleton : partage la connexion avec useWebSocket.
 import { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
-
-const PUSHER_KEY     = import.meta.env.VITE_PUSHER_APP_KEY;
-const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_APP_CLUSTER || 'eu';
-const PUSHER_HOST    = import.meta.env.VITE_PUSHER_HOST;
-const PUSHER_PORT    = import.meta.env.VITE_PUSHER_PORT;
-const PUSHER_SCHEME  = import.meta.env.VITE_PUSHER_SCHEME || 'https';
-const AUTH_ENDPOINT  = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/broadcasting/auth`
-  : 'http://localhost:8000/api/broadcasting/auth';
+import { getPusher } from './usePusherSingleton';
 
 export function useRealtimeNotifications() {
   const { user }                = useAuth();
   const { notify, NOTIF_TYPES } = useNotifications();
-  const pusherRef               = useRef(null);
-  const channelRef              = useRef(null);
-  const retryTimerRef           = useRef(null);
+
+  const channelRef    = useRef(null);
+  const retryTimerRef = useRef(null);
+  const mountedRef    = useRef(true);
 
   useEffect(() => {
-    if (!user?.id || !PUSHER_KEY) {
-      if (!PUSHER_KEY) {
-        console.warn('[Notif] VITE_PUSHER_APP_KEY non défini — notifications temps réel désactivées');
-      }
-      return;
-    }
+    mountedRef.current = true;
 
-    let isMounted = true;
+    if (!user?.id) return;
 
-    const initPusher = async () => {
+    const init = async () => {
       try {
-        if (window.__careasyPusher) {
-          console.log('[Notif] Réutilisation de window.__careasyPusher existante');
-          pusherRef.current = window.__careasyPusher;
-          subscribeToChannel(pusherRef.current, user, notify, NOTIF_TYPES, channelRef, isMounted);
-          return;
-        }
+        const pusher = await getPusher(user.id);
+        if (!pusher || !mountedRef.current) return;
 
-         let PusherLib;
-        if (window.Pusher) {
-          PusherLib = window.Pusher;
-          console.log('[Notif] Utilisation de window.Pusher (SDK script déjà chargé)');
+        const name = `private-user.${user.id}`;
+
+        // Réutiliser le canal s'il existe déjà (partagé avec useWebSocket)
+        let ch = pusher.channel(name);
+        if (!ch) {
+          console.log(`[Notif] Subscribe → ${name}`);
+          ch = pusher.subscribe(name);
+
+          ch.bind('pusher:subscription_error', (status) => {
+            console.warn(`[Notif] Auth échouée sur ${name}:`, status);
+          });
+
+          ch.bind('pusher:subscription_succeeded', () => {
+            if (import.meta.env.DEV) console.log(`[Notif] ✅ ${name} abonné`);
+          });
         } else {
-          try {
-            const mod = await import('pusher-js');
-            PusherLib = mod.default || mod;
-            console.log('[Notif] pusher-js chargé via import()');
-          } catch {
-            console.warn('[Notif] pusher-js non disponible');
-            return;
-          }
+          console.log(`[Notif] ♻️ Réutilisation canal ${name}`);
         }
 
-        if (!isMounted) return;
-
-        const token =
-          localStorage.getItem('auth_token') ||
-          localStorage.getItem('token')      ||
-          sessionStorage.getItem('auth_token') ||
-          sessionStorage.getItem('token')    ||
-          '';
-
-        if (window.__careasyPusher) {
-          console.log('[Notif] Instance créée entre-temps — réutilisation');
-          pusherRef.current = window.__careasyPusher;
-          subscribeToChannel(pusherRef.current, user, notify, NOTIF_TYPES, channelRef, isMounted);
-          return;
-        }
-
-        const options = {
-          cluster: PUSHER_CLUSTER,
-          forceTLS: true,
-          authEndpoint: AUTH_ENDPOINT,
-          auth: {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept:        'application/json',
-            },
-          },
-        };
-
-        if (PUSHER_HOST) {
-          options.wsHost            = PUSHER_HOST;
-          options.wsPort            = PUSHER_PORT || 6001;
-          options.wssPort           = PUSHER_PORT || 6001;
-          options.forceTLS          = PUSHER_SCHEME === 'https';
-          options.disableStats      = true;
-          options.enabledTransports = ['ws', 'wss'];
-        }
-
-        pusherRef.current = new PusherLib(PUSHER_KEY, options);
-
-        window.__careasyPusher = pusherRef.current;
-
-        if (import.meta.env.DEV) {
-          pusherRef.current.connection.bind('connected', () =>
-            console.log(`[Pusher]  Connecté — user #${user.id}`)
-          );
-          pusherRef.current.connection.bind('error', (err) =>
-            console.warn('[Pusher]  Erreur connexion:', err)
-          );
-        }
-
-        subscribeToChannel(pusherRef.current, user, notify, NOTIF_TYPES, channelRef, isMounted);
+        channelRef.current = ch;
+        bindNotifEvents(ch, user, notify, NOTIF_TYPES);
 
       } catch (err) {
-        console.error('[Notif] Erreur init Pusher:', err);
-        if (isMounted) {
-          retryTimerRef.current = setTimeout(initPusher, 5000);
+        console.error('[Notif] Erreur init:', err);
+        if (mountedRef.current) {
+          retryTimerRef.current = setTimeout(init, 5000);
         }
       }
     };
 
-    initPusher();
+    init();
 
     return () => {
-      isMounted = false;
+      mountedRef.current = false;
       clearTimeout(retryTimerRef.current);
 
-      if (channelRef.current && pusherRef.current) {
-        const channelName = `private-user.${user.id}`;
-        channelRef.current.unbind_all();
-        // ✅ Ne pas unsubscribe si l'instance est partagée (useWebSocket l'utilise aussi)
-        // Juste unbind les listeners de notifications
+      // Unbind uniquement nos listeners de notifications — ne pas unsubscribe
+      // le canal (useWebSocket en a peut-être besoin aussi)
+      if (channelRef.current) {
+        unbindNotifEvents(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [user?.id, user?.role]);
-
-  // Reconnecter quand le token change
-  useEffect(() => {
-    if (!pusherRef.current || !user?.id) return;
-
-    const token =
-      localStorage.getItem('auth_token') ||
-      localStorage.getItem('token')      ||
-      sessionStorage.getItem('auth_token') ||
-      sessionStorage.getItem('token') || '';
-
-    if (pusherRef.current.config?.auth?.headers) {
-      pusherRef.current.config.auth.headers.Authorization = `Bearer ${token}`;
-    }
-  }, [user?.id]);
+  }, [user?.id, user?.role, notify, NOTIF_TYPES]);
 }
 
-// ── Abonnement au canal et binding des events ─────────────────────────────────
-function subscribeToChannel(pusher, user, notify, NOTIF_TYPES, channelRef, isMounted) {
-  if (!isMounted) return;
+// ── Binding ───────────────────────────────────────────────────────────────────
+// Préfixe unique sur chaque bind pour éviter les doublons si le hook
+// se remonte (StrictMode, HMR, etc.)
+const NS = '__notif__';   // namespace interne
 
-  const channelName = `private-user.${user.id}`;
-
-  // ✅ Si déjà abonné sur ce canal (par useWebSocket), récupérer le canal existant
-  const existingChannel = pusher.channel(channelName);
-  if (existingChannel) {
-    console.log(`[Notif] Canal ${channelName} déjà abonné — bind notifs dessus`);
-    channelRef.current = existingChannel;
-    bindNotifEvents(existingChannel, user, notify, NOTIF_TYPES);
-    return;
-  }
-
-  channelRef.current = pusher.subscribe(channelName);
-
-  channelRef.current.bind('pusher:subscription_error', (status) => {
-    console.warn('[Pusher] Auth échouée sur', channelName, status);
-  });
-
-  channelRef.current.bind('pusher:subscription_succeeded', () => {
-    if (import.meta.env.DEV) {
-      console.log(`[Pusher] 🔔 Abonné à ${channelName}`);
-    }
-  });
-
-  if (import.meta.env.DEV) {
-    pusher.bind_global((eventName, data) => {
-      if (!eventName.startsWith('pusher:')) {
-        console.log(`[Pusher] 📩 Event reçu: "${eventName}"`, data);
-      }
-    });
-  }
-
-  bindNotifEvents(channelRef.current, user, notify, NOTIF_TYPES);
-}
-
-// ── Tous les bindings d'événements de notification ───────────────────────────
 function bindNotifEvents(channel, user, notify, NOTIF_TYPES) {
-  channel.bind('new-message', (data) => {
-    if (data.sender_id === user.id) return;
+  // D'abord unbind au cas où on rebind après un HMR
+  unbindNotifEvents(channel);
+
+  channel.bind(`${NS}new-message`, (data) => {
+    if (String(data.sender_id) === String(user.id)) return;
     notify({
       title: `💬 ${data.sender_name || 'Nouveau message'}`,
-      body:  data.message?.content?.substring(0, 80) || 'Vous avez un nouveau message',
-      type:  NOTIF_TYPES.MESSAGE,
-      url:   '/messages',
-      tag:   `message-${data.conversation_id}`,
+      body : data.message?.content?.substring(0, 80) || 'Vous avez un nouveau message',
+      type : NOTIF_TYPES?.MESSAGE || 'message',
+      url  : '/messages',
+      tag  : `message-${data.conversation_id}`,
     });
   });
 
-  channel.bind('rdv-confirmed', (data) => {
+  channel.bind(`${NS}rdv-confirmed`, (data) => {
     notify({
       title: '✅ Rendez-vous confirmé',
-      body:  `Votre RDV du ${data.date || ''} à ${data.time || ''} a été confirmé`,
-      type:  NOTIF_TYPES.RDV_CONFIRMED,
-      url:   `/rendez-vous/${data.id || ''}`,
+      body : `Votre RDV du ${data.date || ''} à ${data.time || ''} a été confirmé`,
+      type : NOTIF_TYPES?.RDV_CONFIRMED || 'rdv_confirmed',
+      url  : `/rendez-vous/${data.id || ''}`,
     });
   });
 
-  channel.bind('rdv-cancelled', (data) => {
+  channel.bind(`${NS}rdv-cancelled`, (data) => {
     notify({
       title: '❌ Rendez-vous annulé',
-      body:  data.reason || 'Un rendez-vous a été annulé',
-      type:  NOTIF_TYPES.RDV_CANCELLED,
-      url:   `/rendez-vous/${data.id || ''}`,
+      body : data.reason || 'Un rendez-vous a été annulé',
+      type : NOTIF_TYPES?.RDV_CANCELLED || 'rdv_cancelled',
+      url  : `/rendez-vous/${data.id || ''}`,
     });
   });
 
-  channel.bind('rdv-pending', (data) => {
+  channel.bind(`${NS}rdv-pending`, (data) => {
     notify({
       title: '📅 Nouvelle demande de RDV',
-      body:  `${data.client_name || 'Un client'} demande un RDV le ${data.date || ''}`,
-      type:  NOTIF_TYPES.RDV_PENDING,
-      url:   '/rendez-vous/gestion',
+      body : `${data.client_name || 'Un client'} demande un RDV le ${data.date || ''}`,
+      type : NOTIF_TYPES?.RDV_PENDING || 'rdv_pending',
+      url  : '/rendez-vous/gestion',
     });
   });
 
-  channel.bind('entreprise-approved', (data) => {
+  channel.bind(`${NS}entreprise-approved`, (data) => {
     notify({
       title: '🏢 Entreprise validée !',
-      body:  `"${data.entreprise_name || 'Votre entreprise'}" a été approuvée ! Période d'essai de 30 jours activée.`,
-      type:  NOTIF_TYPES.ENTREPRISE_APPROVED,
-      url:   '/mes-entreprises',
-      tag:   `entreprise-${data.entreprise_id}`,
+      body : `"${data.entreprise_name || 'Votre entreprise'}" a été approuvée ! 30 jours d'essai activés.`,
+      type : NOTIF_TYPES?.ENTREPRISE_APPROVED || 'entreprise_approved',
+      url  : '/mes-entreprises',
+      tag  : `entreprise-${data.entreprise_id}`,
     });
   });
 
-  channel.bind('entreprise-rejected', (data) => {
+  channel.bind(`${NS}entreprise-rejected`, (data) => {
     notify({
       title: '⚠️ Entreprise refusée',
-      body:  data.reason || `"${data.entreprise_name || 'Votre entreprise'}" n'a pas été approuvée.`,
-      type:  NOTIF_TYPES.ENTREPRISE_REJECTED,
-      url:   '/mes-entreprises',
-      tag:   `entreprise-${data.entreprise_id}`,
+      body : data.reason || `"${data.entreprise_name || 'Votre entreprise'}" n'a pas été approuvée.`,
+      type : NOTIF_TYPES?.ENTREPRISE_REJECTED || 'entreprise_rejected',
+      url  : '/mes-entreprises',
+      tag  : `entreprise-${data.entreprise_id}`,
     });
   });
 
   if (user.role === 'admin') {
-    channel.bind('new-entreprise-pending', (data) => {
+    channel.bind(`${NS}new-entreprise-pending`, (data) => {
       notify({
         title: '🔔 Nouvelle demande entreprise',
-        body:  `"${data.entreprise_name || 'Une entreprise'}" soumise par ${data.prestataire_name || 'un prestataire'} — en attente de validation`,
-        type:  NOTIF_TYPES.ENTREPRISE_PENDING,
-        url:   `/admin/entreprises/${data.entreprise_id || ''}`,
-        tag:   `admin-entreprise-${data.entreprise_id}`,
+        body : `"${data.entreprise_name || 'Une entreprise'}" soumise par ${data.prestataire_name || 'un prestataire'}`,
+        type : NOTIF_TYPES?.ENTREPRISE_PENDING || 'entreprise_pending',
+        url  : `/admin/entreprises/${data.entreprise_id || ''}`,
+        tag  : `admin-entreprise-${data.entreprise_id}`,
       });
     });
   }
 
-  const laravelNotifHandler = (data) => {
-    if (import.meta.env.DEV) {
-      console.log('[Pusher] 📨 Laravel Notification reçue:', data);
-    }
-    const type = data.type || 'default';
+  // Notifications Laravel broadcast (Illuminate\Notifications)
+  const laravelHandler = (data) => {
+    if (import.meta.env.DEV) console.log('[Notif] 📨 Laravel broadcast reçu:', data);
     notify({
-      title: data.title || 'Notification',
-      body:  data.body  || data.message || '',
-      type:  mapLaravelType(type),
-      url:   data.url   || '/',
-      tag:   `notif-${data.id || Date.now()}`,
+      title: data.title   || 'Notification',
+      body : data.body    || data.message || '',
+      type : mapLaravelType(data.type || ''),
+      url  : data.url     || '/',
+      tag  : `notif-${data.id || Date.now()}`,
     });
   };
 
-  channel.bind('Illuminate\\Notifications\\Events\\BroadcastNotificationCreated', laravelNotifHandler);
-  channel.bind('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated', laravelNotifHandler);
+  channel.bind(`${NS}laravel-notif-1`,
+    '.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated', laravelHandler);
+  channel.bind(`${NS}laravel-notif-2`,
+    'Illuminate\\Notifications\\Events\\BroadcastNotificationCreated', laravelHandler);
+
+  // Pusher fournit bind_global sur l'instance, pas sur le canal.
+  // On ne l'utilise qu'en DEV pour debug.
+  if (import.meta.env.DEV && channel.pusher?.bind_global) {
+    channel.pusher.bind_global((eventName, data) => {
+      if (!eventName.startsWith('pusher:') && !eventName.startsWith(NS)) {
+        console.log(`[Pusher] 📩 Event global: "${eventName}"`, data);
+      }
+    });
+  }
 }
 
-function mapLaravelType(laravelType) {
+function unbindNotifEvents(channel) {
+  if (!channel) return;
+  const events = [
+    'new-message', 'rdv-confirmed', 'rdv-cancelled', 'rdv-pending',
+    'entreprise-approved', 'entreprise-rejected', 'new-entreprise-pending',
+    'laravel-notif-1', 'laravel-notif-2',
+  ];
+  events.forEach(e => channel.unbind(`${NS}${e}`));
+}
+
+// ── Mapping type Laravel → type interne ──────────────────────────────────────
+function mapLaravelType(t) {
   const map = {
-    'new_entreprise_pending': 'entreprise_pending',
-    'entreprise_approved':    'entreprise_approved',
-    'entreprise_rejected':    'entreprise_rejected',
-    'message':                'message',
-    'rdv_confirmed':          'rdv_confirmed',
-    'rdv_cancelled':          'rdv_cancelled',
-    'rdv_pending':            'rdv_pending',
-    'trial_started':          'entreprise_approved',
+    new_entreprise_pending: 'entreprise_pending',
+    entreprise_approved   : 'entreprise_approved',
+    entreprise_rejected   : 'entreprise_rejected',
+    message               : 'message',
+    rdv_confirmed         : 'rdv_confirmed',
+    rdv_cancelled         : 'rdv_cancelled',
+    rdv_pending           : 'rdv_pending',
+    trial_started         : 'entreprise_approved',
   };
-  return map[laravelType] || 'default';
+  return map[t] || 'default';
 }

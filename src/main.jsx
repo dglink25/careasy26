@@ -4,6 +4,7 @@ import './index.css'
 import './i18n/index.js'   
 import App from './App.jsx'
 import { HelmetProvider } from 'react-helmet-async';
+import 'leaflet/dist/leaflet.css';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

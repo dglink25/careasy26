@@ -87,7 +87,7 @@ const DateSep = ({ date }) => (
   </div>
 );
 
-const TypingBubble = ({ name }) => (
+const TypingBubble = ({ name, isRecording = false }) => (
   <div style={{ display:'flex',alignItems:'flex-end',gap:8,marginBottom:10 }}>
     <div style={{ width:32,height:32,borderRadius:'50%',background:theme.colors.primary,color:'#fff',
       display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.85rem',fontWeight:700,flexShrink:0 }}>
@@ -95,7 +95,9 @@ const TypingBubble = ({ name }) => (
     </div>
     <div style={{ display:'flex',alignItems:'center',gap:8,padding:'10px 14px',
       background:'#fff',border:'1px solid #e5e7eb',borderRadius:'18px 18px 18px 4px' }}>
-      <span style={{ fontSize:'0.75rem',color:'#9ca3af' }}>{name} écrit</span>
+      <span style={{ fontSize:'0.75rem',color:'#9ca3af' }}>
+        {isRecording ? `${name} enregistre un vocal` : `${name} écrit`}
+      </span>
       <div style={{ display:'flex',gap:4 }}>
         {[0,0.2,0.4].map((d,i) => (
           <span key={i} style={{ width:7,height:7,borderRadius:'50%',background:'#9ca3af',
@@ -219,6 +221,8 @@ export default function ChatModal({
   const typingTimerRef       = useRef(null);
   const convIdRef            = useRef(null);
   const messageRefs          = useRef({});   // ref par id de message (pour scroll to quoted)
+  const [receiverRecording, setReceiverRecording] = useState(false);
+  const recordingTimerRef = useRef(null);
 
   // ── WebSocket ──────────────────────────────────────────────────────────────
   const handleWsNewMessage = useCallback((data) => {
@@ -258,13 +262,25 @@ export default function ChatModal({
     }
   }, [receiverId]);
 
+    const handleWsRecording = useCallback((data) => {
+    // Ignorer son propre indicateur
+    if (parseInt(data.user_id) === parseInt(user?.id)) return;
+    setReceiverRecording(data.is_recording);
+    if (data.is_recording) {
+      clearTimeout(recordingTimerRef.current);
+      recordingTimerRef.current = setTimeout(() => setReceiverRecording(false), 5000);
+    }
+  }, [user?.id]);
+ 
   const { wsConnected } = useWebSocket({
     conversationId: conversation?.id ?? null,
     onNewMessage:   handleWsNewMessage,
     onTyping:       handleWsTyping,
+    onRecording:    handleWsRecording,    // ← AJOUT
     onMessagesRead: handleWsMessagesRead,
     onUserStatus:   handleWsUserStatus,
   });
+
 
   useEffect(() => {
     const h = () => setWindowWidth(window.innerWidth);
@@ -671,7 +687,12 @@ export default function ChatModal({
                     })}
                   </div>
                 ))}
-                {receiverTyping && <TypingBubble name={receiverName}/>}
+                  {(receiverTyping || receiverRecording) && (
+                    <TypingBubble
+                      name={receiverName}
+                      isRecording={receiverRecording && !receiverTyping}
+                    />
+                  )}
                 <div ref={messagesEndRef}/>
               </>
             )}

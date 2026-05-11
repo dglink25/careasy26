@@ -19,6 +19,8 @@ import GoogleCallback from './pages/GoogleCallback';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import AIChatWidget from './components/Chat/AIChatWidget';
+import MapScreen        from './pages/MapScreen';
+import ItineraryScreen  from './pages/ItineraryScreen';
 
 // Entreprises
 import MesEntreprises from './pages/entreprises/MesEntreprises';
@@ -97,6 +99,11 @@ function App() {
                       <Route path="/entreprises/creer" element={<ProtectedRoute><CreerEntreprise /></ProtectedRoute>} />
                       <Route path="/entreprises/:id" element={<ProtectedRoute><DetailsEntreprise /></ProtectedRoute>} />
                       <Route path="/entreprises/:id/edit" element={<ProtectedRoute><EditEntreprise /></ProtectedRoute>} />
+
+
+
+                      <Route path="/carte"      element={<ProtectedRoute><MapScreen /></ProtectedRoute>} />
+                      <Route path="/itineraire" element={<ProtectedRoute><ItineraryScreen /></ProtectedRoute>} />
 
                       {/* Services */}
                       <Route path="/mes-services" element={<ProtectedRoute><MesServices /></ProtectedRoute>} />

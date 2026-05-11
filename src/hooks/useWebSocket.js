@@ -1,230 +1,207 @@
-// src/hooks/useWebSocket.js — V4
-// Fix : réutilise window.__careasyPusher si déjà créé par useRealtimeNotifications
-// Évite les doubles instances qui causent NS_ERROR_WEBSOCKET_CONNECTION_REFUSED
-import { useEffect, useRef, useState } from 'react';
+// src/hooks/useWebSocket.js — V5
+// Utilise usePusherSingleton : une seule connexion WebSocket, partagée avec
+// useRealtimeNotifications. Fin des NS_ERROR_WEBSOCKET_CONNECTION_REFUSED.
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-
-let pusherInstance = null;
-let currentUserId  = null;
-
-function destroyPusher() {
-  if (pusherInstance) {
-    try { pusherInstance.disconnect(); } catch (_) {}
-    pusherInstance = null;
-    currentUserId  = null;
-    if (window.__careasyPusher === pusherInstance) {
-      delete window.__careasyPusher;
-    }
-  }
-}
-
-function buildPusher(token) {
-  // ✅ Réutiliser l'instance créée par useRealtimeNotifications si elle existe
-  if (window.__careasyPusher) {
-    console.log('[WS] Réutilisation de window.__careasyPusher (évite double instance)');
-    return window.__careasyPusher;
-  }
-
-  if (!window.Pusher) return null;
-
-  const key     = import.meta.env.VITE_PUSHER_APP_KEY    || '';
-  const cluster = import.meta.env.VITE_PUSHER_APP_CLUSTER || 'eu';
-  const apiUrl  = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/$/, '');
-  const authEndpoint = `${apiUrl.replace(/\/api$/, '')}/api/broadcasting/auth`;
-
-  console.log('[WS] Build Pusher → authEndpoint:', authEndpoint);
-
-  const instance = new window.Pusher(key, {
-    cluster,
-    encrypted: true,
-    authEndpoint,
-    auth: {
-      headers: {
-        Authorization:      `Bearer ${token}`,
-        Accept:             'application/json',
-        'Content-Type':     'application/x-www-form-urlencoded',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-    },
-  });
-
-  instance.connection.bind('connected',    () => console.log('[WS] ✅ Connecté'));
-  instance.connection.bind('disconnected', () => console.warn('[WS] ⚠️ Déconnecté'));
-  instance.connection.bind('error',        (e) => console.error('[WS] ❌', e));
-
-  window.__careasyPusher = instance;
-  console.log('[WS] ✅ Instance Pusher créée et exposée sur window.__careasyPusher');
-
-  return instance;
-}
-
-function loadSDK() {
-  return new Promise((resolve) => {
-    // ✅ Si une instance Pusher existe déjà, pas besoin de charger le SDK
-    if (window.__careasyPusher) { resolve(); return; }
-    if (window.Pusher) { resolve(); return; }
-
-    const s   = document.createElement('script');
-    s.src     = 'https://js.pusher.com/8.2.0/pusher.min.js';
-    s.async   = true;
-    s.onload  = () => {
-      console.log('[WS] SDK chargé');
-      resolve();
-    };
-    s.onerror = () => console.error('[WS] Impossible de charger le SDK');
-    document.head.appendChild(s);
-  });
-}
+import { getPusher } from './usePusherSingleton';
 
 /**
  * useWebSocket
- * @param {object} opts
- * @param {number|null} opts.conversationId  — écouter un canal conversation précis
- * @param {function}    opts.onNewMessage
- * @param {function}    opts.onTyping        — { user_id, is_typing, conversation_id }
- * @param {function}    opts.onMessagesRead
- * @param {function}    opts.onUserStatus
+ *
+ * S'abonne à :
+ *   - private-user.{userId}          → new-message, messages-read, user-status,
+ *                                       typing-indicator, recording-indicator
+ *   - private-conversation.{convId}  → message-sent, typing-indicator,
+ *                                       recording-indicator  (si conversationId fourni)
+ *
+ * @param {object}   opts
+ * @param {number|null} opts.conversationId
+ * @param {function} opts.onNewMessage
+ * @param {function} opts.onTyping           — { user_id, is_typing, conversation_id }
+ * @param {function} opts.onRecording        — { user_id, is_recording, conversation_id }
+ * @param {function} opts.onMessagesRead
+ * @param {function} opts.onUserStatus
  */
 export function useWebSocket({
   conversationId = null,
   onNewMessage,
   onTyping,
+  onRecording,
   onMessagesRead,
   onUserStatus,
 } = {}) {
-  const { user }  = useAuth();
-  const channels  = useRef({});
-  const cbRef     = useRef({});
+  const { user } = useAuth();
+
+  // Callbacks dans une ref → pas besoin de re-subscribe quand ils changent
+  const cbRef = useRef({});
+  cbRef.current = { onNewMessage, onTyping, onRecording, onMessagesRead, onUserStatus };
+
   const [wsConnected, setWsConnected] = useState(false);
-  const [sdkReady,    setSdkReady]    = useState(!!(window.Pusher || window.__careasyPusher));
 
-  cbRef.current = { onNewMessage, onTyping, onMessagesRead, onUserStatus };
+  // Refs des canaux en cours
+  const userChanRef = useRef(null);
+  const convChanRef = useRef(null);
+  const pusherRef   = useRef(null);
 
-  // ── 1. Charger le SDK (ou détecter instance existante) ─────────────────────
-  useEffect(() => {
-    // ✅ Si useRealtimeNotifications a déjà créé l'instance, on est prêts
-    if (window.__careasyPusher) {
-      setSdkReady(true);
-      return;
-    }
-    loadSDK().then(() => setSdkReady(true));
-  }, []);
-
-  // ✅ Écouter quand __careasyPusher devient disponible (cas race condition)
-  useEffect(() => {
-    if (sdkReady) return;
-    const interval = setInterval(() => {
-      if (window.__careasyPusher || window.Pusher) {
-        setSdkReady(true);
-        clearInterval(interval);
-      }
-    }, 200);
-    return () => clearInterval(interval);
-  }, [sdkReady]);
-
-  // ── 2. Canal utilisateur global ─────────────────────────────────────────────
-  useEffect(() => {
-    if (!sdkReady || !user?.id) return;
-
-    const token = localStorage.getItem('token');
-    if (!token) { console.warn('[WS] Pas de token'); return; }
-
-    // Recréer Pusher si l'utilisateur a changé
-    if (currentUserId !== user.id && !window.__careasyPusher) {
-      destroyPusher();
-    }
-
-    if (!pusherInstance) {
-      pusherInstance = buildPusher(token);
-      currentUserId  = user.id;
-    }
-    if (!pusherInstance) return;
-
-    const name = `private-user.${user.id}`;
-    if (channels.current[name]) return;
-
-    console.log(`[WS] Subscribe → ${name}`);
-    const ch = pusherInstance.subscribe(name);
-    channels.current[name] = ch;
-
-    ch.bind('pusher:subscription_succeeded', () => {
-      setWsConnected(true);
-      console.log(`[WS] ✅ ${name} actif`);
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const bindUserChannel = useCallback((ch, userId) => {
+    ch.bind('new-message', (d) => {
+      if (import.meta.env.DEV) console.log('[WS] 📩 new-message', d);
+      cbRef.current.onNewMessage?.(d);
     });
-    ch.bind('pusher:subscription_error', (s) =>
-      console.error(`[WS] ❌ ${name}`, s)
-    );
 
-    ch.bind('new-message',      (d) => { console.log('[WS] 📩', d); cbRef.current.onNewMessage?.(d); });
-    ch.bind('messages-read',    (d) => cbRef.current.onMessagesRead?.(d));
-    ch.bind('user-status',      (d) => cbRef.current.onUserStatus?.(d));
+    ch.bind('messages-read', (d) => {
+      cbRef.current.onMessagesRead?.(d);
+    });
+
+    ch.bind('user-status', (d) => {
+      cbRef.current.onUserStatus?.(d);
+    });
+
     ch.bind('typing-indicator', (d) => {
-      if (d.user_id !== user.id) cbRef.current.onTyping?.(d);
+      // Ignorer ses propres events
+      if (String(d.user_id) === String(userId)) return;
+      cbRef.current.onTyping?.(d);
     });
 
+    ch.bind('recording-indicator', (d) => {
+      if (String(d.user_id) === String(userId)) return;
+      cbRef.current.onRecording?.(d);
+    });
+  }, []);
+
+  const bindConvChannel = useCallback((ch, userId) => {
+    ch.bind('message-sent', (d) => {
+      if (String(d.sender_id) === String(userId)) return;
+      cbRef.current.onNewMessage?.(d);
+    });
+
+    ch.bind('typing-indicator', (d) => {
+      if (String(d.user_id) === String(userId)) return;
+      cbRef.current.onTyping?.(d);
+    });
+
+    ch.bind('recording-indicator', (d) => {
+      if (String(d.user_id) === String(userId)) return;
+      cbRef.current.onRecording?.(d);
+    });
+  }, []);
+
+  // ── Canal utilisateur global ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const pusher = await getPusher(user.id);
+      if (!pusher || cancelled) return;
+
+      pusherRef.current = pusher;
+
+      const name = `private-user.${user.id}`;
+
+      // Réutiliser le canal s'il existe déjà (partagé avec useRealtimeNotifications)
+      let ch = pusher.channel(name);
+      if (!ch) {
+        console.log(`[WS] Subscribe → ${name}`);
+        ch = pusher.subscribe(name);
+
+        ch.bind('pusher:subscription_succeeded', () => {
+          setWsConnected(true);
+          if (import.meta.env.DEV) console.log(`[WS] ✅ ${name} actif`);
+        });
+
+        ch.bind('pusher:subscription_error', (s) => {
+          console.error(`[WS] ❌ ${name}`, s);
+        });
+      } else {
+        // Canal déjà ouvert par useRealtimeNotifications
+        console.log(`[WS] ♻️ Réutilisation canal ${name}`);
+        setWsConnected(true);
+      }
+
+      userChanRef.current = ch;
+      bindUserChannel(ch, user.id);
+    })();
+
     return () => {
-      // ✅ Ne pas unsubscribe si l'instance est partagée avec useRealtimeNotifications
-      // car ce hook gère aussi les notifs globales sur ce canal
-      if (pusherInstance && pusherInstance !== window.__careasyPusher) {
-        pusherInstance.unsubscribe(name);
-        delete channels.current[name];
-        setWsConnected(false);
+      cancelled = true;
+      // Ne pas unsubscribe ici : useRealtimeNotifications gère le cycle de vie
+      // du canal utilisateur. On unbind seulement nos propres listeners.
+      if (userChanRef.current) {
+        userChanRef.current.unbind('new-message');
+        userChanRef.current.unbind('messages-read');
+        userChanRef.current.unbind('user-status');
+        userChanRef.current.unbind('typing-indicator');
+        userChanRef.current.unbind('recording-indicator');
+        userChanRef.current = null;
+      }
+      setWsConnected(false);
+    };
+  }, [user?.id, bindUserChannel]);
+
+  // ── Canal conversation active ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!conversationId || !user?.id) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const pusher = await getPusher(user.id);
+      if (!pusher || cancelled) return;
+
+      const name = `private-conversation.${conversationId}`;
+
+      // Désabonner l'ancien canal conversation si on en change
+      if (convChanRef.current) {
+        const old = convChanRef.current;
+        old.unbind('message-sent');
+        old.unbind('typing-indicator');
+        old.unbind('recording-indicator');
+        // unsubscribe du canal conversation (il n'est pas partagé)
+        const prevName = `private-conversation.${old.__convId}`;
+        if (prevName !== name) {
+          pusher.unsubscribe(prevName);
+        }
+        convChanRef.current = null;
+      }
+
+      console.log(`[WS] Subscribe conversation → ${name}`);
+      const ch = pusher.subscribe(name);
+      ch.__convId = conversationId;   // tag pour cleanup
+
+      ch.bind('pusher:subscription_succeeded', () => {
+        if (import.meta.env.DEV) console.log(`[WS] ✅ conv.${conversationId} actif`);
+      });
+
+      ch.bind('pusher:subscription_error', (s) => {
+        console.error(`[WS] ❌ conv.${conversationId}`, s);
+      });
+
+      convChanRef.current = ch;
+      bindConvChannel(ch, user.id);
+    })();
+
+    return () => {
+      cancelled = true;
+      if (convChanRef.current) {
+        const ch = convChanRef.current;
+        ch.unbind('message-sent');
+        ch.unbind('typing-indicator');
+        ch.unbind('recording-indicator');
+        const p = pusherRef.current;
+        if (p) p.unsubscribe(`private-conversation.${ch.__convId}`);
+        convChanRef.current = null;
       }
     };
-  }, [sdkReady, user?.id]);
-
-  // ── 3. Canal conversation active ─────────────────────────────────────────────
-  useEffect(() => {
-    if (!sdkReady || !conversationId || !user?.id) return;
-
-    // ✅ Utiliser l'instance globale si disponible
-    const activePusher = pusherInstance || window.__careasyPusher;
-    if (!activePusher) return;
-
-    const name = `private-conversation.${conversationId}`;
-
-    if (channels.current[name]) {
-      const ch = channels.current[name];
-      ch.unbind('message-sent');
-      ch.unbind('typing-indicator');
-      ch.bind('message-sent',     (d) => { if (d.sender_id !== user.id) cbRef.current.onNewMessage?.(d); });
-      ch.bind('typing-indicator', (d) => { if (d.user_id   !== user.id) cbRef.current.onTyping?.(d); });
-      return;
-    }
-
-    console.log(`[WS] Subscribe conversation → ${name}`);
-    const ch = activePusher.subscribe(name);
-    channels.current[name] = ch;
-
-    ch.bind('pusher:subscription_succeeded', () => console.log(`[WS] ✅ conv.${conversationId} actif`));
-    ch.bind('pusher:subscription_error',     (s) => console.error(`[WS] ❌ conv.${conversationId}`, s));
-    ch.bind('message-sent',     (d) => { if (d.sender_id !== user.id) cbRef.current.onNewMessage?.(d); });
-    ch.bind('typing-indicator', (d) => { if (d.user_id   !== user.id) cbRef.current.onTyping?.(d); });
-
-    return () => {
-      if (activePusher) activePusher.unsubscribe(name);
-      delete channels.current[name];
-    };
-  }, [sdkReady, conversationId, user?.id]);
-
-  // ── 4. Nettoyage global ──────────────────────────────────────────────────────
-  useEffect(() => {
-    return () => {
-      // ✅ Ne détruire que les canaux conversation, pas les canaux globaux
-      // (les canaux globaux sont gérés par useRealtimeNotifications)
-      Object.keys(channels.current)
-        .filter(n => n.startsWith('private-conversation.'))
-        .forEach(n => {
-          const p = pusherInstance || window.__careasyPusher;
-          if (p) p.unsubscribe(n);
-        });
-      channels.current = {};
-    };
-  }, []);
+  }, [conversationId, user?.id, bindConvChannel]);
 
   return { wsConnected };
 }
 
+// Ré-exporté pour compatibilité avec l'ancien code
 export function getPusherInstance() {
-  return pusherInstance || window.__careasyPusher;
+  const { getPusherSync } = require('./usePusherSingleton');
+  return getPusherSync();
 }

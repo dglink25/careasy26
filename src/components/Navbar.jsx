@@ -20,7 +20,7 @@ import {
   FiBell, FiMoon, FiShield, FiShoppingBag, FiCalendar, FiAward,
   FiChevronDown as FiChevronDownIcon, FiClock, FiTrash2, FiCheckSquare,
   FiHelpCircle, FiCheckCircle, FiXCircle, FiAlertTriangle, FiAlertCircle,
-  FiGift, FiZap, FiTruck,
+  FiGift, FiMap, FiZap, FiTruck,
 } from 'react-icons/fi';
 import { MdDashboard } from 'react-icons/md';
 
@@ -598,6 +598,7 @@ export default function Navbar() {
     { to: '/messages',        icon: FiMessageSquare, label: t('nav.messages')      },
     { to: '/mes-rendez-vous', icon: FiCalendar,      label: t('nav.appointments')  },
     { to: '/abonnements',     icon: FiAward,         label: t('nav.subscriptions') },
+    { to: '/carte',           icon: FiMap,           label: 'Carte' },
   ];
 
   const clientLinks = [
@@ -605,6 +606,7 @@ export default function Navbar() {
     { to: '/mes-rendez-vous', icon: FiCalendar,      label: t('nav.myAppointments')   },
     { to: '/messages',        icon: FiMessageSquare, label: t('nav.messages')         },
     { to: '/services',        icon: FaSearch,        label: t('nav.explore')          },
+     { to: '/carte',          icon: FiMap,           label: 'Carte' },
   ];
 
   // ── Avatar utilisateur ────────────────────────────────────────────────────
