@@ -26,7 +26,7 @@ import {
 import { MdBusiness, MdVerified, MdDirections } from 'react-icons/md';
 import { useNotifications } from '../contexts/NotificationContext';
 
-// ── Leaflet icon fix (Webpack / Vite) ────────────────────────────────────────
+// -- Leaflet icon fix (Webpack / Vite) ----------------------------------------
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -34,7 +34,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// ── Constantes ────────────────────────────────────────────────────────────────
+// -- Constantes ----------------------------------------------------------------
 const DEFAULT_LAT   = 6.3654;
 const DEFAULT_LNG   = 2.4183;
 const ZOOM_DEFAULT  = 13;
@@ -42,7 +42,7 @@ const ZOOM_FOCUS    = 16;
 const ORS_API_KEY   = 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjU5YWUyNTQ2MjU4MTQ0ZDBiMzk0MGJkMzZlZDc5NTQwIiwiaCI6Im11cm11cjY0In0=';
 const PRIMARY_RED   = '#dc2626';
 
-// ── Icônes SVG personnalisées Leaflet ─────────────────────────────────────────
+// -- Icônes SVG personnalisées Leaflet -----------------------------------------
 const makeEntrepriseIcon = (name, logo, isSelected) => {
   const bg    = isSelected ? PRIMARY_RED : '#fff';
   const color = isSelected ? '#fff'      : '#1e293b';
@@ -129,7 +129,7 @@ const destIcon = (name) => L.divIcon({
   iconSize:   [120, 46],
 });
 
-// ── Composant de recadrage carte ──────────────────────────────────────────────
+// -- Composant de recadrage carte ----------------------------------------------
 function MapController({ center, zoom, fitBounds }) {
   const map = useMap();
   useEffect(() => {
@@ -175,15 +175,16 @@ export default function MapScreen() {
   const [steps,             setSteps]             = useState([]);
   const [bottomExpanded,    setBottomExpanded]    = useState(false);
   const [searchFocused,     setSearchFocused]     = useState(false);
+  const [showServiceModal,  setShowServiceModal]  = useState(false);
 
   const searchRef = useRef(null);
 
-  // ── Chargement initial ───────────────────────────────────────────────────
+  // -- Chargement initial ---------------------------------------------------
   useEffect(() => {
     Promise.all([fetchEntreprises(), fetchDomaines(), getUserLocation()]);
   }, []);
 
-  // ── Filtre ───────────────────────────────────────────────────────────────
+  // -- Filtre ---------------------------------------------------------------
   useEffect(() => {
     applyFilter();
   }, [entreprises, selectedDomaine, searchQuery]);
@@ -234,7 +235,7 @@ export default function MapScreen() {
 
   const geoEntreprises = filtered.filter((e) => e.latitude && e.longitude);
 
-  // ── Distance ─────────────────────────────────────────────────────────────
+  // -- Distance -------------------------------------------------------------
   const distanceTo = (e) => {
     if (!userPos) return null;
     const lat = parseFloat(e.latitude);
@@ -251,7 +252,7 @@ export default function MapScreen() {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
-  // ── Sélection entreprise ──────────────────────────────────────────────────
+  // -- Sélection entreprise --------------------------------------------------
   const selectEntreprise = (e) => {
     const lat = parseFloat(e.latitude);
     const lng = parseFloat(e.longitude);
@@ -274,7 +275,7 @@ export default function MapScreen() {
     setSteps([]);
   };
 
-  // ── Itinéraire ────────────────────────────────────────────────────────────
+  // -- Itinéraire ------------------------------------------------------------
   const buildRoute = useCallback(async (mode = itinMode) => {
     if (!userPos || !selectedEnt) return;
     const lat = parseFloat(selectedEnt.latitude);
@@ -393,7 +394,7 @@ export default function MapScreen() {
     return `${min} min`;
   };
 
-  // ── Actions contact ───────────────────────────────────────────────────────
+  // -- Actions contact -------------------------------------------------------
   const handleCall = () => {
     const p = selectedEnt?.call_phone;
     if (p) window.open(`tel:${p}`);
@@ -407,9 +408,18 @@ export default function MapScreen() {
     navigate('/messages', { state: { openConversationWith: selectedEnt?.id } });
   };
   const handleRdv = () => {
-    const svc = (selectedEnt?.services || [])[0];
-    if (!svc) return;
-    navigate(`/rendez-vous/demande/${svc.id}`);
+    if (!user) { navigate('/login'); return; }
+    const services = selectedEnt?.services || [];
+    if (services.length === 0) {
+      // Pas de services dans la réponse — aller sur la page entreprise
+      navigate(`/entreprises/${selectedEnt?.id}`);
+      return;
+    }
+    if (services.length === 1) {
+      navigate(`/rendez-vous/demande/${services[0].id}`);
+    } else {
+      setShowServiceModal(true);
+    }
   };
   const handleViewServices = () => {
     navigate(`/entreprises/${selectedEnt?.id}`);
@@ -420,7 +430,7 @@ export default function MapScreen() {
     <div style={s.root}>
       <style>{CSS}</style>
 
-      {/* ── CARTE ────────────────────────────────────────────────────────── */}
+      {/* -- CARTE ---------------------------------------------------------- */}
       <MapContainer
         center={mapCenter}
         zoom={mapZoom}
@@ -473,7 +483,7 @@ export default function MapScreen() {
         )}
       </MapContainer>
 
-      {/* ── HEADER ───────────────────────────────────────────────────────── */}
+      {/* -- HEADER --------------------------------------------------------- */}
       <div style={s.header}>
         <div style={s.headerInner}>
           <button
@@ -511,7 +521,7 @@ export default function MapScreen() {
         </div>
       </div>
 
-      {/* ── CHIPS DOMAINES ───────────────────────────────────────────────── */}
+      {/* -- CHIPS DOMAINES ------------------------------------------------- */}
       {domaines.length > 0 && (
         <div style={s.chipsRow}>
           <div style={s.chipsScroll}>
@@ -534,7 +544,7 @@ export default function MapScreen() {
         </div>
       )}
 
-      {/* ── BOUTONS DROITE ───────────────────────────────────────────────── */}
+      {/* -- BOUTONS DROITE ------------------------------------------------- */}
       <div style={s.rightBtns}>
         <button
           style={{ ...s.mapBtn, ...(isLocating ? { background: PRIMARY_RED } : {}) }}
@@ -557,7 +567,7 @@ export default function MapScreen() {
         </button>
       </div>
 
-      {/* ── LOADING ──────────────────────────────────────────────────────── */}
+      {/* -- LOADING -------------------------------------------------------- */}
       {isLoading && (
         <div style={s.loadingOverlay}>
           <div style={s.loadingBox}>
@@ -569,7 +579,7 @@ export default function MapScreen() {
         </div>
       )}
 
-      {/* ── MODAL ENTREPRISE ─────────────────────────────────────────────── */}
+      {/* -- MODAL ENTREPRISE ----------------------------------------------- */}
       {modalVisible && selectedEnt && (
         <div style={s.modal} className="modal-slide-up">
 
@@ -674,7 +684,7 @@ export default function MapScreen() {
               </button>
             </div>
           ) : (
-            /* ── FICHE ENTREPRISE ─────────────────────────────────────── */
+            /* -- FICHE ENTREPRISE --------------------------------------- */
             <div>
               <div style={s.handle} />
 
@@ -772,7 +782,6 @@ export default function MapScreen() {
                     icon={<FiCalendar size={22} />}
                     label="Rendez-vous"
                     color="#3b82f6"
-                    disabled={!(selectedEnt.services || []).length}
                     onClick={handleRdv}
                   />
                   <ActionIcon
@@ -797,7 +806,7 @@ export default function MapScreen() {
         </div>
       )}
 
-      {/* ── LISTE BAS (quand modal fermée) ───────────────────────────────── */}
+      {/* -- LISTE BAS (quand modal fermée) --------------------------------- */}
       {!modalVisible && (
         <div style={s.bottomList}>
           <div
@@ -858,11 +867,56 @@ export default function MapScreen() {
           </div>
         </div>
       )}
+      {/* -- MODAL SÉLECTION SERVICE ------------------------------------ */}
+      {showServiceModal && selectedEnt && (
+        <div style={s.serviceModalOverlay} onClick={() => setShowServiceModal(false)}>
+          <div style={s.serviceModalBox} onClick={e => e.stopPropagation()}>
+            <div style={s.serviceModalHeader}>
+              <div>
+                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>Choisir un service</p>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#fff' }}>{selectedEnt.name}</p>
+              </div>
+              <button style={s.serviceModalClose} onClick={() => setShowServiceModal(false)}>
+                <FiX size={18} color="#fff" />
+              </button>
+            </div>
+            <div style={s.serviceModalBody}>
+              <p style={{ margin: '0 0 12px', fontSize: 12, color: '#64748b', fontWeight: 500 }}>
+                Sélectionnez le service pour lequel vous souhaitez prendre rendez-vous :
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {(selectedEnt.services || []).map((svc) => (
+                  <button
+                    key={svc.id}
+                    style={s.serviceCard}
+                    onClick={() => { setShowServiceModal(false); navigate(`/rendez-vous/demande/${svc.id}`); }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = PRIMARY_RED; e.currentTarget.style.background = 'rgba(220,38,38,0.04)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#fff'; }}
+                  >
+                    <div style={s.serviceCardIcon}>
+                      <FiZap size={16} color={PRIMARY_RED} />
+                    </div>
+                    <div style={{ flex: 1, textAlign: 'left' }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{svc.name}</p>
+                      {svc.price && (
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#64748b' }}>
+                          {svc.price} FCFA
+                        </p>
+                      )}
+                    </div>
+                    <FiChevronDown size={16} color="#94a3b8" style={{ transform: 'rotate(-90deg)' }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── ActionIcon ────────────────────────────────────────────────────────────────
+// -- ActionIcon ----------------------------------------------------------------
 function ActionIcon({ icon, label, color, disabled, onClick }) {
   return (
     <button
@@ -874,8 +928,12 @@ function ActionIcon({ icon, label, color, disabled, onClick }) {
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
     >
-      <div style={{ ...s.actionIconCircle, background: `${color}20`, border: `1.5px solid ${color}40` }}>
-        <span style={{ color }}>{icon}</span>
+      <div style={{
+        ...s.actionIconCircle,
+        background: disabled ? '#f1f5f9' : `${color}15`,
+        border: `1.5px solid ${disabled ? '#e2e8f0' : color + '30'}`,
+      }}>
+        <span style={{ color: disabled ? '#94a3b8' : color }}>{icon}</span>
       </div>
       <span style={s.actionLabel}>{label}</span>
     </button>
@@ -889,7 +947,7 @@ const s = {
   root: {
     position: 'relative',
     width: '100%',
-    height: 'calc(100vh - 64px)',
+    height: 'calc(100vh - 80px)',
     overflow: 'hidden',
     background: '#f8fafc',
   },
@@ -1042,23 +1100,23 @@ const s = {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
     background: '#fff',
-    borderRadius: '24px 24px 0 0',
-    boxShadow: '0 -8px 30px rgba(0,0,0,0.18)',
+    borderRadius: '28px 28px 0 0',
+    boxShadow: '0 -12px 40px rgba(0,0,0,0.2)',
     zIndex: 500,
-    maxHeight: '75vh',
+    maxHeight: '78vh',
     overflowY: 'auto',
   },
   handle: {
-    width: 40, height: 4,
+    width: 36, height: 4,
     background: '#e2e8f0',
     borderRadius: 2,
-    margin: '10px auto 0',
+    margin: '12px auto 0',
   },
 
   // Bannière
   banner: {
     position: 'relative',
-    height: 110,
+    height: 130,
     overflow: 'hidden',
   },
   bannerImg: {
@@ -1067,77 +1125,86 @@ const s = {
   },
   bannerPlaceholder: {
     width: '100%', height: '100%',
-    background: '#f1f5f9',
+    background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   bannerGradient: {
     position: 'absolute',
     inset: 0,
-    background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 100%)',
+    background: 'linear-gradient(180deg, transparent 20%, rgba(0,0,0,0.65) 100%)',
   },
   closeBtn: {
     position: 'absolute',
-    top: 10, right: 10,
-    width: 30, height: 30,
+    top: 12, right: 12,
+    width: 32, height: 32,
     borderRadius: '50%',
-    background: 'rgba(0,0,0,0.45)',
+    background: 'rgba(0,0,0,0.5)',
     border: 'none',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer',
     zIndex: 2,
+    backdropFilter: 'blur(4px)',
   },
   bannerInfo: {
     position: 'absolute',
-    bottom: 12, left: 14, right: 14,
+    bottom: 14, left: 14, right: 50,
     display: 'flex',
     alignItems: 'flex-end',
     gap: 10,
     zIndex: 2,
   },
   entLogo: {
-    width: 46, height: 46,
-    borderRadius: 12,
+    width: 50, height: 50,
+    borderRadius: 14,
     background: '#fff',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
     flexShrink: 0,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+    border: '2px solid rgba(255,255,255,0.8)',
   },
   entName: {
     margin: 0,
     color: '#fff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 800,
-    textShadow: '0 1px 4px rgba(0,0,0,0.4)',
+    textShadow: '0 1px 6px rgba(0,0,0,0.5)',
+    lineHeight: 1.2,
   },
   verifiedRow: {
     display: 'flex', alignItems: 'center', gap: 3,
+    marginTop: 3,
   },
 
   // Corps modal
   modalBody: {
-    padding: '12px 16px 20px',
+    padding: '14px 16px 24px',
   },
   domainesRow: {
     display: 'flex', flexWrap: 'wrap', gap: 6,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   domainePill: {
     fontSize: 10,
-    fontWeight: 600,
+    fontWeight: 700,
     color: PRIMARY_RED,
     background: 'rgba(220,38,38,0.08)',
     borderRadius: 20,
-    padding: '3px 10px',
+    padding: '4px 12px',
+    border: '1px solid rgba(220,38,38,0.15)',
   },
   addrRow: {
-    display: 'flex', alignItems: 'flex-start', gap: 5,
-    marginBottom: 14,
+    display: 'flex', alignItems: 'flex-start', gap: 6,
+    marginBottom: 16,
+    padding: '10px 12px',
+    background: '#f8fafc',
+    borderRadius: 12,
+    border: '1px solid #e2e8f0',
   },
   addrText: {
     flex: 1,
     fontSize: 12,
-    color: '#64748b',
+    color: '#475569',
     lineHeight: 1.5,
   },
   distBadge: {
@@ -1145,40 +1212,46 @@ const s = {
     color: '#fff',
     fontSize: 10,
     fontWeight: 700,
-    padding: '2px 7px',
+    padding: '3px 8px',
     borderRadius: 12,
     flexShrink: 0,
   },
   actionsRow: {
     display: 'flex',
     justifyContent: 'space-around',
-    marginBottom: 14,
+    marginBottom: 16,
+    padding: '4px 0',
   },
   actionIcon: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-    background: 'none', border: 'none', padding: 0,
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+    background: 'none', border: 'none', padding: '4px 2px',
+    minWidth: 52,
   },
   actionIconCircle: {
-    width: 50, height: 50,
-    borderRadius: '50%',
+    width: 52, height: 52,
+    borderRadius: 16,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
   },
   actionLabel: {
     fontSize: 10,
     color: '#64748b',
     fontWeight: 600,
+    textAlign: 'center',
   },
   servicesBtn: {
     width: '100%',
-    background: PRIMARY_RED,
+    background: `linear-gradient(135deg, ${PRIMARY_RED} 0%, #b91c1c 100%)`,
     color: '#fff',
     border: 'none',
     borderRadius: 14,
-    padding: '13px',
+    padding: '14px',
     fontSize: 14,
     fontWeight: 700,
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    boxShadow: '0 4px 14px rgba(220,38,38,0.35)',
+    transition: 'transform 0.15s, box-shadow 0.15s',
   },
 
   // Itinéraire
@@ -1285,7 +1358,7 @@ const s = {
   },
   startNavBtn: {
     width: '100%',
-    background: PRIMARY_RED,
+    background: `linear-gradient(135deg, ${PRIMARY_RED} 0%, #b91c1c 100%)`,
     color: '#fff',
     border: 'none',
     borderRadius: 14,
@@ -1294,6 +1367,7 @@ const s = {
     fontWeight: 700,
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    boxShadow: '0 4px 14px rgba(220,38,38,0.35)',
   },
 
   // Liste bas
@@ -1306,13 +1380,18 @@ const s = {
   },
   bottomListHandle: {
     display: 'flex', alignItems: 'center', gap: 8,
-    padding: '4px 16px 8px',
+    padding: '6px 16px 10px',
     cursor: 'pointer',
   },
   bottomListTitle: {
     fontSize: 12,
-    fontWeight: 600,
-    color: '#64748b',
+    fontWeight: 700,
+    color: '#1e293b',
+    background: 'rgba(255,255,255,0.9)',
+    padding: '4px 10px',
+    borderRadius: 20,
+    backdropFilter: 'blur(8px)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
   },
   cardScroll: {
     display: 'flex',
@@ -1322,27 +1401,27 @@ const s = {
     scrollbarWidth: 'none',
   },
   entCard: {
-    width: 155,
+    width: 160,
     background: '#fff',
-    borderRadius: 16,
-    border: 'none',
+    borderRadius: 18,
+    border: '1.5px solid #f1f5f9',
     overflow: 'hidden',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+    boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
     cursor: 'pointer',
     flexShrink: 0,
     display: 'flex', flexDirection: 'column',
     padding: 0,
-    transition: 'transform 0.15s',
+    transition: 'transform 0.15s, box-shadow 0.15s',
   },
   entCardImg: {
-    height: 80,
-    background: '#f8fafc',
+    height: 85,
+    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
   },
   entCardBody: {
-    padding: '8px 10px',
-    display: 'flex', flexDirection: 'column', gap: 2,
+    padding: '10px 12px',
+    display: 'flex', flexDirection: 'column', gap: 3,
   },
   entCardName: {
     margin: 0,
@@ -1356,10 +1435,73 @@ const s = {
     fontSize: 10,
     color: '#94a3b8',
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+    fontWeight: 500,
   },
   entCardDist: {
     display: 'flex', alignItems: 'center', gap: 3,
-    marginTop: 2,
+    marginTop: 3,
+    background: 'rgba(220,38,38,0.06)',
+    borderRadius: 8,
+    padding: '3px 6px',
+    width: 'fit-content',
+  },
+
+  // Modal sélection service
+  serviceModalOverlay: {
+    position: 'absolute',
+    inset: 0,
+    background: 'rgba(0,0,0,0.55)',
+    zIndex: 600,
+    display: 'flex',
+    alignItems: 'flex-end',
+    backdropFilter: 'blur(4px)',
+  },
+  serviceModalBox: {
+    width: '100%',
+    background: '#fff',
+    borderRadius: '28px 28px 0 0',
+    overflow: 'hidden',
+    boxShadow: '0 -12px 40px rgba(0,0,0,0.25)',
+    animation: 'slide-up 0.3s cubic-bezier(0.34,1.0,0.64,1) forwards',
+  },
+  serviceModalHeader: {
+    background: `linear-gradient(135deg, ${PRIMARY_RED} 0%, #b91c1c 100%)`,
+    padding: '20px 20px 18px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  serviceModalClose: {
+    width: 34, height: 34,
+    borderRadius: '50%',
+    background: 'rgba(255,255,255,0.2)',
+    border: 'none',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+  serviceModalBody: {
+    padding: '16px 16px 28px',
+  },
+  serviceCard: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '12px 14px',
+    background: '#fff',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: 14,
+    cursor: 'pointer',
+    transition: 'border-color 0.2s, background 0.2s',
+  },
+  serviceCardIcon: {
+    width: 40, height: 40,
+    borderRadius: 12,
+    background: 'rgba(220,38,38,0.08)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+    border: '1px solid rgba(220,38,38,0.15)',
   },
 };
 

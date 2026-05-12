@@ -764,6 +764,13 @@ export default function PublicServices() {
           <p style={styles.heroSubtitle}>
             Découvrez {stats.total} services professionnels répartis dans {stats.domaines} domaines
           </p>
+          <Link to="/carte" style={styles.mapButton}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            Voir sur la carte
+          </Link>
         </div>
 
         <div style={styles.statsGrid}>
@@ -917,6 +924,11 @@ export default function PublicServices() {
         .service-card:hover .image-nav-button {
           opacity: 0.7 !important;
         }
+        a[style*="mapButton"]:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(220, 38, 38, 0.45);
+          background-color: #b91c1c;
+        }
       `}</style>
     </div>
   );
@@ -968,6 +980,23 @@ const styles = {
   heroSubtitle: {
     fontSize: '1.25rem',
     color: '#64748b',
+  },
+  mapButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    marginTop: '1.5rem',
+    padding: '0.875rem 1.75rem',
+    backgroundColor: '#dc2626',
+    color: '#fff',
+    borderRadius: '999px',
+    fontSize: '1rem',
+    fontWeight: '600',
+    textDecoration: 'none',
+    boxShadow: '0 4px 14px rgba(220, 38, 38, 0.35)',
+    transition: 'all 0.3s ease',
+    border: 'none',
+    cursor: 'pointer',
   },
   statsGrid: {
     display: 'grid',
