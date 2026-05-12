@@ -76,7 +76,12 @@ export default function Settings() {
         profile_photo_url: profileRes.user.profile_photo_url,
       });
       syncFromBackend(settingsRes.settings?.privacy);
-      setNotifications(notificationRes.notifications);
+      const ch = notificationRes?.channels || notificationRes?.notifications || {};
+      setNotifications({
+        email: ch.email ?? true,
+        push:  ch.push  ?? true,
+        sms:   ch.sms   ?? false,
+      });
     } catch (e) {
       showMessage('Erreur lors du chargement', 'error');
     } finally {
@@ -169,13 +174,16 @@ export default function Settings() {
   };
 
   const handleNotificationChange = async (key, value) => {
-    const updated = { ...notifications, [key]: value };
-    setNotifications(updated);
-    try {
-      await userSettingsApi.updateNotificationSettings(updated);
-      showMessage('Notifications mises à jour');
-    } catch { showMessage('Erreur', 'error'); }
-  };
+  const updated = { ...notifications, [key]: value };
+  setNotifications(updated);
+  try {
+    // Envoie au format "channels" attendu par NotificationSettingsController
+    await userSettingsApi.updateNotificationSettings({ channels: updated });
+    showMessage('Notifications mises à jour');
+  } catch {
+    showMessage('Erreur', 'error');
+  }
+};
 
   const handlePrivacyChange = async (key, value) => {
     const updated = { ...privacy, [key]: value };

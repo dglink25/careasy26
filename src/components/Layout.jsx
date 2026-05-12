@@ -45,7 +45,7 @@ export default function Layout() {
     <>
       <NavigationBridge />
       <Navbar />
-      <main>
+      <main style={{ paddingTop: '80px' }}>
         <Outlet />
       </main>
       <Footer />

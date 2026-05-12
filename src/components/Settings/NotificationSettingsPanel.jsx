@@ -132,7 +132,7 @@ export default function NotificationSettingsPanel({ colors: c, notifications, on
                 <div style={s.desc}>{desc}</div>
               </div>
             </div>
-            <Toggle checked={notifications[key]} onChange={v => onNotificationChange(key, v)} brand={c?.brand || 'var(--brand-primary)'} />
+            <Toggle checked={notifications?.[key] ?? false} onChange={v => onNotificationChange(key, v)} brand={c?.brand || 'var(--brand-primary)'} />
           </div>
         ))}
       </div>

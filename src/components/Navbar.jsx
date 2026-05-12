@@ -641,7 +641,7 @@ export default function Navbar() {
   return (
     <>
       <nav style={{
-        position: 'sticky', top: 0, zIndex: 1000, width: '100%',
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, width: '100%',
         backgroundColor: 'var(--nav-bg)', backdropFilter: 'blur(12px)',
         padding: scrolled ? '0.75rem 0' : '1rem 0',
         borderBottom: '3px solid var(--brand-primary)',
