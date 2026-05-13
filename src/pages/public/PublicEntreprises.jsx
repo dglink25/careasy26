@@ -15,7 +15,8 @@ import {
   FiStar, FiCheckCircle, FiClock, FiTrendingUp, FiGlobe,
   FiShield, FiUsers, FiTag, FiGrid, FiList, FiHeart,
   FiShare2, FiNavigation, FiArrowRight, FiChevronDown,
-  FiRefreshCw, FiX, FiAlertCircle, FiHome, FiBriefcase, FiSettings
+  FiRefreshCw, FiX, FiAlertCircle, FiHome, FiBriefcase, FiSettings,
+  FiMap,
 } from 'react-icons/fi';
 import {
   MdBusiness, MdVerified, MdOutlineLocationOn, MdOutlineWork,
@@ -124,6 +125,15 @@ export default function PublicEntreprises() {
 
   const handleClearFilters = () => { setLocalSearchTerm(''); setSearchParams({}); };
   const handleImageError = (id) => setImageErrors(prev => ({ ...prev, [id]: true }));
+
+  // ── Bouton "Voir sur la carte" ───────────────────────────────────────────
+  const handleMapClick = () => {
+    if (user) {
+      navigate('/carte');
+    } else {
+      navigate('/login', { state: { from: '/carte' } });
+    }
+  };
 
   const handleOpenContact = (entreprise, e) => {
     e.stopPropagation();
@@ -243,6 +253,24 @@ export default function PublicEntreprises() {
                   <div style={styles.heroStatLabel}>Profils vérifiés</div>
                 </div>
               </div>
+            </div>
+
+            {/* ── Bouton Voir sur la carte ── */}
+            <div style={{ marginTop: '1.5rem' }}>
+              <button
+                onClick={handleMapClick}
+                style={styles.mapButton}
+                className="map-btn"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                Voir sur la carte
+                {!user && (
+                  <span style={styles.mapBtnHint}>— connexion requise</span>
+                )}
+              </button>
             </div>
           </div>
           <div style={styles.heroImage}>
@@ -524,8 +552,12 @@ export default function PublicEntreprises() {
           filter: brightness(1.1); 
           transform: translateY(-1px); 
         }
+        .map-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(220, 38, 38, 0.45) !important;
+          background-color: #b91c1c !important;
+        }
         
-        /* Responsive adjustments */
         @media (max-width: 1024px) {
           .grid-container { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important; }
         }
@@ -574,7 +606,7 @@ const styles = {
     fontSize: 'clamp(0.75rem, 3vw, 0.875rem)' 
   },
   
-  // Hero responsive
+  // Hero
   hero: { 
     display: 'grid', 
     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
@@ -657,8 +689,31 @@ const styles = {
     fontSize: 'clamp(4rem, 12vw, 8rem)', 
     color: '#ef4444' 
   },
+
+  // ── Bouton carte ──
+  mapButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.875rem 1.75rem',
+    backgroundColor: '#dc2626',
+    color: '#fff',
+    borderRadius: '999px',
+    fontSize: '1rem',
+    fontWeight: '600',
+    border: 'none',
+    cursor: 'pointer',
+    boxShadow: '0 4px 14px rgba(220, 38, 38, 0.35)',
+    transition: 'all 0.3s ease',
+  },
+  mapBtnHint: {
+    fontSize: '0.8rem',
+    fontWeight: '400',
+    opacity: 0.85,
+    marginLeft: '2px',
+  },
   
-  // Control bar responsive
+  // Control bar
   controlBar: { 
     backgroundColor: '#fff', 
     padding: 'clamp(1rem, 3vw, 1.5rem)', 
@@ -725,9 +780,7 @@ const styles = {
     cursor: 'pointer', 
     position: 'relative' 
   },
-  filterToggleIcon: { 
-    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' 
-  },
+  filterToggleIcon: { fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' },
   activeFilterIndicator: { 
     position: 'absolute', 
     top: '-5px', 
@@ -776,7 +829,7 @@ const styles = {
   refreshIcon: { fontSize: '1rem' },
   refreshingIcon: { fontSize: '1rem', animation: 'spin 1s linear infinite' },
   
-  // Filters panel responsive
+  // Filters panel
   filtersPanel: { 
     backgroundColor: '#fff', 
     borderRadius: theme.borderRadius.lg, 
@@ -802,10 +855,7 @@ const styles = {
     alignItems: 'center', 
     gap: '0.5rem' 
   },
-  filtersTitleIcon: { 
-    fontSize: 'clamp(1rem, 3vw, 1.25rem)', 
-    color: '#3b82f6' 
-  },
+  filtersTitleIcon: { fontSize: 'clamp(1rem, 3vw, 1.25rem)', color: '#3b82f6' },
   clearAllButton: { 
     display: 'flex', 
     alignItems: 'center', 
@@ -829,10 +879,7 @@ const styles = {
     alignItems: 'center', 
     gap: '0.5rem' 
   },
-  filterSectionIcon: { 
-    fontSize: 'clamp(1rem, 3vw, 1.25rem)', 
-    color: '#94a3b8' 
-  },
+  filterSectionIcon: { fontSize: 'clamp(1rem, 3vw, 1.25rem)', color: '#94a3b8' },
   domainesGrid: { 
     display: 'grid', 
     gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(160px, 25vw, 200px), 1fr))', 
@@ -851,19 +898,9 @@ const styles = {
     cursor: 'pointer', 
     position: 'relative' 
   },
-  domaineButtonActive: { 
-    backgroundColor: '#dbeafe', 
-    color: '#851717ff', 
-    borderColor: '#ef4444' 
-  },
-  domaineButtonIcon: { 
-    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
-    color: '#94a3b8' 
-  },
-  domaineIcon: { 
-    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
-    marginRight: '0.5rem' 
-  },
+  domaineButtonActive: { backgroundColor: '#dbeafe', color: '#851717ff', borderColor: '#ef4444' },
+  domaineButtonIcon: { fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', color: '#94a3b8' },
+  domaineIcon: { fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', marginRight: '0.5rem' },
   domaineCount: { 
     position: 'absolute', 
     right: 'clamp(0.5rem, 1.5vw, 0.75rem)', 
@@ -881,20 +918,10 @@ const styles = {
     flexWrap: 'wrap' 
   },
   filterStat: { textAlign: 'center' },
-  filterStatNumber: { 
-    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
-    fontWeight: '700', 
-    color: '#3b82f6', 
-    marginBottom: '0.25rem' 
-  },
-  filterStatLabel: { 
-    fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', 
-    color: '#64748b', 
-    textTransform: 'uppercase', 
-    letterSpacing: '0.05em' 
-  },
+  filterStatNumber: { fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontWeight: '700', color: '#3b82f6', marginBottom: '0.25rem' },
+  filterStatLabel: { fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
   
-  // Error alert responsive
+  // Error alert
   errorAlert: { 
     backgroundColor: '#fee2e2', 
     border: '1px solid #ef4444', 
@@ -906,22 +933,10 @@ const styles = {
     gap: 'clamp(0.75rem, 2vw, 1rem)', 
     flexWrap: 'wrap' 
   },
-  errorAlertIcon: { 
-    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
-    color: '#dc2626', 
-    flexShrink: 0 
-  },
+  errorAlertIcon: { fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', color: '#dc2626', flexShrink: 0 },
   errorAlertContent: { flex: 1 },
-  errorAlertTitle: { 
-    fontSize: 'clamp(1rem, 3vw, 1.125rem)', 
-    fontWeight: '600', 
-    color: '#7f1d1d', 
-    marginBottom: '0.25rem' 
-  },
-  errorAlertText: { 
-    color: '#991b1b', 
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' 
-  },
+  errorAlertTitle: { fontSize: 'clamp(1rem, 3vw, 1.125rem)', fontWeight: '600', color: '#7f1d1d', marginBottom: '0.25rem' },
+  errorAlertText: { color: '#991b1b', fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' },
   errorAlertButton: { 
     backgroundColor: '#ef4444', 
     color: '#fff', 
@@ -933,7 +948,7 @@ const styles = {
     cursor: 'pointer' 
   },
   
-  // Empty state responsive
+  // Empty state
   emptyState: { 
     backgroundColor: '#fff', 
     padding: 'clamp(2rem, 8vw, 4rem) clamp(1rem, 4vw, 2rem)', 
@@ -941,31 +956,11 @@ const styles = {
     textAlign: 'center', 
     border: '2px dashed #e2e8f0' 
   },
-  emptyIllustration: { 
-    fontSize: 'clamp(3rem, 10vw, 5rem)', 
-    marginBottom: 'clamp(1rem, 3vw, 1.5rem)', 
-    color: '#cbd5e1' 
-  },
+  emptyIllustration: { fontSize: 'clamp(3rem, 10vw, 5rem)', marginBottom: 'clamp(1rem, 3vw, 1.5rem)', color: '#cbd5e1' },
   emptyIcon: { fontSize: '5rem' },
-  emptyTitle: { 
-    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
-    fontWeight: '600', 
-    color: '#334155', 
-    marginBottom: '0.75rem' 
-  },
-  emptyText: { 
-    color: '#64748b', 
-    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
-    maxWidth: '500px', 
-    margin: '0 auto 1.5rem', 
-    lineHeight: '1.6' 
-  },
-  emptyActions: { 
-    display: 'flex', 
-    gap: 'clamp(0.5rem, 2vw, 0.75rem)', 
-    justifyContent: 'center', 
-    flexWrap: 'wrap' 
-  },
+  emptyTitle: { fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontWeight: '600', color: '#334155', marginBottom: '0.75rem' },
+  emptyText: { color: '#64748b', fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', maxWidth: '500px', margin: '0 auto 1.5rem', lineHeight: '1.6' },
+  emptyActions: { display: 'flex', gap: 'clamp(0.5rem, 2vw, 0.75rem)', justifyContent: 'center', flexWrap: 'wrap' },
   emptyActionButton: { 
     display: 'flex', 
     alignItems: 'center', 
@@ -981,7 +976,7 @@ const styles = {
   },
   emptyActionIcon: { fontSize: '1rem' },
   
-  // Results header responsive
+  // Results header
   resultsHeader: { 
     display: 'flex', 
     justifyContent: 'space-between', 
@@ -991,39 +986,12 @@ const styles = {
     gap: 'clamp(0.75rem, 2vw, 1rem)' 
   },
   resultsInfo: { flex: 1 },
-  resultsTitle: { 
-    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
-    fontWeight: '600', 
-    color: '#1e293b', 
-    marginBottom: '0.5rem' 
-  },
-  resultsStats: { 
-    display: 'flex', 
-    gap: 'clamp(0.75rem, 2vw, 1.5rem)', 
-    alignItems: 'center', 
-    flexWrap: 'wrap' 
-  },
-  resultsStat: { 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '0.5rem', 
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
-    color: '#64748b' 
-  },
-  resultsStatIcon: { 
-    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
-    color: '#94a3b8' 
-  },
-  resultsSort: { 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: 'clamp(0.5rem, 2vw, 0.75rem)' 
-  },
-  resultsSortLabel: { 
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
-    color: '#64748b', 
-    fontWeight: '500' 
-  },
+  resultsTitle: { fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' },
+  resultsStats: { display: 'flex', gap: 'clamp(0.75rem, 2vw, 1.5rem)', alignItems: 'center', flexWrap: 'wrap' },
+  resultsStat: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', color: '#64748b' },
+  resultsStatIcon: { fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', color: '#94a3b8' },
+  resultsSort: { display: 'flex', alignItems: 'center', gap: 'clamp(0.5rem, 2vw, 0.75rem)' },
+  resultsSortLabel: { fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', color: '#64748b', fontWeight: '500' },
   sortSelect: { 
     padding: 'clamp(0.375rem, 1.5vw, 0.5rem) clamp(1rem, 3vw, 2rem) clamp(0.375rem, 1.5vw, 0.5rem) clamp(0.5rem, 1.5vw, 0.75rem)', 
     border: '1px solid #e2e8f0', 
@@ -1034,21 +1002,16 @@ const styles = {
     cursor: 'pointer' 
   },
   
-  // Grid responsive
+  // Grid
   grid: { 
     display: 'grid', 
     gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(280px, 40vw, 340px), 1fr))', 
     gap: 'clamp(1rem, 3vw, 1.5rem)', 
     marginBottom: '2rem' 
   },
-  listContainer: { 
-    display: 'flex', 
-    flexDirection: 'column', 
-    gap: '1rem', 
-    marginBottom: '2rem' 
-  },
+  listContainer: { display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' },
   
-  // Card styles
+  // Cards
   card: { 
     backgroundColor: '#fff', 
     borderRadius: theme.borderRadius.lg, 
@@ -1069,301 +1032,85 @@ const styles = {
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
   },
   cardHeader: { position: 'relative' },
-  listCardHeader: { 
-    position: 'relative', 
-    width: 'clamp(120px, 25vw, 180px)', 
-    flexShrink: 0 
-  },
-  cardImage: { 
-    height: 'clamp(160px, 25vw, 180px)', 
-    backgroundColor: '#f8fafc', 
-    position: 'relative', 
-    overflow: 'hidden' 
-  },
-  listCardImage: { 
-    height: '100%', 
-    backgroundColor: '#f8fafc', 
-    position: 'relative', 
-    overflow: 'hidden', 
-    minHeight: 'clamp(160px, 30vw, 200px)' 
-  },
+  listCardHeader: { position: 'relative', width: 'clamp(120px, 25vw, 180px)', flexShrink: 0 },
+  cardImage: { height: 'clamp(160px, 25vw, 180px)', backgroundColor: '#f8fafc', position: 'relative', overflow: 'hidden' },
+  listCardImage: { height: '100%', backgroundColor: '#f8fafc', position: 'relative', overflow: 'hidden', minHeight: 'clamp(160px, 30vw, 200px)' },
   logo: { width: '100%', height: '100%', objectFit: 'cover' },
   listLogo: { width: '100%', height: '100%', objectFit: 'cover' },
-  logoPlaceholder: { 
-    position: 'absolute', 
-    top: 0, 
-    left: 0, 
-    right: 0, 
-    bottom: 0, 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    backgroundColor: '#dbeafe' 
-  },
-  listLogoPlaceholder: { 
-    position: 'absolute', 
-    top: 0, 
-    left: 0, 
-    right: 0, 
-    bottom: 0, 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    backgroundColor: '#dbeafe' 
-  },
+  logoPlaceholder: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#dbeafe' },
+  listLogoPlaceholder: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#dbeafe' },
   logoPlaceholderIcon: { fontSize: 'clamp(2rem, 6vw, 4rem)', color: '#3b82f6', opacity: 0.6 },
   listLogoPlaceholderIcon: { fontSize: 'clamp(2rem, 6vw, 3rem)', color: '#3b82f6', opacity: 0.6 },
   favoriteButton: { 
-    position: 'absolute', 
-    top: 'clamp(0.75rem, 2vw, 1rem)', 
-    right: 'clamp(0.75rem, 2vw, 1rem)', 
-    backgroundColor: 'rgba(255,255,255,0.9)', 
-    border: 'none', 
-    width: 'clamp(32px, 6vw, 36px)', 
-    height: 'clamp(32px, 6vw, 36px)', 
-    borderRadius: '50%', 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    cursor: 'pointer', 
-    boxShadow: '0 2px 8px rgba(0,0,0,0.15)', 
-    zIndex: 2 
+    position: 'absolute', top: 'clamp(0.75rem, 2vw, 1rem)', right: 'clamp(0.75rem, 2vw, 1rem)', 
+    backgroundColor: 'rgba(255,255,255,0.9)', border: 'none', width: 'clamp(32px, 6vw, 36px)', 
+    height: 'clamp(32px, 6vw, 36px)', borderRadius: '50%', display: 'flex', alignItems: 'center', 
+    justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 2 
   },
   favoriteIcon: { fontSize: 'clamp(1rem, 3vw, 1.25rem)' },
-  cardBody: { 
-    padding: 'clamp(1rem, 3vw, 1.5rem)', 
-    flex: 1, 
-    display: 'flex', 
-    flexDirection: 'column', 
-    gap: 'clamp(0.75rem, 2vw, 1rem)' 
-  },
-  listCardBody: { 
-    padding: 'clamp(1rem, 3vw, 1.5rem)', 
-    flex: 1, 
-    display: 'flex', 
-    flexDirection: 'column', 
-    gap: 'clamp(0.75rem, 2vw, 1rem)', 
-    minWidth: 'clamp(200px, 50%, 300px)' 
-  },
-  cardTitle: { 
-    fontSize: 'clamp(1rem, 3.5vw, 1.25rem)', 
-    fontWeight: '700', 
-    color: '#1e293b', 
-    margin: 0 
-  },
-  listCardTitle: { 
-    fontSize: 'clamp(1rem, 3.5vw, 1.25rem)', 
-    fontWeight: '700', 
-    color: '#1e293b', 
-    margin: 0 
-  },
-  location: { 
-    display: 'flex', 
-    alignItems: 'flex-start', 
-    gap: '0.5rem', 
-    color: '#64748b', 
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' 
-  },
-  locationIcon: { 
-    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
-    color: '#94a3b8', 
-    flexShrink: 0, 
-    marginTop: '2px' 
-  },
+  cardBody: { padding: 'clamp(1rem, 3vw, 1.5rem)', flex: 1, display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)' },
+  listCardBody: { padding: 'clamp(1rem, 3vw, 1.5rem)', flex: 1, display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)', minWidth: 'clamp(200px, 50%, 300px)' },
+  cardTitle: { fontSize: 'clamp(1rem, 3.5vw, 1.25rem)', fontWeight: '700', color: '#1e293b', margin: 0 },
+  listCardTitle: { fontSize: 'clamp(1rem, 3.5vw, 1.25rem)', fontWeight: '700', color: '#1e293b', margin: 0 },
+  location: { display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: '#64748b', fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' },
+  locationIcon: { fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', color: '#94a3b8', flexShrink: 0, marginTop: '2px' },
   locationText: { flex: 1, lineHeight: '1.5' },
-  cardDescription: { 
-    color: '#475569', 
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
-    lineHeight: '1.6', 
-    margin: 0 
-  },
-  listCardDescription: { 
-    color: '#475569', 
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
-    lineHeight: '1.6', 
-    margin: 0 
-  },
+  cardDescription: { color: '#475569', fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', lineHeight: '1.6', margin: 0 },
+  listCardDescription: { color: '#475569', fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', lineHeight: '1.6', margin: 0 },
   domainesContainer: { marginTop: '0.5rem' },
-  domainesLabel: { 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '0.5rem', 
-    fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', 
-    color: '#64748b', 
-    textTransform: 'uppercase', 
-    letterSpacing: '0.05em', 
-    marginBottom: '0.5rem', 
-    fontWeight: '600' 
-  },
+  domainesLabel: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: '600' },
   domainesLabelIcon: { fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)' },
-  domainesTags: { 
-    display: 'flex', 
-    flexWrap: 'wrap', 
-    gap: 'clamp(0.375rem, 1.5vw, 0.5rem)' 
-  },
-  domaineTag: { 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '0.25rem', 
-    backgroundColor: '#f1f5f9', 
-    color: '#475569', 
-    padding: 'clamp(0.25rem, 1vw, 0.375rem) clamp(0.5rem, 2vw, 0.75rem)', 
-    borderRadius: '9999px', 
-    fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', 
-    fontWeight: '500' 
-  },
-  moreTag: { 
-    backgroundColor: '#e2e8f0', 
-    color: '#64748b', 
-    padding: 'clamp(0.25rem, 1vw, 0.375rem) clamp(0.5rem, 2vw, 0.75rem)', 
-    borderRadius: '9999px', 
-    fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', 
-    fontWeight: '500' 
-  },
-  servicesInfo: { 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '0.5rem', 
-    color: '#ef4444', 
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
-    fontWeight: '500', 
-    marginTop: 'auto' 
-  },
+  domainesTags: { display: 'flex', flexWrap: 'wrap', gap: 'clamp(0.375rem, 1.5vw, 0.5rem)' },
+  domaineTag: { display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#f1f5f9', color: '#475569', padding: 'clamp(0.25rem, 1vw, 0.375rem) clamp(0.5rem, 2vw, 0.75rem)', borderRadius: '9999px', fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', fontWeight: '500' },
+  moreTag: { backgroundColor: '#e2e8f0', color: '#64748b', padding: 'clamp(0.25rem, 1vw, 0.375rem) clamp(0.5rem, 2vw, 0.75rem)', borderRadius: '9999px', fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', fontWeight: '500' },
+  servicesInfo: { display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', fontWeight: '500', marginTop: 'auto' },
   servicesIcon: { fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' },
   servicesText: {},
-  cardFooter: { 
-    padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)', 
-    borderTop: '1px solid #e2e8f0' 
-  },
-  listCardFooter: { 
-    padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)', 
-    borderTop: '1px solid #e2e8f0', 
-    width: '100%' 
-  },
-  cardActions: { 
-    display: 'grid', 
-    gridTemplateColumns: '1fr 1fr', 
-    gap: 'clamp(0.5rem, 1.5vw, 0.75rem)' 
-  },
-  listCardActions: { 
-    display: 'grid', 
-    gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
-    gap: 'clamp(0.5rem, 1.5vw, 0.75rem)' 
-  },
+  cardFooter: { padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)', borderTop: '1px solid #e2e8f0' },
+  listCardFooter: { padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)', borderTop: '1px solid #e2e8f0', width: '100%' },
+  cardActions: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(0.5rem, 1.5vw, 0.75rem)' },
+  listCardActions: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'clamp(0.5rem, 1.5vw, 0.75rem)' },
   contactButton: {
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    gap: '0.5rem',
-    backgroundColor: theme.colors.primary, 
-    color: '#fff', 
-    border: 'none',
-    padding: 'clamp(0.5rem, 1.5vw, 0.625rem)', 
-    borderRadius: theme.borderRadius.md,
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
-    fontWeight: '600', 
-    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+    backgroundColor: theme.colors.primary, color: '#fff', border: 'none',
+    padding: 'clamp(0.5rem, 1.5vw, 0.625rem)', borderRadius: theme.borderRadius.md,
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', fontWeight: '600', cursor: 'pointer',
   },
   contactIcon: { fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' },
   viewButton: { 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    gap: '0.5rem', 
-    backgroundColor: '#f1f5f9', 
-    color: '#475569', 
-    border: '1px solid #e2e8f0', 
-    padding: 'clamp(0.5rem, 1.5vw, 0.625rem)', 
-    borderRadius: theme.borderRadius.md, 
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
-    fontWeight: '500', 
-    cursor: 'pointer' 
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', 
+    backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', 
+    padding: 'clamp(0.5rem, 1.5vw, 0.625rem)', borderRadius: theme.borderRadius.md, 
+    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', fontWeight: '500', cursor: 'pointer' 
   },
   viewButtonIcon: { fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' },
-  cardAuthHint: { 
-    margin: '0.6rem 0 0', 
-    fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', 
-    color: '#94a3b8', 
-    textAlign: 'center' 
-  },
+  cardAuthHint: { margin: '0.6rem 0 0', fontSize: 'clamp(0.625rem, 2vw, 0.75rem)', color: '#94a3b8', textAlign: 'center' },
   
-  // Pagination responsive
+  // Pagination
   pagination: { 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    padding: 'clamp(1rem, 3vw, 1.5rem) 0', 
-    borderTop: '1px solid #e2e8f0', 
-    flexWrap: 'wrap', 
-    gap: '1rem' 
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+    padding: 'clamp(1rem, 3vw, 1.5rem) 0', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '1rem' 
   },
-  paginationInfo: { 
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
-    color: '#64748b' 
-  },
-  paginationControls: { 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: 'clamp(0.5rem, 1.5vw, 0.75rem)' 
-  },
+  paginationInfo: { fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', color: '#64748b' },
+  paginationControls: { display: 'flex', alignItems: 'center', gap: 'clamp(0.5rem, 1.5vw, 0.75rem)' },
   paginationButton: { 
-    backgroundColor: '#f8fafc', 
-    border: '1px solid #e2e8f0', 
-    padding: 'clamp(0.375rem, 1.5vw, 0.5rem)', 
-    borderRadius: theme.borderRadius.md, 
-    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
-    color: '#475569', 
-    cursor: 'pointer', 
-    display: 'flex', 
-    alignItems: 'center' 
+    backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: 'clamp(0.375rem, 1.5vw, 0.5rem)', 
+    borderRadius: theme.borderRadius.md, fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', color: '#475569', 
+    cursor: 'pointer', display: 'flex', alignItems: 'center' 
   },
-  paginationPage: { 
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
-    color: '#475569', 
-    fontWeight: '500' 
-  },
+  paginationPage: { fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', color: '#475569', fontWeight: '500' },
   
-  // CTA section responsive
-  ctaSection: { 
-    backgroundColor: '#dbeafe', 
-    borderRadius: theme.borderRadius.lg, 
-    padding: 'clamp(1.5rem, 4vw, 2rem)', 
-    marginTop: 'clamp(1.5rem, 4vw, 2rem)' 
-  },
-  ctaContent: { 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: 'clamp(1rem, 3vw, 1.5rem)', 
-    flexWrap: 'wrap' 
-  },
-  ctaIcon: { 
-    fontSize: 'clamp(2rem, 6vw, 3rem)', 
-    color: '#ef4444' 
-  },
-  ctaTitle: { 
-    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
-    fontWeight: '700', 
-    color: '#ef4444', 
-    marginBottom: '0.5rem' 
-  },
-  ctaText: { 
-    color: '#ef4444', 
-    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', 
-    opacity: 0.9 
-  },
+  // CTA
+  ctaSection: { backgroundColor: '#dbeafe', borderRadius: theme.borderRadius.lg, padding: 'clamp(1.5rem, 4vw, 2rem)', marginTop: 'clamp(1.5rem, 4vw, 2rem)' },
+  ctaContent: { display: 'flex', alignItems: 'center', gap: 'clamp(1rem, 3vw, 1.5rem)', flexWrap: 'wrap' },
+  ctaIcon: { fontSize: 'clamp(2rem, 6vw, 3rem)', color: '#ef4444' },
+  ctaTitle: { fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontWeight: '700', color: '#ef4444', marginBottom: '0.5rem' },
+  ctaText: { color: '#ef4444', fontSize: 'clamp(0.875rem, 2.5vw, 1rem)', opacity: 0.9 },
   ctaButton: { 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '0.5rem', 
-    backgroundColor: '#df2424ff', 
-    color: '#fff', 
-    border: 'none', 
-    padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1rem, 3vw, 1.75rem)', 
-    borderRadius: theme.borderRadius.lg, 
-    fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', 
-    fontWeight: '600', 
-    cursor: 'pointer', 
-    marginLeft: 'auto' 
+    display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#df2424ff', color: '#fff', 
+    border: 'none', padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1rem, 3vw, 1.75rem)', 
+    borderRadius: theme.borderRadius.lg, fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)', fontWeight: '600', 
+    cursor: 'pointer', marginLeft: 'auto' 
   },
   ctaButtonIcon: { fontSize: 'clamp(1rem, 3vw, 1.125rem)' },
 };

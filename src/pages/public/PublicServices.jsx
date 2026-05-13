@@ -1,10 +1,10 @@
 // src/pages/public/PublicServices.jsx
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import StarRating from '../../components/Services/StarRating';
 import { publicApi } from '../../api/publicApi';
 import SEOHead from '../../components/SEOHead';
-
 
 import { 
   FaWrench, FaFire, FaTag, FaClock, 
@@ -638,6 +638,10 @@ export default function PublicServices() {
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedDomaine, setSelectedDomaine] = useState(searchParams.get('type') || 'all');
 
+  // NOUVEAU: Import des hooks d'authentification et navigation
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const {
     imageIndices,
     nextImage,
@@ -646,6 +650,15 @@ export default function PublicServices() {
     autoPlayStates,
     handleUserInteraction
   } = useServicesImages(services);
+
+  // NOUVEAU: Fonction pour gérer le clic sur le bouton carte
+  const handleMapClick = () => {
+    if (user) {
+      navigate('/carte');
+    } else {
+      navigate('/login', { state: { from: '/carte' } });
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -764,13 +777,19 @@ export default function PublicServices() {
           <p style={styles.heroSubtitle}>
             Découvrez {stats.total} services professionnels répartis dans {stats.domaines} domaines
           </p>
-          <Link to="/carte" style={styles.mapButton}>
+          {/* NOUVEAU: Bouton carte avec gestion de connexion */}
+          <button onClick={handleMapClick} style={styles.mapButton} className="map-btn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
               <circle cx="12" cy="10" r="3"></circle>
             </svg>
             Voir sur la carte
-          </Link>
+            {!user && (
+              <span style={{ fontSize: '0.8rem', fontWeight: '400', opacity: 0.85, marginLeft: '2px' }}>
+                — connexion requise
+              </span>
+            )}
+          </button>
         </div>
 
         <div style={styles.statsGrid}>
@@ -924,10 +943,12 @@ export default function PublicServices() {
         .service-card:hover .image-nav-button {
           opacity: 0.7 !important;
         }
-        a[style*="mapButton"]:hover {
+        /* NOUVEAU: Style du bouton carte */
+        .map-btn:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(220, 38, 38, 0.45);
-          background-color: #b91c1c;
+          box-shadow: 0 6px 20px rgba(220, 38, 38, 0.45) !important;
+          background-color: #b91c1c !important;
+          cursor: pointer;
         }
       `}</style>
     </div>
