@@ -148,19 +148,43 @@ export default function Footer() {
 
               <div style={styles.contactCard}>
                 <div style={styles.contactCardHeader}>{t('footer.directContact')}</div>
+
+                {/* Email */}
                 <a href="mailto:careasy26@gmail.com" style={styles.contactRow}>
+                  <div style={styles.contactIconBox}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="2" y="4" width="20" height="16" rx="2"/>
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                    </svg>
+                  </div>
                   <div>
                     <div style={styles.contactLabel}>{t('footer.email')}</div>
                     <div style={styles.contactValue}>careasy26@gmail.com</div>
                   </div>
                 </a>
+
+                {/* Siège */}
                 <div style={styles.contactRow}>
+                  <div style={styles.contactIconBox}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                      <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                  </div>
                   <div>
                     <div style={styles.contactLabel}>{t('footer.headquarters')}</div>
                     <div style={styles.contactValue}>Cotonou, Bénin</div>
                   </div>
                 </div>
+
+                {/* Heures de support */}
                 <div style={styles.contactRow}>
+                  <div style={styles.contactIconBox}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                  </div>
                   <div>
                     <div style={styles.contactLabel}>{t('footer.supportHours')}</div>
                     <div style={styles.contactValue}>{t('footer.supportHoursValue')}</div>
@@ -373,6 +397,17 @@ const styles = {
     textDecoration: 'none',
     color: 'inherit',
   },
+  contactIconBox: {
+  width: '36px',
+  height: '36px',
+  borderRadius: '10px',
+  background: 'rgba(239,68,68,0.15)',
+  border: '1px solid rgba(239,68,68,0.25)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+},
   contactLabel: {
     fontSize: '0.7rem',
     color: '#64748b',
