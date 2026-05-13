@@ -470,41 +470,6 @@ export default function MapScreen() {
           </div>
         </div>
       )}
-
-      {/* ── MODAL SÉLECTION SERVICE ──────────────────────────────────────── */}
-      {showSvcModal && selectedEnt && (
-        <div style={s.svcOverlay} onClick={()=>setShowSvcModal(false)}>
-          <div style={s.svcBox} onClick={e=>e.stopPropagation()}>
-            <div style={s.svcHeader}>
-              <div>
-                <p style={{margin:0,fontSize:11,color:'rgba(255,255,255,.75)',fontWeight:500}}>Choisir un service</p>
-                <p style={{margin:0,fontSize:16,fontWeight:800,color:'#fff'}}>{selectedEnt.name}</p>
-              </div>
-              <button style={s.svcClose} onClick={()=>setShowSvcModal(false)}><FiX size={18} color="#fff"/></button>
-            </div>
-            <div style={{padding:'16px 16px 28px'}}>
-              <p style={{margin:'0 0 12px',fontSize:12,color:'#64748b',fontWeight:500}}>
-                Sélectionnez le service pour lequel vous souhaitez prendre rendez-vous :
-              </p>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {(selectedEnt.services||[]).map(svc=>(
-                  <button key={svc.id} style={s.svcCard}
-                    onClick={()=>{setShowSvcModal(false);navigate(`/rendez-vous/demande/${svc.id}`);}}
-                    onMouseEnter={e=>{e.currentTarget.style.borderColor=PRIMARY;e.currentTarget.style.background='rgba(220,38,38,.04)';}}
-                    onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.background='#fff';}}>
-                    <div style={s.svcCardIcon}><FiZap size={16} color={PRIMARY}/></div>
-                    <div style={{flex:1,textAlign:'left'}}>
-                      <p style={{margin:0,fontSize:13,fontWeight:700,color:'#1e293b'}}>{svc.name}</p>
-                      {svc.price&&<p style={{margin:'2px 0 0',fontSize:11,color:'#64748b'}}>{svc.price} FCFA</p>}
-                    </div>
-                    <FiChevronDown size={16} color="#94a3b8" style={{transform:'rotate(-90deg)'}} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       <ServiceSelectionModal
         isOpen={showServiceModal}
         onClose={() => setShowServiceModal(false)}
