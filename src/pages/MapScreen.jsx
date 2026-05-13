@@ -123,7 +123,6 @@ export default function MapScreen() {
   // Modal entreprise
   const [selectedEnt,  setSelectedEnt]  = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [showSvcModal, setShowSvcModal] = useState(false);
 
   // Itinéraire (intégré dans le panneau bas)
   const [showItinerary, setShowItinerary] = useState(false);
