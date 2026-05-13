@@ -38,7 +38,7 @@ import { useState, useEffect } from 'react';
         const [selectedSlot, setSelectedSlot] = useState(null);
         const [notes, setNotes] = useState('');
         const { user, updateUser } = useAuth();
-        const { notify } = useNotifications(); // ✅ AJOUT
+        const { notify } = useNotifications(); 
         const [contactInfo, setContactInfo] = useState({ name: '', phone: '', email: '' });
         const [showPhoneModal, setShowPhoneModal] = useState(false);
         const [phoneInput, setPhoneInput] = useState('');

@@ -1,9 +1,3 @@
-// src/pages/MapScreen.jsx
-// ═══════════════════════════════════════════════════════════════════════════
-//  CarEasy — Carte interactive (version Web) — fidèle à la version Flutter
-//  Leaflet + OpenStreetMap + géolocalisation + ORS + itinéraire intégré
-// ═══════════════════════════════════════════════════════════════════════════
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from 'react-leaflet';
@@ -12,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../contexts/AuthContext';
 import { publicApi } from '../api/publicApi';
 import api from '../api/axios';
+import ServiceSelectionModal from '../components/ServiceSelectionModal';
 import {
   FiSearch, FiX, FiNavigation2, FiPhone, FiMessageSquare,
   FiCalendar, FiMapPin, FiZap, FiChevronUp, FiChevronDown,
@@ -105,6 +100,7 @@ function haversine([lat1,lng1],[lat2,lng2]) {
 export default function MapScreen() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [showServiceModal, setShowServiceModal] = useState(false);
 
   // Data
   const [entreprises, setEntreprises] = useState([]);
@@ -127,7 +123,6 @@ export default function MapScreen() {
   // Modal entreprise
   const [selectedEnt,  setSelectedEnt]  = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [showSvcModal, setShowSvcModal] = useState(false);
 
   // Itinéraire (intégré dans le panneau bas)
   const [showItinerary, setShowItinerary] = useState(false);
@@ -292,13 +287,14 @@ export default function MapScreen() {
   function handleCall()  { const p=selectedEnt?.call_phone;     if(p) window.open(`tel:${p}`); }
   function handleWA()    { const p=selectedEnt?.whatsapp_phone; if(p) window.open(`https://wa.me/${p.replace(/\D/g,'')}`); }
   function handleChat()  { if(!user){navigate('/login');return;} navigate('/messages',{state:{openConversationWith:selectedEnt?.id}}); }
-  function handleRdv()   {
-    if(!user){navigate('/login');return;}
-    const svcs=selectedEnt?.services||[];
-    if(svcs.length===0){navigate(`/entreprises/${selectedEnt?.id}`);return;}
-    if(svcs.length===1){navigate(`/rendez-vous/demande/${svcs[0].id}`);return;}
-    setShowSvcModal(true);
+  function handleRdv() {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    setShowServiceModal(true);
   }
+
   function handleViewEnt() { navigate(`/entreprises/${selectedEnt?.id}`); }
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -474,41 +470,11 @@ export default function MapScreen() {
           </div>
         </div>
       )}
-
-      {/* ── MODAL SÉLECTION SERVICE ──────────────────────────────────────── */}
-      {showSvcModal && selectedEnt && (
-        <div style={s.svcOverlay} onClick={()=>setShowSvcModal(false)}>
-          <div style={s.svcBox} onClick={e=>e.stopPropagation()}>
-            <div style={s.svcHeader}>
-              <div>
-                <p style={{margin:0,fontSize:11,color:'rgba(255,255,255,.75)',fontWeight:500}}>Choisir un service</p>
-                <p style={{margin:0,fontSize:16,fontWeight:800,color:'#fff'}}>{selectedEnt.name}</p>
-              </div>
-              <button style={s.svcClose} onClick={()=>setShowSvcModal(false)}><FiX size={18} color="#fff"/></button>
-            </div>
-            <div style={{padding:'16px 16px 28px'}}>
-              <p style={{margin:'0 0 12px',fontSize:12,color:'#64748b',fontWeight:500}}>
-                Sélectionnez le service pour lequel vous souhaitez prendre rendez-vous :
-              </p>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {(selectedEnt.services||[]).map(svc=>(
-                  <button key={svc.id} style={s.svcCard}
-                    onClick={()=>{setShowSvcModal(false);navigate(`/rendez-vous/demande/${svc.id}`);}}
-                    onMouseEnter={e=>{e.currentTarget.style.borderColor=PRIMARY;e.currentTarget.style.background='rgba(220,38,38,.04)';}}
-                    onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.background='#fff';}}>
-                    <div style={s.svcCardIcon}><FiZap size={16} color={PRIMARY}/></div>
-                    <div style={{flex:1,textAlign:'left'}}>
-                      <p style={{margin:0,fontSize:13,fontWeight:700,color:'#1e293b'}}>{svc.name}</p>
-                      {svc.price&&<p style={{margin:'2px 0 0',fontSize:11,color:'#64748b'}}>{svc.price} FCFA</p>}
-                    </div>
-                    <FiChevronDown size={16} color="#94a3b8" style={{transform:'rotate(-90deg)'}} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ServiceSelectionModal
+        isOpen={showServiceModal}
+        onClose={() => setShowServiceModal(false)}
+        entreprise={selectedEnt}
+      />
     </div>
   );
 }
