@@ -1,9 +1,3 @@
-// src/pages/MapScreen.jsx
-// ═══════════════════════════════════════════════════════════════════════════
-//  CarEasy — Carte interactive (version Web) — fidèle à la version Flutter
-//  Leaflet + OpenStreetMap + géolocalisation + ORS + itinéraire intégré
-// ═══════════════════════════════════════════════════════════════════════════
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from 'react-leaflet';
@@ -12,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../contexts/AuthContext';
 import { publicApi } from '../api/publicApi';
 import api from '../api/axios';
+import ServiceSelectionModal from '../components/ServiceSelectionModal';
 import {
   FiSearch, FiX, FiNavigation2, FiPhone, FiMessageSquare,
   FiCalendar, FiMapPin, FiZap, FiChevronUp, FiChevronDown,
@@ -105,6 +100,7 @@ function haversine([lat1,lng1],[lat2,lng2]) {
 export default function MapScreen() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [showServiceModal, setShowServiceModal] = useState(false);
 
   // Data
   const [entreprises, setEntreprises] = useState([]);
@@ -292,13 +288,14 @@ export default function MapScreen() {
   function handleCall()  { const p=selectedEnt?.call_phone;     if(p) window.open(`tel:${p}`); }
   function handleWA()    { const p=selectedEnt?.whatsapp_phone; if(p) window.open(`https://wa.me/${p.replace(/\D/g,'')}`); }
   function handleChat()  { if(!user){navigate('/login');return;} navigate('/messages',{state:{openConversationWith:selectedEnt?.id}}); }
-  function handleRdv()   {
-    if(!user){navigate('/login');return;}
-    const svcs=selectedEnt?.services||[];
-    if(svcs.length===0){navigate(`/entreprises/${selectedEnt?.id}`);return;}
-    if(svcs.length===1){navigate(`/rendez-vous/demande/${svcs[0].id}`);return;}
-    setShowSvcModal(true);
+  function handleRdv() {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    setShowServiceModal(true);
   }
+
   function handleViewEnt() { navigate(`/entreprises/${selectedEnt?.id}`); }
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -509,6 +506,11 @@ export default function MapScreen() {
           </div>
         </div>
       )}
+      <ServiceSelectionModal
+        isOpen={showServiceModal}
+        onClose={() => setShowServiceModal(false)}
+        entreprise={selectedEnt}
+      />
     </div>
   );
 }
