@@ -1,6 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiX, FiZap, FiClock, FiTag, FiChevronRight, FiCalendar } from 'react-icons/fi';
+import {
+  FiX, FiZap, FiClock, FiChevronRight, FiCalendar,
+  FiSearch, FiCheckCircle,
+} from 'react-icons/fi';
 import { MdBusiness } from 'react-icons/md';
 
 const PRIMARY   = '#c0392b';
@@ -8,38 +11,54 @@ const PRIMARY_L = '#e74c3c';
 const GOLD      = '#d4a853';
 
 export default function ServiceSelectionModal({ isOpen, onClose, entreprise }) {
-  const navigate  = useNavigate();
-  const [visible, setVisible] = useState(false);
-  const [hovered, setHovered] = useState(null);
+  const navigate   = useNavigate();
+  const [visible,  setVisible]  = useState(false);
+  const [mounted,  setMounted]  = useState(false);
   const [selected, setSelected] = useState(null);
+  const [search,   setSearch]   = useState('');
+  const [hovered,  setHovered]  = useState(null);
   const overlayRef = useRef(null);
 
-  /* ── Animation d'ouverture / fermeture ── */
+  /* ── Montage / démontage avec animation ── */
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => setVisible(true), 20);
+      setMounted(true);
+      setSelected(null);
+      setSearch('');
+      requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
     } else {
       setVisible(false);
+      const t = setTimeout(() => setMounted(false), 380);
+      return () => clearTimeout(t);
     }
   }, [isOpen]);
 
-  /* ── Fermeture au clic sur l'overlay ── */
+  /* ── Fermeture overlay ── */
   function handleOverlayClick(e) {
-    if (e.target === overlayRef.current) onClose();
+    if (e.target === overlayRef.current) close();
   }
 
-  /* ── Sélection d'un service → redirect ── */
+  function close() {
+    setVisible(false);
+    setTimeout(onClose, 320);
+  }
+
+  /* ── Sélection → redirect ── */
   function handleSelect(svc) {
+    if (selected) return;
     setSelected(svc.id);
     setTimeout(() => {
       onClose();
       navigate(`/rendez-vous/demande/${svc.id}`);
-    }, 380);
+    }, 420);
   }
 
-  if (!isOpen && !visible) return null;
+  if (!mounted) return null;
 
   const services = entreprise?.services || [];
+  const filtered = search
+    ? services.filter(s => s.name?.toLowerCase().includes(search.toLowerCase()))
+    : services;
 
   return (
     <>
@@ -51,137 +70,154 @@ export default function ServiceSelectionModal({ isOpen, onClose, entreprise }) {
         className="ssm-overlay"
         style={{ opacity: visible ? 1 : 0 }}
         onClick={handleOverlayClick}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Sélection de service"
       >
-        {/* ── Panneau ── */}
+        {/* ── Dialog ── */}
         <div
-          className="ssm-panel"
-          style={{ transform: visible ? 'translateY(0)' : 'translateY(100%)' }}
+          className="ssm-dialog"
+          style={{
+            transform: visible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
+            opacity:   visible ? 1 : 0,
+          }}
         >
-          {/* Grip bar */}
-          <div className="ssm-grip" />
+          {/* ── En-tête ── */}
+          <div className="ssm-head">
+            <div className="ssm-head-bg" />
 
-          {/* ── En-tête entreprise ── */}
-          <div className="ssm-header">
-            <div className="ssm-header-bg" />
-
-            <div className="ssm-header-content">
-              {/* Logo */}
-              <div className="ssm-logo">
-                {entreprise?.logo
-                  ? <img src={entreprise.logo} alt={entreprise.name} className="ssm-logo-img" />
-                  : <MdBusiness size={26} color={PRIMARY} />}
-              </div>
-
-              {/* Texte */}
-              <div className="ssm-header-text">
-                <p className="ssm-label">Choisir un service</p>
-                <h2 className="ssm-ent-name">{entreprise?.name}</h2>
-                <p className="ssm-ent-count">
-                  {services.length} service{services.length > 1 ? 's' : ''} disponible{services.length > 1 ? 's' : ''}
-                </p>
-              </div>
-
-              {/* Fermer */}
-              <button className="ssm-close" onClick={onClose} aria-label="Fermer">
-                <FiX size={18} />
-              </button>
+            {/* Logo */}
+            <div className="ssm-logo">
+              {entreprise?.logo
+                ? <img src={entreprise.logo} alt={entreprise.name} className="ssm-logo-img" />
+                : <MdBusiness size={28} color={GOLD} />}
             </div>
 
-            {/* Ligne dorée décorative */}
+            {/* Texte */}
+            <div className="ssm-head-text">
+              <p className="ssm-head-eyebrow">Prendre rendez-vous</p>
+              <h2 className="ssm-head-name">{entreprise?.name}</h2>
+              <p className="ssm-head-count">
+                <FiCalendar size={11} />
+                {services.length} service{services.length !== 1 ? 's' : ''} disponible{services.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+
+            {/* Fermer */}
+            <button className="ssm-close" onClick={close} aria-label="Fermer">
+              <FiX size={17} />
+            </button>
+
+            {/* Ligne dorée */}
             <div className="ssm-gold-line" />
           </div>
 
-          {/* ── Sous-titre ── */}
-          <div className="ssm-subtitle">
-            <FiCalendar size={13} style={{ flexShrink: 0, color: PRIMARY }} />
-            <span>Sélectionnez le service pour lequel vous souhaitez prendre rendez-vous</span>
-          </div>
+          {/* ── Sous-titre / aide ── */}
+          <p className="ssm-hint">
+            Sélectionnez le service pour lequel vous souhaitez prendre rendez-vous
+          </p>
 
-          {/* ── Liste des services ── */}
+          {/* ── Barre de recherche (si > 3 services) ── */}
+          {services.length > 3 && (
+            <div className="ssm-search-wrap">
+              <FiSearch size={14} color="#94a3b8" />
+              <input
+                className="ssm-search"
+                type="text"
+                placeholder="Rechercher un service…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              {search && (
+                <button className="ssm-search-clear" onClick={() => setSearch('')}>
+                  <FiX size={12} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ── Liste ── */}
           <div className="ssm-list">
-            {services.length === 0 ? (
+            {filtered.length === 0 ? (
               <div className="ssm-empty">
-                <FiZap size={32} color="#cbd5e1" />
-                <p>Aucun service disponible</p>
+                <FiZap size={28} color="#cbd5e1" />
+                <p>Aucun service trouvé</p>
               </div>
             ) : (
-              services.map((svc, idx) => {
-                const isHovered  = hovered === svc.id;
-                const isSelected = selected === svc.id;
-                const hasPromo   = svc.has_promo && svc.price_promo;
-                const price      = hasPromo ? svc.price_promo : svc.price;
+              filtered.map((svc, idx) => {
+                const isHov  = hovered  === svc.id;
+                const isSel  = selected === svc.id;
+                const hasPromo = svc.has_promo && svc.price_promo;
+                const price    = hasPromo ? svc.price_promo : svc.price;
 
                 return (
                   <button
                     key={svc.id}
-                    className={`ssm-card ${isHovered ? 'ssm-card--hover' : ''} ${isSelected ? 'ssm-card--selected' : ''}`}
-                    style={{ animationDelay: `${idx * 60}ms` }}
+                    className={`ssm-card ${isHov ? 'ssm-card--hov' : ''} ${isSel ? 'ssm-card--sel' : ''}`}
+                    style={{ animationDelay: `${idx * 55}ms` }}
                     onMouseEnter={() => setHovered(svc.id)}
                     onMouseLeave={() => setHovered(null)}
-                    onTouchStart={() => setHovered(svc.id)}
-                    onTouchEnd={() => setHovered(null)}
                     onClick={() => handleSelect(svc)}
+                    disabled={!!selected}
                   >
-                    {/* Icône service */}
-                    <div className={`ssm-svc-icon ${isHovered || isSelected ? 'ssm-svc-icon--active' : ''}`}>
-                      <FiZap size={18} />
+                    {/* Accent gauche */}
+                    <div className="ssm-card-accent" />
+
+                    {/* Icône */}
+                    <div className={`ssm-icon ${isHov || isSel ? 'ssm-icon--on' : ''}`}>
+                      <FiZap size={16} />
                     </div>
 
-                    {/* Infos */}
-                    <div className="ssm-svc-body">
-                      <p className="ssm-svc-name">{svc.name}</p>
-
-                      <div className="ssm-svc-meta">
+                    {/* Corps */}
+                    <div className="ssm-body">
+                      <p className="ssm-name">{svc.name}</p>
+                      <div className="ssm-meta">
                         {price != null && (
-                          <span className="ssm-svc-price">
+                          <span className="ssm-price-wrap">
                             {hasPromo && (
-                              <span className="ssm-svc-price-old">
+                              <span className="ssm-price-old">
                                 {Number(svc.price).toLocaleString('fr-FR')} FCFA
                               </span>
                             )}
-                            <span className={`ssm-svc-price-val ${hasPromo ? 'ssm-svc-price-promo' : ''}`}>
+                            <span className={`ssm-price ${hasPromo ? 'ssm-price--promo' : ''}`}>
                               {Number(price).toLocaleString('fr-FR')} FCFA
                             </span>
-                            {hasPromo && (
-                              <span className="ssm-promo-badge">Promo</span>
-                            )}
+                            {hasPromo && <span className="ssm-badge-promo">Promo</span>}
                           </span>
                         )}
                         {svc.is_price_on_request && (
-                          <span className="ssm-svc-devis">Sur devis</span>
+                          <span className="ssm-devis">Sur devis</span>
                         )}
-                        {(svc.start_time && svc.end_time) && (
-                          <span className="ssm-svc-time">
-                            <FiClock size={10} />
+                        {svc.start_time && svc.end_time && (
+                          <span className="ssm-time">
+                            <FiClock size={9} />
                             {svc.start_time} – {svc.end_time}
                           </span>
                         )}
                       </div>
-
                       {svc.descriptions && (
-                        <p className="ssm-svc-desc">{svc.descriptions}</p>
+                        <p className="ssm-desc">{svc.descriptions}</p>
                       )}
                     </div>
 
-                    {/* Flèche */}
-                    <div className={`ssm-arrow ${isHovered || isSelected ? 'ssm-arrow--active' : ''}`}>
-                      {isSelected
+                    {/* Flèche / spinner / check */}
+                    <div className={`ssm-arrow ${isHov || isSel ? 'ssm-arrow--on' : ''}`}>
+                      {isSel
                         ? <div className="ssm-spinner" />
-                        : <FiChevronRight size={18} />}
+                        : isHov
+                          ? <FiChevronRight size={17} />
+                          : <FiChevronRight size={17} />}
                     </div>
-
-                    {/* Trait animé du bas */}
-                    <div className="ssm-card-underline" />
                   </button>
                 );
               })
             )}
           </div>
 
-          {/* ── Bas de panneau ── */}
-          <div className="ssm-footer">
-            <p className="ssm-footer-note">
-              Vous serez redirigé vers le formulaire de rendez-vous
+          {/* ── Footer ── */}
+          <div className="ssm-foot">
+            <p className="ssm-foot-note">
+              Vous serez redirigé vers le formulaire de rendez-vous après sélection
             </p>
           </div>
         </div>
@@ -190,92 +226,96 @@ export default function ServiceSelectionModal({ isOpen, onClose, entreprise }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    STYLES
-═══════════════════════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════════════ */
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap');
 
-  @keyframes ssm-fade-in      { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes ssm-card-in      { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-  @keyframes ssm-spin         { to { transform: rotate(360deg); } }
-  @keyframes ssm-pulse-ring   {
-    0%   { transform: scale(.9); box-shadow: 0 0 0 0 rgba(192,57,43,.4); }
-    70%  { transform: scale(1);  box-shadow: 0 0 0 8px rgba(192,57,43,0); }
-    100% { transform: scale(.9); }
+  @keyframes ssm-card-in {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
   }
+  @keyframes ssm-spin { to { transform: rotate(360deg); } }
 
+  /* ── Overlay ── */
   .ssm-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(8, 8, 15, 0.72);
-    backdrop-filter: blur(6px);
-    z-index: 1000;
+    background: rgba(8, 10, 18, 0.68);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 2000;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
-    transition: opacity .28s ease;
+    padding: 20px;
+    transition: opacity 0.28s ease;
+    box-sizing: border-box;
   }
 
-  .ssm-panel {
+  /* ── Dialog ── */
+  .ssm-dialog {
+    position: relative;
     width: 100%;
-    max-width: 560px;
+    max-width: 480px;
     background: #fafaf8;
-    border-radius: 28px 28px 0 0;
-    box-shadow: 0 -24px 80px rgba(0,0,0,.32), 0 -4px 20px rgba(0,0,0,.12);
-    max-height: 88vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    transition: transform .38s cubic-bezier(.22,1,.36,1);
+    border-radius: 24px;
+    box-shadow:
+      0 32px 80px rgba(0,0,0,.28),
+      0 8px 24px rgba(0,0,0,.16),
+      0 0 0 1px rgba(255,255,255,.12);
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.36s cubic-bezier(0.22,1,0.36,1), opacity 0.32s ease;
     font-family: 'DM Sans', system-ui, sans-serif;
-    scrollbar-width: thin;
-    scrollbar-color: #e2d6c8 transparent;
   }
 
-  .ssm-grip {
-    width: 44px;
-    height: 5px;
-    background: #d1c9be;
-    border-radius: 3px;
-    margin: 14px auto 0;
-  }
-
-  /* ── Header ── */
-  .ssm-header {
+  /* ── En-tête ── */
+  .ssm-head {
     position: relative;
     overflow: hidden;
-    padding: 0 20px 0;
-    margin-top: 4px;
+    flex-shrink: 0;
   }
 
-  .ssm-header-bg {
+  .ssm-head-bg {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, #1a0a08 0%, #2d0f0a 50%, #1a0a08 100%);
-    opacity: .97;
+    background: linear-gradient(135deg, #150604 0%, #2c0d09 50%, #150604 100%);
   }
 
-  .ssm-header-content {
+  .ssm-head-content-row {
     position: relative;
     z-index: 2;
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 22px 0 18px;
+    padding: 22px 20px 18px;
+  }
+
+  /* trick: use flex on .ssm-head itself */
+  .ssm-head {
+    display: flex;
+    flex-direction: column;
   }
 
   .ssm-logo {
-    width: 58px;
-    height: 58px;
-    border-radius: 16px;
+    position: relative;
+    z-index: 2;
+    width: 56px;
+    height: 56px;
+    border-radius: 15px;
     background: rgba(255,255,255,.1);
-    border: 1.5px solid rgba(255,255,255,.18);
+    border: 1.5px solid rgba(255,255,255,.2);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
-    box-shadow: 0 4px 16px rgba(0,0,0,.35);
+    margin: 22px 0 0 20px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4);
   }
 
   .ssm-logo-img {
@@ -284,52 +324,62 @@ const CSS = `
     object-fit: cover;
   }
 
-  .ssm-header-text {
+  .ssm-head-text {
+    position: relative;
+    z-index: 2;
     flex: 1;
     min-width: 0;
+    margin-top: 22px;
   }
 
-  .ssm-label {
+  .ssm-head-eyebrow {
     margin: 0 0 3px;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: .12em;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: .14em;
     text-transform: uppercase;
     color: ${GOLD};
   }
 
-  .ssm-ent-name {
-    margin: 0 0 4px;
+  .ssm-head-name {
+    margin: 0 0 5px;
     font-family: 'Playfair Display', Georgia, serif;
-    font-size: 19px;
+    font-size: 18px;
     font-weight: 700;
     color: #fff;
+    line-height: 1.2;
+    letter-spacing: -.01em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    line-height: 1.2;
-    letter-spacing: -.01em;
   }
 
-  .ssm-ent-count {
+  .ssm-head-count {
     margin: 0;
     font-size: 11px;
     color: rgba(255,255,255,.5);
+    display: flex;
+    align-items: center;
+    gap: 5px;
   }
 
   .ssm-close {
-    width: 36px;
-    height: 36px;
+    position: relative;
+    z-index: 2;
+    margin: 18px 18px 0 auto;
+    align-self: flex-start;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: rgba(255,255,255,.12);
-    border: 1px solid rgba(255,255,255,.18);
-    color: rgba(255,255,255,.75);
+    border: 1px solid rgba(255,255,255,.2);
+    color: rgba(255,255,255,.8);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     flex-shrink: 0;
-    transition: background .2s;
+    transition: background .2s, color .2s;
   }
 
   .ssm-close:hover {
@@ -337,34 +387,121 @@ const CSS = `
     color: #fff;
   }
 
-  .ssm-gold-line {
-    position: relative;
-    z-index: 2;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, ${GOLD}, transparent);
-    opacity: .7;
+  /* Layout the header row */
+  .ssm-head {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding-bottom: 18px;
   }
 
-  /* ── Sous-titre ── */
-  .ssm-subtitle {
+  .ssm-gold-line {
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, ${GOLD} 40%, ${GOLD} 60%, transparent 100%);
+    opacity: .65;
+    flex-basis: 100%;
+  }
+
+  /* Fix: logo + text side by side, close top-right */
+  .ssm-head {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    column-gap: 14px;
+    row-gap: 0;
+    padding: 0;
+    align-items: start;
+  }
+
+  .ssm-head-bg {
+    grid-column: 1/-1;
+    grid-row: 1/-1;
+  }
+
+  .ssm-logo {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 22px 0 18px 20px;
+  }
+
+  .ssm-head-text {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 22px 0 18px 0;
+  }
+
+  .ssm-close {
+    grid-column: 3;
+    grid-row: 1;
+    margin: 16px 16px 0 0;
+  }
+
+  .ssm-gold-line {
+    grid-column: 1/-1;
+    grid-row: 2;
+  }
+
+  /* ── Hint ── */
+  .ssm-hint {
+    margin: 0;
+    padding: 13px 20px 0;
+    font-size: 12px;
+    color: #7a6e65;
+    font-weight: 500;
+    flex-shrink: 0;
+    border-bottom: 1px solid #ede8e1;
+    padding-bottom: 13px;
+  }
+
+  /* ── Recherche ── */
+  .ssm-search-wrap {
     display: flex;
     align-items: center;
-    gap: 7px;
-    padding: 14px 20px 10px;
-    font-size: 12px;
-    color: #6b5e50;
-    font-weight: 500;
-    border-bottom: 1px solid #ede8e1;
-    background: #fafaf8;
+    gap: 8px;
+    margin: 12px 16px 0;
+    background: #fff;
+    border: 1.5px solid #e8e2da;
+    border-radius: 12px;
+    padding: 9px 12px;
+    flex-shrink: 0;
+    transition: border-color .2s;
+  }
+
+  .ssm-search-wrap:focus-within {
+    border-color: ${PRIMARY}66;
+  }
+
+  .ssm-search {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    color: #1a110a;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .ssm-search-clear {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    padding: 0;
+    color: #94a3b8;
   }
 
   /* ── Liste ── */
   .ssm-list {
-    padding: 12px 16px 8px;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px 14px 6px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    background: #fafaf8;
+    gap: 7px;
+    scrollbar-width: thin;
+    scrollbar-color: #e2d6c8 transparent;
   }
 
   .ssm-empty {
@@ -372,78 +509,76 @@ const CSS = `
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    padding: 40px 20px;
+    padding: 36px 20px;
     color: #94a3b8;
     font-size: 13px;
   }
 
-  /* ── Carte service ── */
+  /* ── Carte ── */
   .ssm-card {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
+    gap: 12px;
+    padding: 13px 14px;
     background: #fff;
     border: 1.5px solid #ede8e1;
-    border-radius: 18px;
+    border-radius: 16px;
     cursor: pointer;
     text-align: left;
     width: 100%;
-    transition: border-color .22s, box-shadow .22s, transform .18s;
     overflow: hidden;
-    animation: ssm-card-in .35s ease-out both;
+    transition: border-color .22s, box-shadow .22s, transform .18s, background .2s;
+    animation: ssm-card-in .32s ease-out both;
   }
 
-  .ssm-card::before {
-    content: '';
+  .ssm-card:disabled { cursor: not-allowed; }
+
+  .ssm-card-accent {
     position: absolute;
     left: 0;
-    top: 0;
-    bottom: 0;
+    top: 8px;
+    bottom: 8px;
     width: 3px;
     background: linear-gradient(180deg, ${PRIMARY}, ${PRIMARY_L});
-    border-radius: 0 2px 2px 0;
+    border-radius: 0 3px 3px 0;
     opacity: 0;
-    transition: opacity .22s;
+    transition: opacity .22s, top .22s, bottom .22s;
   }
 
-  .ssm-card--hover,
-  .ssm-card:hover {
+  .ssm-card--hov,
+  .ssm-card:not(:disabled):hover {
     border-color: ${PRIMARY}55;
-    box-shadow: 0 4px 20px rgba(192,57,43,.12);
+    box-shadow: 0 4px 18px rgba(192,57,43,.13);
     transform: translateY(-1px);
+    background: #fffaf9;
   }
 
-  .ssm-card--hover::before,
-  .ssm-card:hover::before {
+  .ssm-card--hov .ssm-card-accent,
+  .ssm-card:not(:disabled):hover .ssm-card-accent {
     opacity: 1;
+    top: 4px;
+    bottom: 4px;
   }
 
-  .ssm-card--selected {
+  .ssm-card--sel {
     border-color: ${PRIMARY};
-    box-shadow: 0 4px 24px rgba(192,57,43,.22);
+    box-shadow: 0 6px 24px rgba(192,57,43,.2);
     background: #fff9f8;
   }
 
-  .ssm-card--selected::before {
+  .ssm-card--sel .ssm-card-accent {
     opacity: 1;
-  }
-
-  .ssm-card-underline {
-    position: absolute;
+    top: 0;
     bottom: 0;
-    left: 16px;
-    right: 16px;
-    height: 1px;
-    background: transparent;
+    border-radius: 0;
   }
 
   /* ── Icône ── */
-  .ssm-svc-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 13px;
+  .ssm-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
     background: rgba(192,57,43,.08);
     border: 1.5px solid rgba(192,57,43,.15);
     display: flex;
@@ -451,23 +586,20 @@ const CSS = `
     justify-content: center;
     flex-shrink: 0;
     color: ${PRIMARY};
-    transition: background .22s, border-color .22s, transform .22s;
+    transition: background .22s, border-color .22s, color .22s, transform .2s;
   }
 
-  .ssm-svc-icon--active {
+  .ssm-icon--on {
     background: ${PRIMARY};
     border-color: ${PRIMARY};
     color: #fff;
-    transform: scale(1.06);
+    transform: scale(1.08) rotate(-3deg);
   }
 
-  /* ── Corps service ── */
-  .ssm-svc-body {
-    flex: 1;
-    min-width: 0;
-  }
+  /* ── Corps ── */
+  .ssm-body { flex: 1; min-width: 0; }
 
-  .ssm-svc-name {
+  .ssm-name {
     margin: 0 0 5px;
     font-size: 14px;
     font-weight: 700;
@@ -475,38 +607,31 @@ const CSS = `
     line-height: 1.3;
   }
 
-  .ssm-svc-meta {
+  .ssm-meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     margin-bottom: 4px;
   }
 
-  .ssm-svc-price {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex-wrap: wrap;
-  }
+  .ssm-price-wrap { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 
-  .ssm-svc-price-old {
+  .ssm-price-old {
     font-size: 11px;
     color: #94a3b8;
     text-decoration: line-through;
   }
 
-  .ssm-svc-price-val {
+  .ssm-price {
     font-size: 13px;
     font-weight: 700;
     color: #1a110a;
   }
 
-  .ssm-svc-price-promo {
-    color: ${PRIMARY};
-  }
+  .ssm-price--promo { color: ${PRIMARY}; }
 
-  .ssm-promo-badge {
+  .ssm-badge-promo {
     font-size: 9px;
     font-weight: 800;
     letter-spacing: .05em;
@@ -517,16 +642,16 @@ const CSS = `
     border-radius: 10px;
   }
 
-  .ssm-svc-devis {
-    font-size: 12px;
+  .ssm-devis {
+    font-size: 11.5px;
     font-weight: 600;
-    color: #6b5e50;
+    color: #7a6e65;
     background: #f5efe8;
     padding: 3px 9px;
     border-radius: 10px;
   }
 
-  .ssm-svc-time {
+  .ssm-time {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -535,7 +660,7 @@ const CSS = `
     font-weight: 500;
   }
 
-  .ssm-svc-desc {
+  .ssm-desc {
     margin: 0;
     font-size: 11.5px;
     color: #7a6e65;
@@ -548,54 +673,63 @@ const CSS = `
 
   /* ── Flèche ── */
   .ssm-arrow {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     color: #c4b8ad;
-    transition: color .22s, background .22s, transform .22s;
+    transition: background .22s, color .22s, transform .22s;
   }
 
-  .ssm-arrow--active {
+  .ssm-arrow--on {
     background: ${PRIMARY};
     color: #fff;
     transform: scale(1.1);
   }
 
   .ssm-spinner {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     border: 2.5px solid rgba(255,255,255,.3);
-    border-top: 2.5px solid #fff;
+    border-top-color: #fff;
     border-radius: 50%;
-    animation: ssm-spin .8s linear infinite;
+    animation: ssm-spin .75s linear infinite;
   }
 
   /* ── Footer ── */
-  .ssm-footer {
-    padding: 10px 20px 28px;
+  .ssm-foot {
+    padding: 10px 20px 18px;
     text-align: center;
-    background: #fafaf8;
     border-top: 1px solid #ede8e1;
-    margin-top: 4px;
+    flex-shrink: 0;
   }
 
-  .ssm-footer-note {
+  .ssm-foot-note {
     margin: 0;
     font-size: 11px;
     color: #a89e95;
     font-weight: 500;
   }
 
-  /* ── Responsive ── */
-  @media (max-width: 480px) {
-    .ssm-panel { max-height: 92vh; border-radius: 22px 22px 0 0; }
-    .ssm-ent-name { font-size: 16px; }
-    .ssm-card { padding: 12px 12px; }
-    .ssm-svc-name { font-size: 13px; }
-    .ssm-svc-icon { width: 40px; height: 40px; border-radius: 11px; }
+  /* ── Responsive mobile ── */
+  @media (max-width: 520px) {
+    .ssm-overlay {
+      align-items: flex-end;
+      padding: 0;
+    }
+
+    .ssm-dialog {
+      max-width: 100%;
+      max-height: 88vh;
+      border-radius: 24px 24px 0 0;
+      transform: translateY(100%) !important;
+    }
+
+    .ssm-dialog[style*="translateY(0)"] {
+      transform: translateY(0) !important;
+    }
   }
 `;
