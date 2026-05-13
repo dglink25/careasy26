@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../contexts/AuthContext';
 import { publicApi } from '../api/publicApi';
 import api from '../api/axios';
+import { entrepriseApi } from '../api/entrepriseApi';
 import ServiceSelectionModal from '../components/ServiceSelectionModal';
 import {
   FiSearch, FiX, FiNavigation2, FiPhone, FiMessageSquare,
@@ -101,6 +102,8 @@ export default function MapScreen() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showServiceModal, setShowServiceModal] = useState(false);
+  const [entWithServices, setEntWithServices] = useState(null);
+  const [loadingServices, setLoadingServices] = useState(false);
 
   // Data
   const [entreprises, setEntreprises] = useState([]);
@@ -190,8 +193,12 @@ export default function MapScreen() {
     }
   }
   function closeModal() {
-    setModalVisible(false); setSelectedEnt(null);
-    setShowItinerary(false); setRoute([]); setSteps([]);
+    setModalVisible(false);
+    setSelectedEnt(null);
+    setEntWithServices(null); 
+    setShowItinerary(false);
+    setRoute([]);
+    setSteps([]);
     setStepsExpanded(false);
   }
 
@@ -287,12 +294,24 @@ export default function MapScreen() {
   function handleCall()  { const p=selectedEnt?.call_phone;     if(p) window.open(`tel:${p}`); }
   function handleWA()    { const p=selectedEnt?.whatsapp_phone; if(p) window.open(`https://wa.me/${p.replace(/\D/g,'')}`); }
   function handleChat()  { if(!user){navigate('/login');return;} navigate('/messages',{state:{openConversationWith:selectedEnt?.id}}); }
-  function handleRdv() {
+  async function handleRdv() {
     if (!user) {
       navigate('/login');
       return;
     }
-    setShowServiceModal(true);
+    if (!selectedEnt?.id) return;
+
+    setLoadingServices(true);
+    try {
+      const full = await entrepriseApi.getEntreprise(selectedEnt.id);
+      setEntWithServices(full);
+    } catch {
+      // Fallback : ouvrir quand même avec ce qu'on a
+      setEntWithServices(selectedEnt);
+    } finally {
+      setLoadingServices(false);
+      setShowServiceModal(true);
+    }
   }
 
   function handleViewEnt() { navigate(`/entreprises/${selectedEnt?.id}`); }
@@ -470,10 +489,11 @@ export default function MapScreen() {
           </div>
         </div>
       )}
+      
       <ServiceSelectionModal
         isOpen={showServiceModal}
-        onClose={() => setShowServiceModal(false)}
-        entreprise={selectedEnt}
+        onClose={() => { setShowServiceModal(false); setEntWithServices(null); }}
+        entreprise={entWithServices}  // ← ici, plus selectedEnt
       />
     </div>
   );
