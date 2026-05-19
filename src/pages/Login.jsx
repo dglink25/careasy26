@@ -181,7 +181,7 @@ export default function Login({ isModal = false, onClose }) {
     
     const apiUrl = import.meta.env.VITE_APP_URL || 'http://localhost:8000';
     const baseUrl = apiUrl.endsWith('/auth') ? apiUrl.replace('/auth', '') : apiUrl;
-    const googleAuthUrl = `${baseUrl}/auth/google`;
+    const googleAuthUrl = `${baseUrl}/api/auth/google`;
     window.location.href = googleAuthUrl;
   };
 
