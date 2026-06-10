@@ -30,7 +30,12 @@ export default function SEOHead({
       <meta name="description" content={fullDescription} />
       {keywords && <meta name="keywords" content={keywords} />}
       <link rel="canonical" href={canonicalUrl} />
-      {noindex && <meta name="robots" content="noindex, nofollow" />}
+     
+      {noindex ? (
+        <meta name="robots" content="noindex, nofollow" />
+      ) : (
+        <meta name="robots" content="index, follow" />
+      )}
 
       {/* Open Graph */}
       <meta property="og:type" content={type} />
