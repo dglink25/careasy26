@@ -1,9 +1,9 @@
 {
-  "rewrites": [
+  "redirects": [
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "https://careasy.cap-epac.bj/$1",
+      "permanent": true
     }
-  ],
-  "buildCommand": "npm run generate:sitemap && vite build"
+  ]
 }
