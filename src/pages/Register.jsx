@@ -326,12 +326,9 @@ export default function Register({ isModal = false, onClose }) {
   const pwdColors = ['', '#ef4444', '#f59e0b', theme.colors.primary, '#10b981'];
   const pwdLabels = ['', 'Très faible', 'Moyen', 'Fort', 'Très fort'];
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // RENDU
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div style={{ ...s.container, ...(isModal ? s.modalContainer : {}) }}>
-      <SEOHead title="Inscription" noindex={true} />
+      <SEOHead title="Inscription" noindex={false} />
 
       <div style={{ ...s.card, ...(isModal ? s.modalCard : {}) }}>
         {isModal && (

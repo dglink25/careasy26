@@ -219,7 +219,7 @@ export default function Login({ isModal = false, onClose }) {
       ...(isModal ? styles.modalContainer : {}),
     }}>
       
-    <SEOHead title="Connexion" noindex={true} />
+    <SEOHead title="Connexion" noindex={false} />
       <div style={{
         ...styles.card,
         ...(isModal ? styles.modalCard : {}),
