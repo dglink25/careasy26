@@ -3,8 +3,8 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 
-const BASE_URL = 'https://careasy26.vercel.app';
-const API_URL  = 'https://careasy26.alwaysdata.net'; // ← Remplacer par votre URL API
+const BASE_URL = 'https://careasy.cap-epac.bj';
+const API_URL  = 'https://careasy.cap-epac.bj/api'; // ← Remplacer par votre URL API
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -22,7 +22,7 @@ const staticPages = [
 function urlEntry({ loc, priority, changefreq }) {
   return `
   <url>
-    <loc>${BASE_URL}${loc}</loc>
+    <loc>${BASE_URL}${loc}</loc> 
     <lastmod>${today}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>

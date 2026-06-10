@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 
-const BASE_URL = 'https://careasy26.vercel.app';
+const BASE_URL = 'https://careasy.cap-epac.bj';
 const DEFAULT_IMAGE = `${BASE_URL}/og-image.jpg`;
 const SITE_NAME = 'CarEasy';
 

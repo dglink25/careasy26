@@ -1,5 +1,5 @@
 # robots.txt — CarEasy
-# https://careasy26.vercel.app
+# https://careasy.cap-epac.bj
 
 User-agent: *
 
@@ -36,4 +36,4 @@ Disallow: /*?tab=*
 Disallow: /*?view=list*
 
 # Sitemap
-Sitemap: https://careasy26.vercel.app/sitemap.xml
+Sitemap: https://careasy.cap-epac.bj/sitemap.xml

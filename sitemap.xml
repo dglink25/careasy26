@@ -4,7 +4,7 @@
 
   <!-- Page d'accueil — priorité maximale -->
   <url>
-    <loc>https://careasy26.vercel.app/</loc>
+    <loc>https://careasy.cap-epac.bj/</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
@@ -12,28 +12,28 @@
 
   <!-- Pages publiques principales -->
   <url>
-    <loc>https://careasy26.vercel.app/entreprises</loc>
+    <loc>https://careasy.cap-epac.bj/entreprises</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://careasy26.vercel.app/services</loc>
+    <loc>https://careasy.cap-epac.bj/services</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://careasy26.vercel.app/partenaires</loc>
+    <loc>https://careasy.cap-epac.bj/partenaires</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://careasy26.vercel.app/faq</loc>
+    <loc>https://careasy.cap-epac.bj/faq</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -41,14 +41,14 @@
 
   <!-- Pages d'authentification (noindex recommandé, mais listées ici pour référence) -->
   <url>
-    <loc>https://careasy26.vercel.app/login</loc>
+    <loc>https://careasy.cap-epac.bj/login</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
   <url>
-    <loc>https://careasy26.vercel.app/register</loc>
+    <loc>https://careasy.cap-epac.bj/register</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
