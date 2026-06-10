@@ -2,6 +2,10 @@
 import api from './axios';
 
 export const adminApi = {
+  // ═══════════════════════════════════════════════════════════
+  // ENTREPRISES
+  // ═══════════════════════════════════════════════════════════
+  
   // Récupérer toutes les entreprises (avec filtrage optionnel)
   getEntreprises: async (status = null) => {
     const params = status ? { status } : {};
@@ -28,6 +32,44 @@ export const adminApi = {
     const response = await api.post(`/admin/entreprises/${id}/reject`, {
       admin_note
     });
+    return response.data;
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // ABONNEMENTS
+  // ═══════════════════════════════════════════════════════════
+  
+  // Récupérer tous les abonnements
+  getAbonnements: async (filters = {}) => {
+    const response = await api.get('/admin/abonnements', { params: filters });
+    return response.data;
+  },
+
+  // Récupérer les détails d'un abonnement
+  getAbonnement: async (id) => {
+    const response = await api.get(`/admin/abonnements/${id}`);
+    return response.data;
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // SIGNALEMENTS
+  // ═══════════════════════════════════════════════════════════
+  
+  // Récupérer tous les signalements
+  getSignalements: async (filters = {}) => {
+    const response = await api.get('/admin/signalements', { params: filters });
+    return response.data;
+  },
+
+  // Marquer un signalement comme résolu
+  resolveSignalement: async (id) => {
+    const response = await api.patch(`/admin/signalements/${id}/resolve`);
+    return response.data;
+  },
+
+  // Ignorer un signalement
+  dismissSignalement: async (id) => {
+    const response = await api.patch(`/admin/signalements/${id}/dismiss`);
     return response.data;
   },
 };
