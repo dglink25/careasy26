@@ -305,7 +305,10 @@ export default function Register({ isModal = false, onClose }) {
   // ── Helpers Google ────────────────────────────────────────────────────────
   const handleGoogle = () => {
     const apiUrl = import.meta.env.VITE_APP_URL || 'http://localhost:8000';
-    window.location.href = `${apiUrl.replace('/auth', '')}/auth/google`;
+    // Retirer /auth à la fin si présent, puis ajouter /auth/google
+    const baseUrl = apiUrl.endsWith('/auth') ? apiUrl.replace('/auth', '') : apiUrl;
+    const googleAuthUrl = `${baseUrl}/auth/google`;
+    window.location.href = googleAuthUrl;
   };
 
   const handleLoginClick = () => {
