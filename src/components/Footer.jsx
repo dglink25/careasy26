@@ -206,11 +206,11 @@ export default function Footer() {
               <span style={styles.dot}>·</span>
               <Link to="/terms" style={styles.bottomLink}>Conditions d'utilisation</Link>
               <span style={styles.dot}>·</span>
-              <Link to="/cookies" style={styles.bottomLink}>{t('footer.cookies')}</Link>
+              <Link to="#" style={styles.bottomLink}>{t('footer.cookies')}</Link>
               <span style={styles.dot}>·</span>
               <Link to="/faq" style={styles.bottomLink}>{t('footer.help')}</Link>
               <span style={styles.dot}>·</span>
-              <Link to="/mentions-legales" style={styles.bottomLink}>{t('footer.legalNotice')}</Link>
+              <Link to="#" style={styles.bottomLink}>{t('footer.legalNotice')}</Link>
             </div>
           </div>
         </div>

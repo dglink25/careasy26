@@ -53,6 +53,9 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminEntreprises from './pages/admin/AdminEntreprises';
 import AdminEntrepriseDetails from './pages/admin/AdminEntrepriseDetails';
 import PlanAdmin from './pages/admin/AdminPlans';
+import AdminPrestataires from './pages/admin/AdminPrestataires';
+import AdminAbonnements from './pages/admin/AdminAbonnements';
+import AdminSignalements from './pages/admin/AdminSignalements';
 
 // Public
 import PublicEntreprises from './pages/public/PublicEntreprises';
@@ -130,8 +133,10 @@ function App() {
                       <Route path="/admin/entreprises" element={<AdminRoute><AdminEntreprises /></AdminRoute>} />
                       <Route path="/admin/entreprises/:id" element={<AdminRoute><AdminEntrepriseDetails /></AdminRoute>} />
                       <Route path="/admin/plans" element={<AdminRoute><PlanAdmin /></AdminRoute>} />
-
-                      
+                      <Route path="/admin/prestataires" element={<AdminRoute><AdminPrestataires /></AdminRoute>} />
+                      <Route path="/admin/abonnements" element={<AdminRoute><AdminAbonnements /></AdminRoute>} />
+                      <Route path="/admin/signalements" element={<AdminRoute><AdminSignalements /></AdminRoute>} />
+      
                       {/* Abonnements - UNIFIÉ */}
                       <Route path="/abonnements" element={<ProtectedRoute><AbonnementsPage /></ProtectedRoute>} />
                       

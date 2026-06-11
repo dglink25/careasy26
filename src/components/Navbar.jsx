@@ -20,7 +20,7 @@ import {
   FiBell, FiMoon, FiShield, FiShoppingBag, FiCalendar, FiAward,
   FiChevronDown as FiChevronDownIcon, FiClock, FiTrash2, FiCheckSquare,
   FiHelpCircle, FiCheckCircle, FiXCircle, FiAlertTriangle, FiAlertCircle,
-  FiGift, FiMap, FiZap, FiTruck,
+  FiGift, FiMap, FiZap, FiTruck,FiFlag,FiStar,
 } from 'react-icons/fi';
 import { MdDashboard } from 'react-icons/md';
 
@@ -661,11 +661,15 @@ export default function Navbar() {
               <>
                 {user.role === 'admin' ? (
                   [
-                    { to: '/admin/dashboard',   icon: FaUser,          label: 'Dashboard'   },
-                    { to: '/admin/entreprises', icon: FaBuilding,      label: 'Entreprises' },
-                    { to: '/messages',          icon: FiMessageSquare, label: 'Messages'    },
-                    { to: '/admin/plans',       icon: FiAward,         label: 'Plans'       },
-                  ].map(({ to, icon: Icon, label }) => (
+                      { to: '/admin/dashboard',     icon: MdDashboard,     label: 'Dashboard'      },
+                      { to: '/admin/entreprises',   icon: FaBuilding,      label: 'Entreprises'    },
+                      { to: '/admin/prestataires',  icon: FiUser,          label: 'Prestataires'   },
+                      { to: '/admin/abonnements',   icon: FiAward,         label: 'Abonnements'    },
+                      { to: '/admin/signalements',  icon: FiFlag,          label: 'Signalements'   },
+                      { to: '/admin/plans',         icon: FiStar,          label: 'Plans'          },
+                      { to: '/messages',            icon: FiMessageSquare, label: 'Messages'       },
+                    ]
+                    .map(({ to, icon: Icon, label }) => (
                     <Link key={to} to={to} className="nav-link" style={{
                       ...navLinkStyle,
                       color: isActive(to) ? 'var(--brand-primary)' : 'var(--text-primary)',
@@ -955,10 +959,13 @@ export default function Navbar() {
                 <>
                   {user.role === 'admin' ? (
                     <>
-                      <MobileLink to="/admin/dashboard"   icon={FaUser}          label="Dashboard Admin" onClick={() => setMobileMenuOpen(false)} />
-                      <MobileLink to="/admin/entreprises" icon={FaBuilding}      label="Entreprises"     onClick={() => setMobileMenuOpen(false)} />
-                      <MobileLink to="/messages"          icon={FiMessageSquare} label="Messages"        onClick={() => setMobileMenuOpen(false)} />
-                      <MobileLink to="/admin/plans"       icon={FiAward}         label="Plans"           onClick={() => setMobileMenuOpen(false)} />
+                      <MobileLink to="/admin/dashboard"    icon={MdDashboard}     label="Dashboard Admin"  onClick={() => setMobileMenuOpen(false)} />
+                      <MobileLink to="/admin/entreprises"  icon={FaBuilding}      label="Entreprises"      onClick={() => setMobileMenuOpen(false)} />
+                      <MobileLink to="/admin/prestataires" icon={FiUser}          label="Prestataires"     onClick={() => setMobileMenuOpen(false)} />
+                      <MobileLink to="/admin/abonnements"  icon={FiAward}         label="Abonnements"      onClick={() => setMobileMenuOpen(false)} />
+                      <MobileLink to="/admin/signalements" icon={FiFlag}          label="Signalements"     onClick={() => setMobileMenuOpen(false)} />
+                      <MobileLink to="/admin/plans"        icon={FiStar}          label="Plans"            onClick={() => setMobileMenuOpen(false)} />
+                      <MobileLink to="/messages"           icon={FiMessageSquare} label="Messages"         onClick={() => setMobileMenuOpen(false)} />
                     </>
                   ) : (
                     <>
