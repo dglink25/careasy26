@@ -385,7 +385,6 @@ export default function Login({ isModal = false, onClose }) {
           <span style={styles.dividerText}>ou</span>
         </div>
 
-        {/* Bouton Google */}
         <button 
           onClick={handleGoogleLogin}
           style={styles.googleButton}
