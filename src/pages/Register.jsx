@@ -305,14 +305,10 @@ export default function Register({ isModal = false, onClose }) {
   // ── Helpers Google ────────────────────────────────────────────────────────
   const handleGoogle = () => {
     const apiUrl = import.meta.env.VITE_APP_URL || 'http://localhost:8000';
-<<<<<<< HEAD
-    window.location.href = `${apiUrl}/auth/google`;
-=======
     // Retirer /auth à la fin si présent, puis ajouter /auth/google
     const baseUrl = apiUrl.endsWith('/auth') ? apiUrl.replace('/auth', '') : apiUrl;
     const googleAuthUrl = `${baseUrl}/auth/google`;
     window.location.href = googleAuthUrl;
->>>>>>> d59b4843b0ff6388074ea40d56debdfc7070b0d3
   };
 
   const handleLoginClick = () => {
@@ -333,9 +329,12 @@ export default function Register({ isModal = false, onClose }) {
   const pwdColors = ['', '#ef4444', '#f59e0b', theme.colors.primary, '#10b981'];
   const pwdLabels = ['', 'Très faible', 'Moyen', 'Fort', 'Très fort'];
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDU
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div style={{ ...s.container, ...(isModal ? s.modalContainer : {}) }}>
-      <SEOHead title="Inscription" noindex={false} />
+      <SEOHead title="Inscription" noindex={true} />
 
       <div style={{ ...s.card, ...(isModal ? s.modalCard : {}) }}>
         {isModal && (
