@@ -307,7 +307,7 @@ export default function Register({ isModal = false, onClose }) {
     const apiUrl = import.meta.env.VITE_APP_URL || 'http://localhost:8000';
     // Retirer /auth à la fin si présent, puis ajouter /auth/google
     const baseUrl = apiUrl.endsWith('/auth') ? apiUrl.replace('/auth', '') : apiUrl;
-    const googleAuthUrl = `${baseUrl}/auth/google`;
+    const googleAuthUrl = `${baseUrl}/api/auth/google`;
     window.location.href = googleAuthUrl;
   };
 
