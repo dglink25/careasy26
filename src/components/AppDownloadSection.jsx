@@ -56,7 +56,7 @@ export default function AppDownloadSection() {
 
           <p style={styles.description}>
             Trouvez un prestataire automobile, prenez rendez-vous et suivez vos interventions 
-            depuis votre smartphone. Disponible maintenant sur Android — 100% gratuit.
+            depuis votre smartphone. Disponible maintenant sur Android - 100% gratuit.
           </p>
 
           <div style={styles.statsContainer}>
@@ -143,15 +143,16 @@ export default function AppDownloadSection() {
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'scale(1)';
           }}
-          onClick={() => window.open(APK_URL)}
+          onClick={() => window.location.href = APK_URL}
+          
         >
           <span style={styles.btnContent}>
             <span style={styles.btnIconWrapper}>
               <DownloadIcon />
             </span>
             <span style={styles.btnTextWrapper}>
-              <span style={styles.btnSmall}>Télécharger gratuitement</span>
-              <span style={styles.btnBig}>Obtenir CarEasy.apk</span>
+              <span style={styles.btnSmall}>Télécharger gratuitement CarEasy vers android </span>
+              <span style={styles.btnBig}>Obtenir l'Application</span>
             </span>
             <span style={styles.btnArrow}>
               <ArrowRightIcon />

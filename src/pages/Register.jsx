@@ -135,9 +135,6 @@ export default function Register({ isModal = false, onClose }) {
     return () => clearTimeout(t);
   }, [resendTimer]);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // ÉTAPE 1 : envoyer l'OTP
-  // ─────────────────────────────────────────────────────────────────────────
   const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
     setContError('');
@@ -170,17 +167,21 @@ export default function Register({ isModal = false, onClose }) {
       setMaskedContact(res.data.masked || clean);
       setResendTimer(res.data.resend_after || 60);
       setStep(STEP_OTP);
-    } catch (err) {
+    } 
+    catch (err) {
       const code = err.response?.data?.code;
       const msg  = err.response?.data?.message;
 
       if (code === 'ALREADY_USED') {
         setContError(msg || 'Ce contact est déjà utilisé.');
-      } else if (code === 'INVALID_FORMAT') {
+      } 
+      else if (code === 'INVALID_FORMAT') {
         setContError(msg || 'Format invalide.');
-      } else if (code === 'SEND_FAILED') {
+      } 
+      else if (code === 'SEND_FAILED') {
         setContError(msg || 'Impossible d\'envoyer le code. Vérifiez votre ' + (regMethod === 'email' ? 'email.' : 'numéro.'));
-      } else if (code === 'RESEND_TOO_SOON') {
+      } 
+      else if (code === 'RESEND_TOO_SOON') {
         setContError(msg || 'Attendez avant de renvoyer.');
         setResendTimer(err.response?.data?.wait_seconds || 60);
         setStep(STEP_OTP); // Aller quand même à l'étape OTP
