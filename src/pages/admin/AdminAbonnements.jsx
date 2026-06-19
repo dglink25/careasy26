@@ -1,6 +1,3 @@
-// src/pages/admin/AdminAbonnements.jsx
-// Page d'administration des abonnements - affiche tous les abonnements de tous les prestataires
-
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import theme from '../../config/theme';

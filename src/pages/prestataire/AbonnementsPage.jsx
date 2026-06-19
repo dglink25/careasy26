@@ -1,31 +1,16 @@
-/**
- * AbonnementsPage.jsx
- * Page unifiée — remplace Plans.jsx ET MesAbonnements.jsx
- * Route : /abonnements
- *
- * Deux onglets :
- *   • "Plans disponibles"   (ancien Plans.jsx)
- *   • "Mes abonnements"     (ancien MesAbonnements.jsx)
- *
- * Usage dans App.jsx :
- *   import AbonnementsPage from './pages/prestataire/AbonnementsPage';
- *   <Route path="/abonnements" element={<ProtectedRoute><AbonnementsPage /></ProtectedRoute>} />
- *   <Route path="/plans"       element={<Navigate to="/abonnements" replace />} />
- */
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import planApi     from '../../api/planApi';
-import paiementApi from '../../api/paiementApi';
+import planApi      from '../../api/planApi';
+import paiementApi  from '../../api/paiementApi';
 import { entrepriseApi } from '../../api/entrepriseApi';
 import theme from '../../config/theme';
-import PaiementModal from '../../components/Paiement/PaiementModal';
+import PlanCheckoutModal from '../../components/Paiement/PlanCheckoutModal';
 
 import {
   FiCheckCircle, FiXCircle, FiBriefcase, FiUsers, FiZap, FiAward,
   FiInfo, FiChevronRight, FiRefreshCw, FiClock, FiStar,
-  FiGift, FiAlertTriangle, FiCreditCard, FiFileText, FiTrendingUp,
+  FiGift, FiAlertTriangle, FiCreditCard, FiFileText,
 } from 'react-icons/fi';
 import { FaCrown, FaRocket, FaRegGem } from 'react-icons/fa';
 import {
@@ -48,7 +33,7 @@ const getPlanGradient = (code) => {
   if (code?.includes('VP3')) return 'linear-gradient(135deg,#10b981,#34d399)';
   return 'linear-gradient(135deg,#8b5cf6,#a78bfa)';
 };
-const getPlanBadge    = (code) => {
+const getPlanBadge = (code) => {
   if (code?.includes('VP1')) return 'Débutant';
   if (code?.includes('VP2')) return 'Professionnel';
   if (code?.includes('VP3')) return 'Premium';
@@ -59,20 +44,17 @@ const getPlanBadge    = (code) => {
 // COMPOSANT PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AbonnementsPage() {
-  const { user }    = useAuth();
-  const navigate    = useNavigate();
-  const location    = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // L'URL peut forcer un onglet : /abonnements?tab=plans  ou  ?tab=mes
-  const defaultTab  = new URLSearchParams(location.search).get('tab') === 'plans' ? 'plans' : 'mes';
+  const defaultTab = new URLSearchParams(location.search).get('tab') === 'plans' ? 'plans' : 'mes';
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [toast, setToast] = useState(null);
 
-  // ── Toast ──────────────────────────────────────────────────────────────────
-  const [toast, setToast] = useState(null); // { type: 'success'|'error', msg }
-  const showToast = (type, msg) => {
+  const showToast = useCallback((type, msg) => {
     setToast({ type, msg });
-    setTimeout(() => setToast(null), 4000);
-  };
+    setTimeout(() => setToast(null), 4500);
+  }, []);
 
   const switchTab = (tab) => {
     setActiveTab(tab);
@@ -81,7 +63,6 @@ export default function AbonnementsPage() {
 
   return (
     <div style={s.page}>
-      {/* Toast */}
       {toast && (
         <div style={{ ...s.toast, backgroundColor: toast.type === 'success' ? '#10b981' : '#ef4444' }}>
           {toast.type === 'success' ? <FiCheckCircle size={20} /> : <FiInfo size={20} />}
@@ -90,7 +71,6 @@ export default function AbonnementsPage() {
       )}
 
       <div style={s.content}>
-        {/* ── Header ─────────────────────────────────────────────────────── */}
         <div style={s.header}>
           <div>
             <h1 style={s.title}><FiAward style={s.titleIcon} />Abonnements</h1>
@@ -98,25 +78,15 @@ export default function AbonnementsPage() {
           </div>
         </div>
 
-        {/* ── Onglets ─────────────────────────────────────────────────────── */}
         <div style={s.tabs}>
-          <button
-            onClick={() => switchTab('mes')}
-            style={{ ...s.tab, ...(activeTab === 'mes' ? s.tabActive : {}) }}
-          >
-            <FiAward size={16} />
-            Mes abonnements
-          </button>
-          <button
-            onClick={() => switchTab('plans')}
-            style={{ ...s.tab, ...(activeTab === 'plans' ? s.tabActive : {}) }}
-          >
-            <FiStar size={16} />
-            Plans disponibles
-          </button>
+          {[['mes','Mes abonnements',FiAward],['plans','Plans disponibles',FiStar]].map(([t,lbl,Icon]) => (
+            <button key={t} onClick={() => switchTab(t)}
+              style={{ ...s.tab, ...(activeTab === t ? s.tabActive : {}) }}>
+              <Icon size={16} />{lbl}
+            </button>
+          ))}
         </div>
 
-        {/* ── Contenu ─────────────────────────────────────────────────────── */}
         {activeTab === 'mes'
           ? <MesAbonnementsTab showToast={showToast} onGoToPlans={() => switchTab('plans')} />
           : <PlansTab          showToast={showToast} onGoToMes={()   => switchTab('mes')}   />
@@ -124,10 +94,10 @@ export default function AbonnementsPage() {
       </div>
 
       <style>{`
-        @keyframes spin        { to   { transform: rotate(360deg); } }
-        @keyframes slideInRight{ from { transform: translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
-        @keyframes fadeIn      { from { opacity:0; } to { opacity:1; } }
-        @keyframes slideIn     { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin         { to   { transform: rotate(360deg); } }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+        @keyframes fadeIn       { from { opacity:0; } to { opacity:1; } }
+        @keyframes slideIn      { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
         .plan-card:hover { transform:translateY(-6px); box-shadow:0 20px 40px rgba(0,0,0,.15); }
       `}</style>
     </div>
@@ -155,58 +125,90 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
     }
   }, []);
 
+  /**
+   * Récupère les abonnements depuis le backend (source de vérité unique).
+   * On ajoute ensuite uniquement les essais qui ne sont PAS déjà en base.
+   */
   const fetchData = async () => {
     try {
       setLoading(true);
-      const abonnementsData = (await paiementApi.getAbonnements()).data || [];
-      let entreprisesData   = [];
-      try { entreprisesData = await entrepriseApi.getMesEntreprises() || []; } catch {}
 
+      // 1. Abonnements depuis la base (inclut les trials créés par l'admin)
+      const abonnementsData = (await paiementApi.getAbonnements()).data || [];
+
+      // 2. Entreprises — pour détecter les essais non encore enregistrés en base
+      let entreprisesData = [];
+      try { entreprisesData = await entrepriseApi.getMesEntreprises() || []; } catch { /* silencieux */ }
+
+      // 3. Fusion : on n'ajoute un essai synthétique QUE s'il n'existe vraiment pas en base
       const all = [...abonnementsData];
+
       entreprisesData.forEach(e => {
-        if (e.status === 'validated' && e.trial_ends_at) {
-          if (all.find(s => s.type === 'trial' && s.entreprise_id === e.id)) return;
-          const end      = new Date(e.trial_ends_at);
-          const now      = new Date();
-          const isActive = end > now;
-          const daysLeft = Math.max(0, Math.floor((end - now) / 86400000));
-          all.push({
-            id: `trial-${e.id}`, reference: `TRIAL-${e.id}`, type: 'trial',
-            entreprise_id: e.id, entreprise_name: e.name,
-            plan: {
-              id: null, name: 'Essai Gratuit', code: 'TRIAL',
-              description: "30 jours pour découvrir la plateforme",
-              duration_text: '30 jours',
-              features_list: ['3 services max','1 employé max','Support standard','Statistiques de base'],
-              max_services: e.max_services_allowed || 3,
-              max_employees: e.max_employees_allowed || 1,
-              has_api_access: e.has_api_access || false,
-            },
-            date_debut: new Date(e.created_at).toLocaleDateString('fr-FR'),
-            date_fin: end.toLocaleDateString('fr-FR'),
-            date_fin_obj: end,
-            statut: isActive ? 'actif' : 'expiré',
-            jours_restants: daysLeft,
-            est_actif: isActive, est_essai: true,
-            montant: 'Gratuit', paiement: null, renouvellement_auto: false,
-            metadata: { max_services: e.max_services_allowed || 3, services_count: e.services_count || 0 },
-          });
-        }
+        if (e.status !== 'validated' || !e.trial_ends_at) return;
+
+        // Déjà présent en base (type trial pour cette entreprise) → ne pas dupliquer
+        const alreadyInDB = all.some(s => s.type === 'trial' && s.entreprise_id === e.id);
+        if (alreadyInDB) return;
+
+        const end      = new Date(e.trial_ends_at);
+        const now      = new Date();
+        const isActive = end > now;
+        const daysLeft = Math.max(0, Math.floor((end - now) / 86_400_000));
+
+        all.push({
+          id: `trial-${e.id}`,
+          reference: `TRIAL-${e.id}`,
+          type: 'trial',
+          entreprise_id:   e.id,
+          entreprise_name: e.name,
+          plan: {
+            id: null,
+            name: 'Essai Gratuit',
+            code: 'TRIAL',
+            description: '30 jours pour découvrir la plateforme',
+            duration_text: '30 jours',
+            features_list: ['3 services max', '1 employé max', 'Support standard', 'Statistiques de base'],
+            max_services:  e.max_services_allowed || 3,
+            max_employees: e.max_employees_allowed || 1,
+            has_api_access: e.has_api_access || false,
+          },
+          date_debut:    new Date(e.trial_starts_at || e.created_at).toLocaleDateString('fr-FR'),
+          date_fin:      end.toLocaleDateString('fr-FR'),
+          date_fin_obj:  end,
+          statut:        isActive ? 'actif' : 'expiré',
+          jours_restants: daysLeft,
+          est_actif:     isActive,
+          est_essai:     true,
+          montant:       'Gratuit',
+          montant_formate: 'Gratuit',
+          paiement:      null,
+          renouvellement_auto: false,
+          metadata: {
+            max_services:  e.max_services_allowed || 3,
+            services_count: e.services_count || 0,
+          },
+        });
       });
 
+      // 4. Trier : actifs en premier, puis par date de fin décroissante
       all.sort((a, b) => {
-        const dA = a.date_fin_obj || new Date(a.date_fin.split('/').reverse().join('-'));
-        const dB = b.date_fin_obj || new Date(b.date_fin.split('/').reverse().join('-'));
+        if (a.est_actif !== b.est_actif) return a.est_actif ? -1 : 1;
+        const dA = a.date_fin_obj instanceof Date ? a.date_fin_obj : new Date(a.date_fin.split('/').reverse().join('-'));
+        const dB = b.date_fin_obj instanceof Date ? b.date_fin_obj : new Date(b.date_fin.split('/').reverse().join('-'));
         return dB - dA;
       });
+
       setAbonnements(all);
     } catch (err) {
-      console.error(err);
+      console.error('fetchData abonnements:', err);
+      showToast('error', 'Erreur lors du chargement des abonnements');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
+
+  const handleRefresh = () => { setRefreshing(true); fetchData(); };
 
   const handleCancel = async () => {
     if (!toCancel || toCancel.type === 'trial') return;
@@ -216,8 +218,11 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
       showToast('success', 'Abonnement annulé avec succès');
       setCancelModal(false); setToCancel(null); setCancelReason('');
       fetchData();
-    } catch { showToast('error', "Erreur lors de l'annulation"); }
-    finally   { setCancelling(false); }
+    } catch (err) {
+      showToast('error', err?.message || "Erreur lors de l'annulation");
+    } finally {
+      setCancelling(false);
+    }
   };
 
   const handleInvoice = (a) => {
@@ -228,11 +233,11 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
 
   const StatutBadge = ({ a }) => {
     if (a.est_essai) return a.est_actif
-      ? <span style={bA.essai}><FiGift />Essai · {a.jours_restants}j</span>
-      : <span style={bA.expire}><FiAlertTriangle />Essai expiré</span>;
-    if (a.est_actif) return <span style={bA.actif}><MdOutlineVerified />Actif</span>;
-    if (['expiré','expire'].includes(a.statut)) return <span style={bA.expire}><FiXCircle />Expiré</span>;
-    return <span style={bA.annule}><FiXCircle />{a.statut_libelle || a.statut}</span>;
+      ? <span style={bA.essai}><FiGift size={12} />Essai · {a.jours_restants}j</span>
+      : <span style={bA.expire}><FiAlertTriangle size={12} />Essai expiré</span>;
+    if (a.est_actif) return <span style={bA.actif}><MdOutlineVerified size={12} />Actif</span>;
+    if (['expiré','expire'].includes(a.statut)) return <span style={bA.expire}><FiXCircle size={12} />Expiré</span>;
+    return <span style={bA.annule}><FiXCircle size={12} />{a.statut_libelle || a.statut}</span>;
   };
 
   if (loading) return <Loader text="Chargement de vos abonnements..." />;
@@ -243,9 +248,9 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
       {abonnements.length > 0 && (
         <div style={s.summaryCards}>
           {[
-            { icon: FiAward,          val: abonnements.length,                            label: 'Total abonnements' },
+            { icon: FiAward,           val: abonnements.length,                           label: 'Total' },
             { icon: MdOutlineVerified, val: abonnements.filter(a => a.est_actif).length,  label: 'Actifs' },
-            { icon: FiGift,           val: abonnements.filter(a => a.est_essai).length,   label: 'Essais gratuits' },
+            { icon: FiGift,            val: abonnements.filter(a => a.est_essai).length,  label: 'Essais' },
           ].map(({ icon: Icon, val, label }) => (
             <div key={label} style={s.summaryCard}>
               <div style={s.summaryIconWrap}><Icon size={20} color={theme.colors.primary} /></div>
@@ -258,15 +263,13 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
         </div>
       )}
 
-      {/* Bouton refresh */}
       <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'1.25rem' }}>
-        <button onClick={() => { setRefreshing(true); fetchData(); }} style={s.refreshBtn} disabled={refreshing}>
+        <button onClick={handleRefresh} style={s.refreshBtn} disabled={refreshing}>
           <FiRefreshCw size={14} style={refreshing ? s.spin : {}} />
           {refreshing ? 'Rafraîchissement...' : 'Rafraîchir'}
         </button>
       </div>
 
-      {/* Liste vide */}
       {abonnements.length === 0 ? (
         <div style={s.emptyState}>
           <FiInfo size={56} color="#cbd5e1" />
@@ -282,15 +285,17 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
               <div style={s.abCardHead}>
                 <div style={{ display:'flex', alignItems:'center', gap:'1rem' }}>
                   <div style={{ ...s.abCardIcon, backgroundColor: a.est_essai ? '#fef3c7' : '#dbeafe' }}>
-                    {a.est_essai ? <FiGift color="#d97706" /> : <MdOutlineBusinessCenter color={theme.colors.primary} />}
+                    {a.est_essai
+                      ? <FiGift color="#d97706" />
+                      : <MdOutlineBusinessCenter color={theme.colors.primary} />}
                   </div>
                   <div>
                     <h3 style={s.abCardTitle}>
-                      {a.plan.name}
+                      {a.plan?.name ?? 'Plan inconnu'}
                       {a.est_essai && <span style={s.essaiBadge}>Essai gratuit</span>}
                     </h3>
                     <div style={s.abCardMeta}>
-                      <span>{a.plan.code}</span>
+                      <span>{a.plan?.code ?? '—'}</span>
                       {a.entreprise_name && (
                         <><span style={{ color:'#cbd5e1' }}>•</span>
                         <span style={{ display:'flex', alignItems:'center', gap:3 }}>
@@ -303,13 +308,15 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
                 <StatutBadge a={a} />
               </div>
 
-              {/* Body card */}
+              {/* Body */}
               <div style={s.abCardBody}>
                 <div style={s.infoGrid}>
                   {[
-                    { icon: FiClock,    label: 'Début', val: a.date_debut },
-                    { icon: FiClock,    label: 'Fin',   val: a.date_fin   },
-                    ...(a.est_actif ? [{ icon: FiClock, label: 'Jours restants', val: `${a.jours_restants} j`, highlight: a.jours_restants <= 7 }] : []),
+                    { icon: FiClock, label: 'Début', val: a.date_debut },
+                    { icon: FiClock, label: 'Fin',   val: a.date_fin },
+                    ...(a.est_actif
+                      ? [{ icon: FiClock, label: 'Jours restants', val: `${a.jours_restants} j`, highlight: a.jours_restants <= 7 }]
+                      : []),
                   ].map(({ icon: Icon, label, val, highlight }) => (
                     <div key={label} style={s.infoItem}>
                       <div style={s.infoIconWrap}><Icon size={14} color={theme.colors.primary} /></div>
@@ -321,10 +328,9 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
                   ))}
                 </div>
 
-                {/* Footer card */}
                 <div style={s.abCardFoot}>
                   <span style={a.est_essai ? s.montantGratuit : s.montant}>
-                    {a.est_essai ? 'Gratuit' : (a.montant || '—')}
+                    {a.est_essai ? 'Gratuit' : (a.montant_formate || a.montant || '—')}
                   </span>
                   <div style={{ display:'flex', gap:'0.5rem' }}>
                     {a.est_actif && !a.est_essai && (
@@ -332,7 +338,11 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
                         <FiXCircle size={16} color="#b91c1c" />
                       </button>
                     )}
-                    <button onClick={() => handleInvoice(a)} style={{ ...s.btnIcon, opacity: a.est_essai ? .4 : 1 }} title="Facture" disabled={a.est_essai}>
+                    <button
+                      onClick={() => handleInvoice(a)}
+                      style={{ ...s.btnIcon, opacity: a.est_essai ? .4 : 1 }}
+                      title="Facture" disabled={a.est_essai}
+                    >
                       <FiFileText size={16} color="#475569" />
                     </button>
                     <button onClick={() => setSelected(a)} style={s.btnDetails}>
@@ -346,18 +356,16 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
         </div>
       )}
 
-      {/* CTA bas de page */}
+      {/* CTA */}
       <div style={s.ctaBanner}>
         <div>
           <p style={s.ctaTitle}>Besoin d'un plan supérieur ?</p>
           <p style={s.ctaSub}>Découvrez nos offres et boostez votre activité.</p>
         </div>
-        <button onClick={onGoToPlans} style={s.ctaBtn}>
-          <FiStar size={14} /> Voir les plans
-        </button>
+        <button onClick={onGoToPlans} style={s.ctaBtn}><FiStar size={14} /> Voir les plans</button>
       </div>
 
-      {/* ── Modal détails ────────────────────────────────────────────────── */}
+      {/* Modal détails */}
       {selected && (
         <Overlay onClose={() => setSelected(null)}>
           <div style={s.modal}>
@@ -368,26 +376,44 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
             </div>
             <div style={s.modalBody}>
               <ModalSection icon={FiAward} title="Plan">
-                <p style={{ fontWeight:700, fontSize:'1.1rem', color:'#0f172a' }}>{selected.plan.name}</p>
-                <p style={{ color:'#64748b', fontSize:'.875rem' }}>{selected.plan.description}</p>
+                <p style={{ fontWeight:700, fontSize:'1.1rem', color:'#0f172a' }}>{selected.plan?.name}</p>
+                <p style={{ color:'#64748b', fontSize:'.875rem' }}>{selected.plan?.description}</p>
               </ModalSection>
               <ModalSection icon={FiClock} title="Période">
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'1rem' }}>
-                  {[['Début', selected.date_debut],['Fin', selected.date_fin],selected.est_actif && ['Jours restants', `${selected.jours_restants} j`]]
-                    .filter(Boolean).map(([l,v]) => (
-                      <div key={l}><div style={s.infoLabel}>{l}</div><div style={s.infoVal}>{v}</div></div>
+                  {[['Début', selected.date_debut],['Fin', selected.date_fin],
+                    ...(selected.est_actif ? [['Jours restants', `${selected.jours_restants} j`]] : [])
+                  ].map(([l,v]) => (
+                    <div key={l}><div style={s.infoLabel}>{l}</div><div style={s.infoVal}>{v}</div></div>
                   ))}
                 </div>
               </ModalSection>
               {selected.est_essai && (
-                <ModalSection icon={FiGift} title="Période d'essai">
-                  <div style={s.trialBar}><div style={{ ...s.trialFill, width:`${((30-selected.jours_restants)/30)*100}%` }} /></div>
+                <ModalSection icon={FiGift} title="Progression essai">
+                  <div style={s.trialBar}>
+                    <div style={{ ...s.trialFill, width:`${Math.min(100,((30-selected.jours_restants)/30)*100)}%` }} />
+                  </div>
                   <div style={{ display:'flex', justifyContent:'space-between', fontSize:'.8rem', color:'#64748b', marginTop:4 }}>
-                    <span>Jour {30-selected.jours_restants}/30</span><span>{selected.jours_restants} restants</span>
+                    <span>Jour {Math.max(0,30-selected.jours_restants)}/30</span>
+                    <span>{selected.jours_restants} restants</span>
                   </div>
                 </ModalSection>
               )}
-              {selected.plan.features_list?.length > 0 && (
+              {selected.paiement && !selected.est_essai && (
+                <ModalSection icon={FiCreditCard} title="Paiement">
+                  {[
+                    ['Référence', selected.paiement.reference],
+                    ['Montant', selected.montant_formate || selected.montant],
+                    ['Date', selected.paiement.date],
+                    ['Méthode', selected.paiement.methode || '—'],
+                  ].map(([l,v]) => (
+                    <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'4px 0', fontSize:'.875rem' }}>
+                      <span style={{ color:'#64748b' }}>{l}</span><strong>{v}</strong>
+                    </div>
+                  ))}
+                </ModalSection>
+              )}
+              {selected.plan?.features_list?.length > 0 && (
                 <ModalSection icon={FiCheckCircle} title="Fonctionnalités">
                   {selected.plan.features_list.map((f,i) => (
                     <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 0', fontSize:'.9rem', color:'#334155' }}>
@@ -399,7 +425,9 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
             </div>
             <div style={s.modalFoot}>
               {selected.est_actif && !selected.est_essai && (
-                <button style={s.btnDanger} onClick={() => { setCancelModal(true); setToCancel(selected); setSelected(null); }}>
+                <button style={s.btnDanger} onClick={() => {
+                  setCancelModal(true); setToCancel(selected); setSelected(null);
+                }}>
                   <FiXCircle size={14} />Annuler l'abonnement
                 </button>
               )}
@@ -409,7 +437,7 @@ function MesAbonnementsTab({ showToast, onGoToPlans }) {
         </Overlay>
       )}
 
-      {/* ── Modal annulation ─────────────────────────────────────────────── */}
+      {/* Modal annulation */}
       {cancelModal && (
         <Overlay onClose={() => setCancelModal(false)}>
           <div style={{ ...s.modal, maxWidth:440 }}>
@@ -448,7 +476,7 @@ function PlansTab({ showToast, onGoToMes }) {
   const [refreshing, setRefreshing]     = useState(false);
   const [selected, setSelected]         = useState(null);
   const [comparison, setComparison]     = useState(null);
-  const [paymentModal, setPaymentModal] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [planToPay, setPlanToPay]       = useState(null);
 
   useEffect(() => { fetchPlans(); }, []);
@@ -469,19 +497,19 @@ function PlansTab({ showToast, onGoToMes }) {
     } catch { showToast('error', 'Erreur lors de la comparaison'); }
   };
 
-  const handleSubscribe = (plan) => { setPlanToPay(plan); setPaymentModal(true); };
+  /** Ouvre le modal de checkout avec sélection d'entreprise */
+  const handleObtenir = (plan) => { setPlanToPay(plan); setCheckoutOpen(true); };
 
   const onPaymentSuccess = () => {
-    showToast('success', 'Paiement réussi ! Votre abonnement est activé.');
-    setPaymentModal(false); setPlanToPay(null);
-    fetchPlans();
+    showToast('success', 'Redirection vers le paiement...');
+    setCheckoutOpen(false); setPlanToPay(null);
   };
 
   if (loading) return <Loader text="Chargement des plans..." />;
 
   return (
     <>
-      <div style={{ display:'flex', gap:'0.75rem', justifyContent:'flex-end', marginBottom:'1.5rem', flexWrap:'wrap' }}>
+      <div style={{ display:'flex', gap:'.75rem', justifyContent:'flex-end', marginBottom:'1.5rem', flexWrap:'wrap' }}>
         <button onClick={() => { setRefreshing(true); fetchPlans(); }} style={s.refreshBtn} disabled={refreshing}>
           <FiRefreshCw size={14} style={refreshing ? s.spin : {}} />
           {refreshing ? 'Rafraîchissement...' : 'Rafraîchir'}
@@ -503,7 +531,7 @@ function PlansTab({ showToast, onGoToMes }) {
             <div key={plan.id} style={s.planCard} className="plan-card">
               <div style={{ ...s.planHead, background: getPlanGradient(plan.code) }}>
                 <div style={s.planBadge}>{getPlanBadge(plan.code)}</div>
-                <div style={{ fontSize:'2.5rem', marginBottom:'0.75rem' }}>{getPlanIcon(plan.code)}</div>
+                <div style={{ fontSize:'2.5rem', marginBottom:'.75rem' }}>{getPlanIcon(plan.code)}</div>
                 <h3 style={s.planName}>{plan.name}</h3>
                 <span style={s.planCode}>{plan.code}</span>
               </div>
@@ -531,7 +559,7 @@ function PlansTab({ showToast, onGoToMes }) {
                   <button style={s.btnOutline} onClick={() => setSelected(plan)}>
                     <FiInfo size={14} />Détails
                   </button>
-                  <button style={s.btnSolid} onClick={() => handleSubscribe(plan)}>
+                  <button style={s.btnSolid} onClick={() => handleObtenir(plan)}>
                     <FiStar size={14} />Obtenir
                   </button>
                 </div>
@@ -541,28 +569,31 @@ function PlansTab({ showToast, onGoToMes }) {
         </div>
       )}
 
-      {/* CTA bas de page */}
+      {/* CTA */}
       <div style={s.ctaBanner}>
         <div>
           <p style={s.ctaTitle}>Déjà abonné ?</p>
           <p style={s.ctaSub}>Consultez et gérez vos abonnements en cours.</p>
         </div>
-        <button onClick={onGoToMes} style={s.ctaBtn}>
-          <FiAward size={14} /> Mes abonnements
-        </button>
+        <button onClick={onGoToMes} style={s.ctaBtn}><FiAward size={14} /> Mes abonnements</button>
       </div>
 
-      {/* Modal paiement */}
-      {paymentModal && planToPay && (
-        <PaiementModal plan={planToPay} onClose={() => { setPaymentModal(false); setPlanToPay(null); }} onSuccess={onPaymentSuccess} />
-      )}
+      {/* Modal checkout entreprise → paiement */}
+      <PlanCheckoutModal
+        isOpen={checkoutOpen && !!planToPay}
+        plan={planToPay}
+        onClose={() => { setCheckoutOpen(false); setPlanToPay(null); }}
+        onSuccess={onPaymentSuccess}
+      />
 
       {/* Modal comparaison */}
       {comparison && (
         <Overlay onClose={() => setComparison(null)}>
           <div style={{ ...s.modal, maxWidth:860 }}>
             <ModalClose onClose={() => setComparison(null)} />
-            <div style={s.modalHead}><h2 style={s.modalTitle}><MdOutlineCompareArrows size={20} color={theme.colors.primary} /> Comparaison des plans</h2></div>
+            <div style={s.modalHead}>
+              <h2 style={s.modalTitle}><MdOutlineCompareArrows size={20} color={theme.colors.primary} /> Comparaison des plans</h2>
+            </div>
             <div style={{ overflowX:'auto', padding:'1.5rem' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
                 <thead>
@@ -584,9 +615,9 @@ function PlansTab({ showToast, onGoToMes }) {
                     ['Durée', p => p.duration],
                     ['Services max', p => p.max_services_text],
                     ['Employés max', p => p.max_employees_text],
-                    ['Support prioritaire', p => p.has_priority_support ? <span style={{color:'#10b981'}}>✓ Oui</span> : <span style={{color:'#ef4444'}}>✗ Non</span>],
-                    ['Statistiques avancées', p => p.has_analytics      ? <span style={{color:'#10b981'}}>✓ Oui</span> : <span style={{color:'#ef4444'}}>✗ Non</span>],
-                    ['Notifications SMS', p => p.has_api_access         ? <span style={{color:'#10b981'}}>✓ Oui</span> : <span style={{color:'#ef4444'}}>✗ Non</span>],
+                    ['Support prioritaire',    p => p.has_priority_support ? <span style={{color:'#10b981'}}>✓ Oui</span> : <span style={{color:'#ef4444'}}>✗ Non</span>],
+                    ['Statistiques avancées',  p => p.has_analytics        ? <span style={{color:'#10b981'}}>✓ Oui</span> : <span style={{color:'#ef4444'}}>✗ Non</span>],
+                    ['Notifications SMS',      p => p.has_api_access       ? <span style={{color:'#10b981'}}>✓ Oui</span> : <span style={{color:'#ef4444'}}>✗ Non</span>],
                   ].map(([label, fn]) => (
                     <tr key={label}>
                       <td style={s.cmpTd}>{label}</td>
@@ -609,7 +640,7 @@ function PlansTab({ showToast, onGoToMes }) {
           <div style={{ ...s.modal, maxWidth:500 }}>
             <div style={{ ...s.planHead, background: getPlanGradient(selected.code), borderRadius:'1rem 1rem 0 0', position:'relative' }}>
               <ModalClose onClose={() => setSelected(null)} light />
-              <div style={{ fontSize:'2.5rem', marginBottom:'0.75rem' }}>{getPlanIcon(selected.code)}</div>
+              <div style={{ fontSize:'2.5rem', marginBottom:'.75rem' }}>{getPlanIcon(selected.code)}</div>
               <h2 style={{ color:'#fff', fontWeight:700, fontSize:'1.5rem', marginBottom:4 }}>{selected.name}</h2>
               <span style={s.planCode}>{selected.code}</span>
             </div>
@@ -620,16 +651,21 @@ function PlansTab({ showToast, onGoToMes }) {
                 </span>
                 <span style={{ color:'#64748b' }}>/{selected.duration_text}</span>
               </div>
-              {selected.description && <p style={{ color:'#475569', textAlign:'center', marginBottom:'1.5rem', lineHeight:1.6 }}>{selected.description}</p>}
+              {selected.description && (
+                <p style={{ color:'#475569', textAlign:'center', marginBottom:'1.5rem', lineHeight:1.6 }}>{selected.description}</p>
+              )}
               <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'1rem', marginBottom:'1.5rem' }}>
                 {[
                   selected.max_services  && { icon: FiBriefcase, val: selected.max_services,  label: 'Services max' },
                   selected.max_employees && { icon: FiUsers,     val: selected.max_employees, label: 'Employés max' },
                   { icon: FiClock, val: selected.duration_text, label: 'Durée' },
                 ].filter(Boolean).map(({ icon: Icon, val, label }) => (
-                  <div key={label} style={{ backgroundColor:'#f8fafc', borderRadius:8, padding:'0.75rem', display:'flex', alignItems:'center', gap:8 }}>
+                  <div key={label} style={{ backgroundColor:'#f8fafc', borderRadius:8, padding:'.75rem', display:'flex', alignItems:'center', gap:8 }}>
                     <Icon size={16} color={theme.colors.primary} />
-                    <div><div style={{ fontWeight:700, color:'#0f172a' }}>{val}</div><div style={{ fontSize:'.75rem', color:'#64748b' }}>{label}</div></div>
+                    <div>
+                      <div style={{ fontWeight:700, color:'#0f172a' }}>{val}</div>
+                      <div style={{ fontSize:'.75rem', color:'#64748b' }}>{label}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -641,7 +677,7 @@ function PlansTab({ showToast, onGoToMes }) {
             </div>
             <div style={s.modalFoot}>
               <button style={s.btnSecondary} onClick={() => setSelected(null)}>Fermer</button>
-              <button style={s.btnPrimary} onClick={() => { setSelected(null); handleSubscribe(selected); }}>
+              <button style={s.btnPrimary} onClick={() => { setSelected(null); handleObtenir(selected); }}>
                 <FiStar size={14} />Souscrire
               </button>
             </div>
@@ -688,9 +724,12 @@ const ModalSection = ({ icon: Icon, title, children }) => (
 );
 
 const StatItem = ({ icon: Icon, val, label }) => (
-  <div style={{ display:'flex', alignItems:'center', gap:8, padding:'0.75rem', backgroundColor:'#f8fafc', borderRadius:8 }}>
+  <div style={{ display:'flex', alignItems:'center', gap:8, padding:'.75rem', backgroundColor:'#f8fafc', borderRadius:8 }}>
     <Icon size={16} color={theme.colors.primary} />
-    <div><div style={{ fontWeight:700, fontSize:'1rem', color:'#1e293b' }}>{val}</div><div style={{ fontSize:'.75rem', color:'#64748b' }}>{label}</div></div>
+    <div>
+      <div style={{ fontWeight:700, fontSize:'1rem', color:'#1e293b' }}>{val}</div>
+      <div style={{ fontSize:'.75rem', color:'#64748b' }}>{label}</div>
+    </div>
   </div>
 );
 
@@ -709,24 +748,19 @@ const bA = {
 const s = {
   page:    { minHeight:'100vh', backgroundColor:'#f8fafc', padding:'2rem 0' },
   content: { maxWidth:1100, margin:'0 auto', padding:'0 1.5rem' },
-
-  // Toast
-  toast: { position:'fixed', top:24, right:24, color:'#fff', padding:'1rem 1.5rem', borderRadius:12, display:'flex', alignItems:'center', gap:12, boxShadow:'0 10px 25px rgba(0,0,0,.15)', zIndex:10000, animation:'slideInRight .3s ease', minWidth:280, fontSize:'.9rem', fontWeight:500 },
-
-  // Header + tabs
-  header:   { marginBottom:'1.5rem' },
-  title:    { display:'flex', alignItems:'center', gap:12, fontSize:'2rem', fontWeight:700, color:'#0f172a', marginBottom:6 },
-  titleIcon:{ fontSize:'2rem', color: P },
-  subtitle: { color:'#475569', fontSize:'.95rem' },
+  toast:   { position:'fixed', top:24, right:24, color:'#fff', padding:'1rem 1.5rem', borderRadius:12, display:'flex', alignItems:'center', gap:12, boxShadow:'0 10px 25px rgba(0,0,0,.15)', zIndex:10000, animation:'slideInRight .3s ease', minWidth:280, fontSize:'.9rem', fontWeight:500 },
+  header:  { marginBottom:'1.5rem' },
+  title:   { display:'flex', alignItems:'center', gap:12, fontSize:'2rem', fontWeight:700, color:'#0f172a', marginBottom:6 },
+  titleIcon: { fontSize:'2rem', color: P },
+  subtitle:  { color:'#475569', fontSize:'.95rem' },
 
   tabs: { display:'flex', gap:4, backgroundColor:'#f1f5f9', borderRadius:12, padding:4, marginBottom:'2rem', width:'fit-content' },
   tab:  { display:'flex', alignItems:'center', gap:8, padding:'.625rem 1.25rem', borderRadius:9, border:'none', backgroundColor:'transparent', color:'#64748b', fontSize:'.9rem', fontWeight:500, cursor:'pointer', transition:'all .2s' },
   tabActive: { backgroundColor:'#fff', color:'#0f172a', fontWeight:600, boxShadow:'0 1px 4px rgba(0,0,0,.08)' },
 
-  // Shared buttons
   refreshBtn: { display:'flex', alignItems:'center', gap:6, padding:'.5rem 1rem', backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:10, color:'#475569', fontSize:'.875rem', fontWeight:500, cursor:'pointer' },
   compareBtn: { display:'flex', alignItems:'center', gap:6, padding:'.5rem 1.25rem', backgroundColor: P, border:'none', borderRadius:10, color:'#fff', fontSize:'.875rem', fontWeight:600, cursor:'pointer' },
-  spin: { animation:'spin 1s linear infinite' },
+  spin:       { animation:'spin 1s linear infinite' },
 
   btnPrimary:   { flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'.875rem', backgroundColor: P, border:'none', borderRadius:10, color:'#fff', fontSize:'.9rem', fontWeight:600, cursor:'pointer' },
   btnSecondary: { flex:1, padding:'.875rem', backgroundColor:'#f1f5f9', color:'#1e293b', border:'1px solid #cbd5e1', borderRadius:10, fontSize:'.9rem', fontWeight:500, cursor:'pointer' },
@@ -736,32 +770,29 @@ const s = {
   btnIcon:      { display:'flex', alignItems:'center', justifyContent:'center', width:34, height:34, backgroundColor:'#f1f5f9', border:'none', borderRadius:8, cursor:'pointer' },
   btnDetails:   { display:'flex', alignItems:'center', gap:4, padding:'.5rem 1rem', backgroundColor:'#f1f5f9', border:'none', borderRadius:8, color:'#1e293b', fontSize:'.875rem', fontWeight:500, cursor:'pointer' },
 
-  // Summary
   summaryCards:   { display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'1rem', marginBottom:'1.5rem' },
   summaryCard:    { backgroundColor:'#fff', padding:'1.25rem', borderRadius:12, border:'1px solid #e2e8f0', display:'flex', alignItems:'center', gap:'1rem' },
   summaryIconWrap:{ display:'flex', alignItems:'center', justifyContent:'center', width:44, height:44, backgroundColor:'#f1f5f9', borderRadius:10 },
   summaryLabel:   { fontSize:'.7rem', color:'#64748b', textTransform:'uppercase', letterSpacing:.5 },
   summaryValue:   { fontSize:'1.5rem', fontWeight:600, color:'#0f172a', lineHeight:1.2 },
 
-  // Abonnement card
-  abCard:     { backgroundColor:'#fff', borderRadius:16, border:'1px solid #e2e8f0', overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,.05)' },
-  abCardHead: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'1.25rem 1.5rem', borderBottom:'1px solid #f1f5f9' },
-  abCardIcon: { display:'flex', alignItems:'center', justifyContent:'center', width:48, height:48, borderRadius:12, fontSize:'1.25rem' },
-  abCardTitle:{ fontSize:'1.1rem', fontWeight:600, color:'#0f172a', marginBottom:4, display:'flex', alignItems:'center', gap:8 },
-  abCardMeta: { display:'flex', alignItems:'center', gap:6, fontSize:'.875rem', color:'#64748b' },
-  abCardBody: { padding:'1.5rem' },
-  abCardFoot: { display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:'1rem', borderTop:'1px solid #f1f5f9' },
-  essaiBadge: { backgroundColor:'#fef3c7', color:'#b45309', padding:'2px 8px', borderRadius:12, fontSize:'.65rem', fontWeight:700, textTransform:'uppercase' },
+  abCard:      { backgroundColor:'#fff', borderRadius:16, border:'1px solid #e2e8f0', overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,.05)' },
+  abCardHead:  { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'1.25rem 1.5rem', borderBottom:'1px solid #f1f5f9' },
+  abCardIcon:  { display:'flex', alignItems:'center', justifyContent:'center', width:48, height:48, borderRadius:12, fontSize:'1.25rem' },
+  abCardTitle: { fontSize:'1.1rem', fontWeight:600, color:'#0f172a', marginBottom:4, display:'flex', alignItems:'center', gap:8 },
+  abCardMeta:  { display:'flex', alignItems:'center', gap:6, fontSize:'.875rem', color:'#64748b' },
+  abCardBody:  { padding:'1.5rem' },
+  abCardFoot:  { display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:'1rem', borderTop:'1px solid #f1f5f9' },
+  essaiBadge:  { backgroundColor:'#fef3c7', color:'#b45309', padding:'2px 8px', borderRadius:12, fontSize:'.65rem', fontWeight:700, textTransform:'uppercase' },
 
-  infoGrid:   { display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'1rem', marginBottom:'1.25rem' },
-  infoItem:   { display:'flex', alignItems:'center', gap:10 },
+  infoGrid:    { display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'1rem', marginBottom:'1.25rem' },
+  infoItem:    { display:'flex', alignItems:'center', gap:10 },
   infoIconWrap:{ display:'flex', alignItems:'center', justifyContent:'center', width:34, height:34, backgroundColor:'#f8fafc', borderRadius:8 },
-  infoLabel:  { fontSize:'.65rem', color:'#64748b', textTransform:'uppercase', letterSpacing:.5, marginBottom:2 },
-  infoVal:    { fontSize:'.9rem', fontWeight:500, color:'#0f172a' },
-  montant:    { fontSize:'1rem', fontWeight:600, color: P },
+  infoLabel:   { fontSize:'.65rem', color:'#64748b', textTransform:'uppercase', letterSpacing:.5, marginBottom:2 },
+  infoVal:     { fontSize:'.9rem', fontWeight:500, color:'#0f172a' },
+  montant:     { fontSize:'1rem', fontWeight:600, color: P },
   montantGratuit: { fontSize:'.9rem', fontWeight:600, color:'#059669', backgroundColor:'#d1fae5', padding:'4px 12px', borderRadius:999 },
 
-  // Plans
   plansGrid: { display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:'2rem', marginBottom:'2rem' },
   planCard:  { backgroundColor:'#fff', borderRadius:'1rem', overflow:'hidden', boxShadow:'0 4px 6px -1px rgba(0,0,0,.1)', transition:'all .3s', display:'flex', flexDirection:'column', animation:'slideIn .3s ease' },
   planHead:  { position:'relative', padding:'2rem', color:'#fff', textAlign:'center' },
@@ -771,39 +802,33 @@ const s = {
   planBody:  { padding:'2rem', flex:1, display:'flex', flexDirection:'column' },
   planPrice: { marginBottom:'1rem', paddingBottom:'1rem', borderBottom:'1px solid #e2e8f0', textAlign:'center' },
   priceAmt:  { fontSize:'2rem', fontWeight:700, color: P },
-  pricePeriod:{ fontSize:'.875rem', color:'#64748b' },
+  pricePeriod: { fontSize:'.875rem', color:'#64748b' },
   planDesc:  { fontSize:'.875rem', color:'#475569', marginBottom:'1.5rem', lineHeight:1.6, textAlign:'center' },
-  planStats: { display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'0.75rem', marginBottom:'1.5rem' },
+  planStats: { display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'.75rem', marginBottom:'1.5rem' },
   planBtns:  { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'.75rem', marginTop:'auto' },
 
-  // Modal
   modal:     { backgroundColor:'#fff', borderRadius:16, width:'100%', boxShadow:'0 25px 50px rgba(0,0,0,.2)', position:'relative' },
   modalHead: { padding:'1.5rem 1.5rem 1rem', borderBottom:'1px solid #e2e8f0', display:'flex', justifyContent:'space-between', alignItems:'center' },
   modalTitle:{ fontSize:'1.25rem', fontWeight:600, color:'#0f172a', display:'flex', alignItems:'center', gap:8 },
   modalBody: { padding:'1.5rem' },
   modalFoot: { padding:'1.25rem 1.5rem 1.5rem', borderTop:'1px solid #e2e8f0', display:'flex', gap:'1rem' },
 
-  // Comparison table
   cmpTh: { padding:'1rem', textAlign:'center', fontSize:'.875rem', fontWeight:600, color:'#1e293b', borderBottom:'2px solid #e2e8f0' },
   cmpTd: { padding:'.875rem 1rem', textAlign:'center', fontSize:'.875rem', color:'#475569', borderBottom:'1px solid #e2e8f0' },
-  cmpIcon:{ display:'flex', alignItems:'center', justifyContent:'center', width:44, height:44, borderRadius:10, fontSize:'1.25rem' },
+  cmpIcon: { display:'flex', alignItems:'center', justifyContent:'center', width:44, height:44, borderRadius:10, fontSize:'1.25rem' },
 
-  // Trial bar
   trialBar:  { height:8, backgroundColor:'#e2e8f0', borderRadius:4, overflow:'hidden', marginBottom:4 },
   trialFill: { height:'100%', backgroundColor:'#f59e0b', borderRadius:4, transition:'width .3s ease' },
 
-  // Misc
-  warnBox:    { display:'flex', alignItems:'flex-start', gap:10, padding:'1rem', backgroundColor:'#fef3c7', borderRadius:10, marginBottom:'1.5rem' },
-  formLabel:  { display:'block', fontSize:'.875rem', fontWeight:500, color:'#1e293b', marginBottom:6 },
-  textarea:   { width:'100%', padding:'.75rem', border:'1px solid #cbd5e1', borderRadius:8, fontSize:'.9rem', fontFamily:'inherit', resize:'vertical', boxSizing:'border-box' },
+  warnBox:  { display:'flex', alignItems:'flex-start', gap:10, padding:'1rem', backgroundColor:'#fef3c7', borderRadius:10, marginBottom:'1.5rem' },
+  formLabel:{ display:'block', fontSize:'.875rem', fontWeight:500, color:'#1e293b', marginBottom:6 },
+  textarea: { width:'100%', padding:'.75rem', border:'1px solid #cbd5e1', borderRadius:8, fontSize:'.9rem', fontFamily:'inherit', resize:'vertical', boxSizing:'border-box' },
 
-  // CTA banner
   ctaBanner: { marginTop:'2.5rem', backgroundColor:'#fff', borderRadius:12, border:'1px solid #e2e8f0', padding:'1.25rem 1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', flexWrap:'wrap' },
   ctaTitle:  { fontWeight:600, color:'#0f172a', marginBottom:2 },
   ctaSub:    { fontSize:'.875rem', color:'#64748b' },
   ctaBtn:    { display:'flex', alignItems:'center', gap:6, padding:'.75rem 1.5rem', backgroundColor: P, border:'none', borderRadius:10, color:'#fff', fontSize:'.875rem', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap' },
 
-  // Empty
   emptyState: { textAlign:'center', padding:'4rem 2rem', backgroundColor:'#fff', borderRadius:16, border:'1px solid #e2e8f0' },
   emptyTitle: { fontSize:'1.375rem', fontWeight:600, color:'#0f172a', marginTop:'1rem', marginBottom:'.5rem' },
   emptyText:  { color:'#475569', fontSize:'.95rem', marginBottom:'1.5rem' },

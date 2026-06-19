@@ -21,9 +21,23 @@ axiosInstance.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+
 const paiementApi = {
     /**
      * Initier un paiement pour un plan
+     * @param {number} planId
+     * @param {number|null} entrepriseId — obligatoire pour lier l'abonnement à une entreprise
      */
     initierPaiement: async (planId, entrepriseId = null) => {
         try {
@@ -51,7 +65,7 @@ const paiementApi = {
     },
 
     /**
-     * Récupérer les abonnements de l'utilisateur
+     * Récupérer tous les abonnements de l'utilisateur
      */
     getAbonnements: async () => {
         try {
@@ -64,7 +78,7 @@ const paiementApi = {
     },
 
     /**
-     * Récupérer l'abonnement actif
+     * Récupérer l'abonnement actif (payant OU essai)
      */
     getAbonnementActif: async () => {
         try {
@@ -76,7 +90,9 @@ const paiementApi = {
         }
     },
 
-
+    /**
+     * Récupérer un abonnement par son ID
+     */
     getAbonnement: async (id) => {
         try {
             const response = await axiosInstance.get(`/abonnements/${id}`);
@@ -85,7 +101,22 @@ const paiementApi = {
             console.error('Erreur getAbonnement:', error);
             throw error.response?.data || { success: false, message: 'Erreur de connexion' };
         }
-    }
+    },
+
+    /**
+     * Annuler un abonnement actif
+     * @param {number} id — ID de l'abonnement
+     * @param {object} payload — { reason: string }
+     */
+    annulerAbonnement: async (id, payload = {}) => {
+        try {
+            const response = await axiosInstance.post(`/abonnements/${id}/annuler`, payload);
+            return response.data;
+        } catch (error) {
+            console.error('Erreur annulerAbonnement:', error);
+            throw error.response?.data || { success: false, message: 'Erreur de connexion' };
+        }
+    },
 };
 
 export default paiementApi;
