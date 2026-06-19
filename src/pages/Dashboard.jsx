@@ -164,9 +164,7 @@ export default function Dashboard() {
         services24h:          (svc || []).filter(s => s.is_open_24h).length,
         monthlyRevenue:       revenue,
       });
-
-      // 3. ── CORRECTION CLEF : récupérer le vrai abonnement actif ──────────
-      //    Priorité : payant > essai  (logique miroir du AbonnementController)
+      
       try {
         const abRes = await paiementApi.getAbonnementActif();
 
@@ -820,12 +818,6 @@ export default function Dashboard() {
             { icon:MdOutlineBusiness, num:stats.totalEntreprises,
               label:'Entreprises', sub:`${stats.validatedEntreprises} validées · ${stats.pendingEntreprises} en attente`,
               limit:currentPlan.maxEntreprises, count:stats.totalEntreprises },
-            { icon:MdOutlineWork, num:`${stats.totalServices}/${currentPlan.maxServices}`,
-              label:'Services', sub:`${stats.servicesWithPrice} avec tarif · ${stats.services24h} 24h/24`,
-              limit:currentPlan.maxServices, count:stats.totalServices },
-            { icon:FiUsers, num:`${currentPlan.employeesCount}/${currentPlan.maxEmployees}`,
-              label:'Employés', sub:`Limite du plan ${currentPlan.name}`,
-              limit:currentPlan.maxEmployees, count:currentPlan.employeesCount },
             { icon:FiDollarSign, num:fmtXOF(stats.monthlyRevenue),
               label:'Revenu estimé', sub:'Ce mois', noLimit:true },
           ].map((stat, i) => {
