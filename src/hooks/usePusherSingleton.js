@@ -66,6 +66,38 @@ function createPusherInstance(token) {
         'X-Requested-With': 'XMLHttpRequest',
       },
     },
+    // Intercepter les erreurs d'auth pour diagnostic
+    authorizer: (channel) => ({
+      authorize: (socketId, callback) => {
+        const authToken = getToken();
+        console.log(`[Pusher] Auth → ${channel.name} (socket: ${socketId.slice(0,8)}...)`);
+        fetch(AUTH_EP, {
+          method : 'POST',
+          headers: {
+            'Content-Type' : 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+            'Accept'       : 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify({ channel_name: channel.name, socket_id: socketId }),
+        })
+          .then(async (res) => {
+            if (!res.ok) {
+              const text = await res.text();
+              console.error(`[Pusher] Auth ÉCHOUÉE ${res.status} pour ${channel.name}:`, text);
+              callback(new Error(`Auth failed: ${res.status}`), null);
+              return;
+            }
+            const data = await res.json();
+            console.log(`[Pusher] Auth OK pour ${channel.name}`);
+            callback(null, data);
+          })
+          .catch((err) => {
+            console.error(`[Pusher] Auth erreur réseau pour ${channel.name}:`, err.message);
+            callback(err, null);
+          });
+      },
+    }),
   };
 
   // Si serveur Soketi/Reverb custom (ne pas activer pour le cloud Pusher officiel)

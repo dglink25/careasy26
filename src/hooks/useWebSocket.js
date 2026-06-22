@@ -112,7 +112,7 @@ export function useWebSocket({
 
         ch.bind('pusher:subscription_succeeded', () => {
           setWsConnected(true);
-          if (import.meta.env.DEV) console.log(`[WS] ${name} actif`);
+          console.log(`[WS] ✅ ${name} actif`);
         });
 
         ch.bind('pusher:subscription_error', (s) => {
@@ -172,11 +172,11 @@ export function useWebSocket({
       ch.__convId = conversationId;   // tag pour cleanup
 
       ch.bind('pusher:subscription_succeeded', () => {
-        if (import.meta.env.DEV) console.log(`[WS] ✅ conv.${conversationId} actif`);
+        console.log(`[WS] ✅ conv.${conversationId} actif`);
       });
 
       ch.bind('pusher:subscription_error', (s) => {
-        console.error(`[WS] ❌ conv.${conversationId}`, s);
+        console.error(`[WS] ❌ conv.${conversationId} auth échouée:`, JSON.stringify(s));
       });
 
       convChanRef.current = ch;
