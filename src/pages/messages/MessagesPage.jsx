@@ -23,9 +23,9 @@ export default function MessagesPage() {
   const [error,            setError]            = useState('');
   const [flashConvId,      setFlashConvId]      = useState(null);
   const [showNewModal,     setShowNewModal]     = useState(false);
-  const [providers,        setProviders]        = useState([]);
-  const [loadingProviders, setLoadingProviders] = useState(false);
-  const [providerSearch,   setProviderSearch]   = useState('');
+  const [services,         setServices]         = useState([]);   // services groupés par entreprise
+  const [loadingServices,  setLoadingServices]  = useState(false);
+  const [serviceSearch,    setServiceSearch]    = useState('');
 
   // ── Ref pour savoir si un fetch est en cours (éviter les race conditions) ──
   const fetchingRef    = useRef(false);
@@ -138,31 +138,29 @@ export default function MessagesPage() {
 
   useWebSocket({ onNewMessage: handleWsNewMessage, onMessagesRead: handleWsMessagesRead });
 
-  // ── Charger prestataires ───────────────────────────────────────────────────
-  const fetchProviders = async () => {
-    setLoadingProviders(true);
+  // ── Charger services groupés par entreprise ───────────────────────────────
+  const fetchServices = useCallback(async () => {
+    if (services.length > 0) return; // déjà chargé
+    setLoadingServices(true);
     try {
-      const entreprises = await publicApi.getEntreprises();
+      const list = await publicApi.getServices();
+      // Grouper par entreprise
       const map = new Map();
-      entreprises.forEach(e => {
-        if (e.prestataire_id && e.status === 'validated') {
-          if (!map.has(e.prestataire_id)) {
-            map.set(e.prestataire_id, {
-              id: e.prestataire_id,
-              name: e.pdg_full_name || 'Prestataire',
-              companies: [],
-            });
-          }
-          map.get(e.prestataire_id).companies.push({ id: e.id, name: e.name, logo: e.logo });
-        }
+      list.forEach(svc => {
+        const eid   = svc.entreprise?.id || svc.entreprise_id;
+        const ename = svc.entreprise?.name || 'Entreprise inconnue';
+        const elogo = svc.entreprise?.logo;
+        if (!eid) return;
+        if (!map.has(eid)) map.set(eid, { id: eid, name: ename, logo: elogo, services: [] });
+        map.get(eid).services.push(svc);
       });
-      setProviders([...map.values()].sort((a,b) => b.companies.length - a.companies.length));
+      setServices([...map.values()].sort((a,b) => a.name.localeCompare(b.name)));
     } catch {
-      setError('Impossible de charger les prestataires');
+      setError('Impossible de charger les services');
     } finally {
-      setLoadingProviders(false);
+      setLoadingServices(false);
     }
-  };
+  }, [services.length]);
 
   // ── Ouvrir conversation ────────────────────────────────────────────────────
   const handleConvClick = (conv) => {
@@ -182,14 +180,15 @@ export default function MessagesPage() {
     );
   };
 
-  const handleStartWithProvider = (provider) => {
-    if (!provider.id || parseInt(provider.id) === parseInt(user?.id)) return;
+  const handleStartWithService = async (svc) => {
+    setShowNewModal(false);
     setSelectedConv({
       id:            null,
-      other_user_id: provider.id,
-      other_user:    { id: provider.id, name: provider.name || 'Prestataire' },
+      other_user_id: null,
+      other_user:    { id: null, name: svc.entreprise?.name || 'Prestataire' },
+      serviceId:     svc.id,
+      serviceName:   svc.name,
     });
-    setShowNewModal(false);
   };
 
   // ✅ Ne PAS recharger toutes les convs à la fermeture — ça écrase le state local
@@ -199,19 +198,27 @@ export default function MessagesPage() {
     fetchConversations(true, true);
   };
 
-  // ── ✅ getLastMessage : prend le message avec la date la plus récente ───────
+  // ── ✅ getLastMessage : lit latest_message (API) ou messages[] (local WS) ──
   const getLastMessage = (conv) => {
-    if (!conv.messages?.length) return 'Aucun message';
+    // Priorité 1 : latest_message retourné par l'API /conversations
+    const latest = conv.latest_message || conv.latestMessage;
+    // Priorité 2 : dernier élément du tableau messages (ajouté localement via WS)
+    const fromArr = conv.messages?.length
+      ? [...conv.messages].sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0]
+      : null;
 
-    const last = [...conv.messages].sort(
-      (a, b) => new Date(b.created_at) - new Date(a.created_at)
-    )[0];
+    // Garder le plus récent des deux
+    const msg = (latest && fromArr)
+      ? (new Date(latest.created_at) >= new Date(fromArr.created_at) ? latest : fromArr)
+      : (latest || fromArr);
 
-    const content = last.type === 'image'    ? '🖼️ Image'
-                  : last.type === 'video'    ? '🎥 Vidéo'
-                  : last.type === 'vocal'    ? '🎤 Message vocal'
-                  : last.type === 'document' ? '📎 Document'
-                  : last.content || '';
+    if (!msg) return 'Aucun message';
+
+    const content = msg.type === 'image'    ? '🖼️ Image'
+                  : msg.type === 'video'    ? '🎥 Vidéo'
+                  : msg.type === 'vocal'    ? '🎤 Message vocal'
+                  : msg.type === 'document' ? '📎 Document'
+                  : msg.content || '';
 
     return content.length > 55 ? content.slice(0, 55) + '…' : content;
   };
@@ -235,10 +242,7 @@ export default function MessagesPage() {
         || last.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  const filteredProviders = providers.filter(p =>
-    p.name.toLowerCase().includes(providerSearch.toLowerCase()) ||
-    p.companies.some(c => c.name?.toLowerCase().includes(providerSearch.toLowerCase()))
-  );
+  const filteredProviders = []; // plus utilisé — remplacé par services par entreprise
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading) return (
@@ -264,7 +268,7 @@ export default function MessagesPage() {
             <p style={{ color:'#64748b', fontSize:'1rem' }}>Conversations en temps réel</p>
           </div>
           <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-            <button onClick={() => { setShowNewModal(true); fetchProviders(); }} style={s.btnNew}>
+            <button onClick={() => { setShowNewModal(true); fetchServices(); }} style={s.btnNew}>
               <FiPlus/> Nouvelle conversation
             </button>
             <button onClick={() => { setRefreshing(true); fetchConversations(false, false); }} disabled={refreshing} style={s.btnRefresh}>
@@ -315,7 +319,7 @@ export default function MessagesPage() {
                 : `Aucune correspondance pour "${searchTerm}"`}
             </p>
             {conversations.length === 0 && (
-              <button onClick={() => { setShowNewModal(true); fetchProviders(); }} style={s.btnNew}>
+              <button onClick={() => { setShowNewModal(true); fetchServices(); }} style={s.btnNew}>
                 <FiPlus/> Démarrer une conversation
               </button>
             )}
@@ -332,7 +336,7 @@ export default function MessagesPage() {
                   <div style={{ ...s.convAvatar, ...(hasUnread&&{background:theme.colors.primary,color:'#fff'}) }}>
                     {conv.other_user?.name?.charAt(0).toUpperCase()||'U'}
                   </div>
-                  <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
                       <span style={{ fontSize:'1rem', fontWeight:hasUnread?700:600,
                         color:hasUnread?theme.colors.primary:'#1e293b' }}>
@@ -340,6 +344,17 @@ export default function MessagesPage() {
                       </span>
                       <span style={{ fontSize:'0.72rem', color:'#94a3b8' }}>{fmtDate(conv.updated_at)}</span>
                     </div>
+                    {conv.service_name && (
+                      <div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:3 }}>
+                        <FiMessageSquare size={10} color="#b45309"/>
+                        <span style={{ fontSize:'0.72rem', color:'#92400e', background:'#fffbeb',
+                          border:'1px solid #fde68a', borderRadius:6, padding:'1px 7px',
+                          fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                          maxWidth:200 }}>
+                          À propos de : {conv.service_name}
+                        </span>
+                      </div>
+                    )}
                     <p style={{ margin:0, fontSize:'0.875rem',
                       color:hasUnread?'#475569':'#64748b',
                       fontWeight:hasUnread?500:400,
@@ -367,40 +382,98 @@ export default function MessagesPage() {
                 <FiX/>
               </button>
             </div>
-            <div style={{ padding:'1rem 1.5rem 1.5rem' }}>
+            <div style={{ padding:'1rem 1.5rem 0' }}>
               <div style={{ position:'relative', marginBottom:'1rem' }}>
                 <FiSearch style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'#94a3b8' }}/>
-                <input type="text" placeholder="Rechercher un prestataire…"
-                  value={providerSearch} onChange={e => setProviderSearch(e.target.value)}
-                  style={s.searchInput}/>
+                <input
+                  type="text"
+                  placeholder="Rechercher un service ou une entreprise…"
+                  value={serviceSearch}
+                  onChange={e => setServiceSearch(e.target.value)}
+                  style={s.searchInput}
+                  autoFocus
+                />
               </div>
-              {loadingProviders ? (
-                <div style={{ display:'flex', justifyContent:'center', padding:'2rem' }}>
+            </div>
+
+            <div style={{ flex:1, overflowY:'auto', padding:'0 1.5rem 1.5rem' }}>
+              {loadingServices ? (
+                <div style={{ display:'flex', justifyContent:'center', padding:'3rem' }}>
                   <FiLoader style={{ animation:'spin 1s linear infinite', fontSize:'2rem', color:theme.colors.primary }}/>
                 </div>
-              ) : filteredProviders.length === 0 ? (
-                <p style={{ color:'#94a3b8', textAlign:'center', padding:'2rem 0' }}>Aucun prestataire disponible</p>
-              ) : (
-                <div style={{ display:'flex', flexDirection:'column', gap:10, maxHeight:360, overflowY:'auto' }}>
-                  {filteredProviders.map(p => (
-                    <div key={p.id} onClick={() => handleStartWithProvider(p)}
-                      style={s.providerCard} className="provider-card">
-                      <div style={s.convAvatar}>
-                        {p.companies?.[0]?.logo
-                          ? <img src={p.companies[0].logo} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%' }}/>
-                          : p.name?.charAt(0).toUpperCase()}
+              ) : (() => {
+                const q = serviceSearch.toLowerCase();
+                const filtered = services
+                  .map(ent => ({
+                    ...ent,
+                    services: ent.services.filter(svc =>
+                      !q ||
+                      svc.name?.toLowerCase().includes(q) ||
+                      ent.name?.toLowerCase().includes(q)
+                    ),
+                  }))
+                  .filter(ent => ent.services.length > 0);
+
+                if (filtered.length === 0) return (
+                  <p style={{ color:'#94a3b8', textAlign:'center', padding:'2rem 0' }}>
+                    {q ? `Aucun résultat pour "${serviceSearch}"` : 'Aucun service disponible'}
+                  </p>
+                );
+
+                return filtered.map(ent => (
+                  <div key={ent.id} style={{ marginBottom:'1.25rem' }}>
+                    {/* En-tête entreprise */}
+                    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+                      <div style={{ width:34, height:34, borderRadius:'50%', overflow:'hidden',
+                        background:`${theme.colors.primary}15`, display:'flex', alignItems:'center',
+                        justifyContent:'center', flexShrink:0 }}>
+                        {ent.logo
+                          ? <img src={ent.logo} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                          : <span style={{ fontWeight:700, color:theme.colors.primary, fontSize:'0.9rem' }}>
+                              {ent.name?.charAt(0).toUpperCase()}
+                            </span>
+                        }
                       </div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontWeight:600, color:'#1e293b' }}>{p.name}</div>
-                        <div style={{ fontSize:'0.8rem', color:'#64748b', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                          {p.companies?.map(c => c.name).join(', ')||'Aucune entreprise'}
-                        </div>
-                      </div>
-                      <FiMessageSquare color={theme.colors.primary}/>
+                      <span style={{ fontWeight:700, color:'#1e293b', fontSize:'0.95rem' }}>{ent.name}</span>
+                      <span style={{ marginLeft:'auto', fontSize:'0.72rem', color:'#94a3b8',
+                        background:'#f1f5f9', padding:'2px 8px', borderRadius:20 }}>
+                        {ent.services.length} service{ent.services.length > 1 ? 's' : ''}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
+
+                    {/* Liste des services */}
+                    <div style={{ display:'flex', flexDirection:'column', gap:6, paddingLeft:44 }}>
+                      {ent.services.map(svc => (
+                        <div key={svc.id} onClick={() => handleStartWithService(svc)}
+                          style={s.serviceCard} className="service-card-item">
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontWeight:600, color:'#1e293b', fontSize:'0.9rem',
+                              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                              {svc.name}
+                            </div>
+                            {svc.description && (
+                              <div style={{ fontSize:'0.76rem', color:'#94a3b8', marginTop:2,
+                                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                                {svc.description}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                            {svc.price && (
+                              <span style={{ fontSize:'0.78rem', fontWeight:600,
+                                color:theme.colors.primary, background:`${theme.colors.primary}10`,
+                                padding:'2px 8px', borderRadius:10 }}>
+                                {svc.price} FCFA
+                              </span>
+                            )}
+                            <FiMessageSquare size={15} color={theme.colors.primary}/>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         </div>
@@ -411,6 +484,7 @@ export default function MessagesPage() {
           conversationId={selectedConv.id}
           receiverId={selectedConv.other_user_id || selectedConv.other_user?.id}
           receiverName={selectedConv.other_user?.name || 'Utilisateur'}
+          serviceId={selectedConv.serviceId || null}
           onClose={handleCloseChat}
           existingConversation={selectedConv.id !== null}
         />
@@ -421,8 +495,7 @@ export default function MessagesPage() {
         @keyframes flashIn { 0%{background:#fef3c7} 100%{background:#fff} }
         .conv-card { transition: all 0.25s ease; cursor: pointer; }
         .conv-card:hover { transform: translateX(6px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
-        .provider-card { transition: all 0.2s ease; cursor: pointer; }
-        .provider-card:hover { background: #fef2f2; border-color: ${theme.colors.primary}; }
+        .service-card-item:hover { background: #fef2f2 !important; border-color: ${theme.colors.primary} !important; transform: translateX(3px); }
       `}</style>
     </div>
   );
@@ -449,7 +522,7 @@ const s = {
   btnRefresh:     { display:'flex', alignItems:'center', gap:8, background:'#fff', border:'1px solid #e2e8f0', padding:'0.7rem 1.4rem', borderRadius:12, fontSize:'0.875rem', fontWeight:500, color:'#475569', cursor:'pointer' },
   btnRetry:       { background:'#dc2626', color:'#fff', border:'none', padding:'0.4rem 1rem', borderRadius:8, cursor:'pointer', fontSize:'0.8rem' },
   modalOverlay:   { position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:'1rem' },
-  modalBox:       { background:'#fff', borderRadius:20, width:'100%', maxWidth:560, maxHeight:'80vh', display:'flex', flexDirection:'column', boxShadow:'0 20px 60px rgba(0,0,0,0.25)', overflow:'hidden' },
+  modalBox:       { background:'#fff', borderRadius:20, width:'100%', maxWidth:580, maxHeight:'82vh', display:'flex', flexDirection:'column', boxShadow:'0 20px 60px rgba(0,0,0,0.25)', overflow:'hidden' },
   modalHeader:    { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'1.25rem 1.5rem', borderBottom:'1px solid #e2e8f0' },
-  providerCard:   { display:'flex', alignItems:'center', gap:12, padding:'0.875rem 1rem', borderRadius:12, border:'1px solid #e2e8f0', transition:'all 0.2s' },
+  serviceCard:    { display:'flex', alignItems:'center', gap:10, padding:'0.7rem 0.9rem', borderRadius:10, border:'1px solid #e2e8f0', background:'#fff', cursor:'pointer', transition:'all 0.18s' },
 };

@@ -179,6 +179,7 @@ export default function ChatModal({
   onClose,
   conversationId   = null,
   existingConversation = false,
+  serviceId        = null,   // démarrer depuis un service
 }) {
   const { user }    = useAuth();
   const navigate    = useNavigate();
@@ -309,6 +310,12 @@ export default function ChatModal({
       if (conversationId && existingConversation) {
         const d = await messageApi.getMessages(conversationId);
         conv = d; setMessages(d.messages || []);
+      } else if (serviceId) {
+        // Démarrer depuis un service
+        conv = await messageApi.startServiceConversation(serviceId);
+        const d = await messageApi.getMessages(conv.id);
+        conv = { ...conv, ...d };
+        setMessages(d.messages || []);
       } else if (receiverId) {
         conv = await messageApi.startConversation(receiverId);
         const d = await messageApi.getMessages(conv.id);
@@ -316,13 +323,13 @@ export default function ChatModal({
       }
       if (conv) { setConversation(conv); convIdRef.current = conv.id; }
       if (receiverId) {
-        const s = await messageApi.checkOnlineStatus(receiverId);
-        setIsReceiverOnline(s.is_online); setLastSeen(s.last_seen_at);
+        const st = await messageApi.checkOnlineStatus(receiverId);
+        setIsReceiverOnline(st.is_online); setLastSeen(st.last_seen_at);
       }
     } catch (e) {
       setError(e?.response?.data?.message || 'Impossible de démarrer la conversation');
     } finally { setLoading(false); }
-  }, [user, receiverId, conversationId, existingConversation]);
+  }, [user, receiverId, conversationId, existingConversation, serviceId]);
 
   useEffect(() => { initConversation(); }, [initConversation]);
 
@@ -593,6 +600,19 @@ export default function ChatModal({
             </div>
           </div>
 
+          {/* BANNIÈRE SERVICE — affichée si la conversation est liée à un service */}
+          {(conversation?.service_name || conversation?.service?.name) && (
+            <div style={S.serviceBanner}>
+              <FiMessageCircle size={13} color="#b45309" style={{ flexShrink:0 }}/>
+              <span>
+                À propos de : <strong>{conversation.service_name || conversation.service?.name}</strong>
+                {(conversation.entreprise_name) && (
+                  <span style={{ opacity:0.75 }}> · {conversation.entreprise_name}</span>
+                )}
+              </span>
+            </div>
+          )}
+
           {/* MESSAGES */}
           <div style={S.msgArea}>
             {loading ? (
@@ -796,6 +816,7 @@ const S = {
   overlay:       { position:'fixed',inset:0,background:'rgba(0,0,0,.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999 },
   modal:         { background:'#fff',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 24px 64px rgba(0,0,0,.35)' },
   header:        { display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 18px',background:'#fff',borderBottom:'1px solid #e5e7eb',minHeight:66 },
+  serviceBanner: { display:'flex',alignItems:'center',gap:7,padding:'7px 18px',background:'#fffbeb',borderBottom:'1px solid #fde68a',fontSize:'0.78rem',color:'#92400e' },
   avatar:        { width:44,height:44,borderRadius:'50%',background:theme.colors.primary,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',fontWeight:700 },
   onlineDot:     { position:'absolute',bottom:1,right:1,width:12,height:12,borderRadius:'50%',background:'#10b981',border:'2px solid #fff' },
   iconBtn:       { background:'transparent',border:'none',color:'#6b7280',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:7,borderRadius:9 },
