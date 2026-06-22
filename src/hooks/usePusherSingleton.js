@@ -87,11 +87,11 @@ function createPusherInstance(token) {
 
   const p = new PusherLib(KEY, opts);
 
-  if (import.meta.env.DEV) {
-    p.connection.bind('connected',    ()  => console.log('[Pusher] ✅ Connecté'));
-    p.connection.bind('disconnected', ()  => console.warn('[Pusher] ⚠️ Déconnecté'));
-    p.connection.bind('error',        (e) => console.warn('[Pusher] ❌', e));
-  }
+  // Logs toujours actifs — indispensable pour diagnostiquer en production
+  p.connection.bind('connected',    ()  => console.log('[Pusher] Connecté'));
+  p.connection.bind('disconnected', ()  => console.warn('[Pusher] Déconnecté'));
+  p.connection.bind('error',        (e) => console.error('[Pusher] Erreur:', JSON.stringify(e)));
+  p.connection.bind('state_change', (s) => console.log(`[Pusher] État: ${s.previous} → ${s.current}`));
 
   return p;
 }

@@ -44,48 +44,50 @@ export function useWebSocket({
   const pusherRef   = useRef(null);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+  // Handlers nommés pour unbind ciblé (évite de supprimer les listeners de useRealtimeNotifications)
+  const handlersRef = useRef({});
+
   const bindUserChannel = useCallback((ch, userId) => {
-    ch.bind('new-message', (d) => {
-      if (import.meta.env.DEV) console.log('[WS] 📩 new-message', d);
-      cbRef.current.onNewMessage?.(d);
-    });
-
-    ch.bind('messages-read', (d) => {
-      cbRef.current.onMessagesRead?.(d);
-    });
-
-    ch.bind('user-status', (d) => {
-      cbRef.current.onUserStatus?.(d);
-    });
-
-    ch.bind('typing-indicator', (d) => {
-      // Ignorer ses propres events
-      if (String(d.user_id) === String(userId)) return;
-      cbRef.current.onTyping?.(d);
-    });
-
-    ch.bind('recording-indicator', (d) => {
-      if (String(d.user_id) === String(userId)) return;
-      cbRef.current.onRecording?.(d);
-    });
+    const h = {
+      'new-message': (d) => {
+        console.log('[WS] new-message', d);
+        cbRef.current.onNewMessage?.(d);
+      },
+      'messages-read': (d) => {
+        cbRef.current.onMessagesRead?.(d);
+      },
+      'user-status': (d) => {
+        cbRef.current.onUserStatus?.(d);
+      },
+      'typing-indicator': (d) => {
+        if (String(d.user_id) === String(userId)) return;
+        cbRef.current.onTyping?.(d);
+      },
+      'recording-indicator': (d) => {
+        if (String(d.user_id) === String(userId)) return;
+        cbRef.current.onRecording?.(d);
+      },
+    };
+    handlersRef.current.user = h;
+    Object.entries(h).forEach(([event, fn]) => ch.bind(event, fn));
   }, []);
 
   const bindConvChannel = useCallback((ch, userId) => {
-    ch.bind('message-sent', (d) => {
-      // Ne pas filtrer l'émetteur ici : il a besoin de confirmer son message temporaire
-      // La déduplication par ID dans handleWsNewMessage empêche les doublons
-      cbRef.current.onNewMessage?.(d);
-    });
-
-    ch.bind('typing-indicator', (d) => {
-      if (String(d.user_id) === String(userId)) return;
-      cbRef.current.onTyping?.(d);
-    });
-
-    ch.bind('recording-indicator', (d) => {
-      if (String(d.user_id) === String(userId)) return;
-      cbRef.current.onRecording?.(d);
-    });
+    const h = {
+      'message-sent': (d) => {
+        cbRef.current.onNewMessage?.(d);
+      },
+      'typing-indicator': (d) => {
+        if (String(d.user_id) === String(userId)) return;
+        cbRef.current.onTyping?.(d);
+      },
+      'recording-indicator': (d) => {
+        if (String(d.user_id) === String(userId)) return;
+        cbRef.current.onRecording?.(d);
+      },
+    };
+    handlersRef.current.conv = h;
+    Object.entries(h).forEach(([event, fn]) => ch.bind(event, fn));
   }, []);
 
   // ── Canal utilisateur global ───────────────────────────────────────────────
@@ -110,11 +112,11 @@ export function useWebSocket({
 
         ch.bind('pusher:subscription_succeeded', () => {
           setWsConnected(true);
-          if (import.meta.env.DEV) console.log(`[WS] ✅ ${name} actif`);
+          if (import.meta.env.DEV) console.log(`[WS] ${name} actif`);
         });
 
         ch.bind('pusher:subscription_error', (s) => {
-          console.error(`[WS] ❌ ${name}`, s);
+          console.error(`[WS] ${name}`, s);
         });
       } else {
         // Canal déjà ouvert par useRealtimeNotifications
@@ -128,14 +130,11 @@ export function useWebSocket({
 
     return () => {
       cancelled = true;
-      // Ne pas unsubscribe ici : useRealtimeNotifications gère le cycle de vie
-      // du canal utilisateur. On unbind seulement nos propres listeners.
-      if (userChanRef.current) {
-        userChanRef.current.unbind('new-message');
-        userChanRef.current.unbind('messages-read');
-        userChanRef.current.unbind('user-status');
-        userChanRef.current.unbind('typing-indicator');
-        userChanRef.current.unbind('recording-indicator');
+      // Unbind uniquement nos handlers nommés — préserve les listeners de useRealtimeNotifications
+      if (userChanRef.current && handlersRef.current.user) {
+        const h = handlersRef.current.user;
+        Object.entries(h).forEach(([event, fn]) => userChanRef.current?.unbind(event, fn));
+        handlersRef.current.user = null;
         userChanRef.current = null;
       }
       setWsConnected(false);
@@ -186,11 +185,11 @@ export function useWebSocket({
 
     return () => {
       cancelled = true;
-      if (convChanRef.current) {
+      if (convChanRef.current && handlersRef.current.conv) {
         const ch = convChanRef.current;
-        ch.unbind('message-sent');
-        ch.unbind('typing-indicator');
-        ch.unbind('recording-indicator');
+        const h  = handlersRef.current.conv;
+        Object.entries(h).forEach(([event, fn]) => ch.unbind(event, fn));
+        handlersRef.current.conv = null;
         const p = pusherRef.current;
         if (p) p.unsubscribe(`private-conversation.${ch.__convId}`);
         convChanRef.current = null;

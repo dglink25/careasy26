@@ -70,15 +70,12 @@ export function useRealtimeNotifications() {
 }
 
 // ── Binding ───────────────────────────────────────────────────────────────────
-// Préfixe unique sur chaque bind pour éviter les doublons si le hook
-// se remonte (StrictMode, HMR, etc.)
-const NS = '__notif__';   // namespace interne
 
 function bindNotifEvents(channel, user, notify, NOTIF_TYPES) {
   // D'abord unbind au cas où on rebind après un HMR
   unbindNotifEvents(channel);
 
-  channel.bind(`${NS}new-message`, (data) => {
+  channel.bind('new-message', (data) => {
     if (String(data.sender_id) === String(user.id)) return;
     notify({
       title: `💬 ${data.sender_name || 'Nouveau message'}`,
@@ -89,7 +86,7 @@ function bindNotifEvents(channel, user, notify, NOTIF_TYPES) {
     });
   });
 
-  channel.bind(`${NS}rdv-confirmed`, (data) => {
+  channel.bind('rdv-confirmed', (data) => {
     notify({
       title: '✅ Rendez-vous confirmé',
       body : `Votre RDV du ${data.date || ''} à ${data.time || ''} a été confirmé`,
@@ -98,7 +95,7 @@ function bindNotifEvents(channel, user, notify, NOTIF_TYPES) {
     });
   });
 
-  channel.bind(`${NS}rdv-cancelled`, (data) => {
+  channel.bind('rdv-cancelled', (data) => {
     notify({
       title: '❌ Rendez-vous annulé',
       body : data.reason || 'Un rendez-vous a été annulé',
@@ -107,7 +104,7 @@ function bindNotifEvents(channel, user, notify, NOTIF_TYPES) {
     });
   });
 
-  channel.bind(`${NS}rdv-pending`, (data) => {
+  channel.bind('rdv-pending', (data) => {
     notify({
       title: '📅 Nouvelle demande de RDV',
       body : `${data.client_name || 'Un client'} demande un RDV le ${data.date || ''}`,
@@ -116,9 +113,9 @@ function bindNotifEvents(channel, user, notify, NOTIF_TYPES) {
     });
   });
 
-  channel.bind(`${NS}entreprise-approved`, (data) => {
+  channel.bind('entreprise-approved', (data) => {
     notify({
-      title: '🏢 Entreprise validée !',
+      title: ' Entreprise validée !',
       body : `"${data.entreprise_name || 'Votre entreprise'}" a été approuvée ! 30 jours d'essai activés.`,
       type : NOTIF_TYPES?.ENTREPRISE_APPROVED || 'entreprise_approved',
       url  : '/mes-entreprises',
@@ -126,9 +123,9 @@ function bindNotifEvents(channel, user, notify, NOTIF_TYPES) {
     });
   });
 
-  channel.bind(`${NS}entreprise-rejected`, (data) => {
+  channel.bind('entreprise-rejected', (data) => {
     notify({
-      title: '⚠️ Entreprise refusée',
+      title: ' Entreprise refusée',
       body : data.reason || `"${data.entreprise_name || 'Votre entreprise'}" n'a pas été approuvée.`,
       type : NOTIF_TYPES?.ENTREPRISE_REJECTED || 'entreprise_rejected',
       url  : '/mes-entreprises',
@@ -137,9 +134,9 @@ function bindNotifEvents(channel, user, notify, NOTIF_TYPES) {
   });
 
   if (user.role === 'admin') {
-    channel.bind(`${NS}new-entreprise-pending`, (data) => {
+    channel.bind('new-entreprise-pending', (data) => {
       notify({
-        title: '🔔 Nouvelle demande entreprise',
+        title: ' Nouvelle demande entreprise',
         body : `"${data.entreprise_name || 'Une entreprise'}" soumise par ${data.prestataire_name || 'un prestataire'}`,
         type : NOTIF_TYPES?.ENTREPRISE_PENDING || 'entreprise_pending',
         url  : `/admin/entreprises/${data.entreprise_id || ''}`,
@@ -150,7 +147,7 @@ function bindNotifEvents(channel, user, notify, NOTIF_TYPES) {
 
   // Notifications Laravel broadcast (Illuminate\Notifications)
   const laravelHandler = (data) => {
-    if (import.meta.env.DEV) console.log('[Notif] 📨 Laravel broadcast reçu:', data);
+    console.log('[Notif]  Laravel broadcast reçu:', data);
     notify({
       title: data.title   || 'Notification',
       body : data.body    || data.message || '',
@@ -160,17 +157,14 @@ function bindNotifEvents(channel, user, notify, NOTIF_TYPES) {
     });
   };
 
-  channel.bind(`${NS}laravel-notif-1`,
-    '.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated', laravelHandler);
-  channel.bind(`${NS}laravel-notif-2`,
-    'Illuminate\\Notifications\\Events\\BroadcastNotificationCreated', laravelHandler);
+  channel.bind('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated', laravelHandler);
+  channel.bind('Illuminate\\Notifications\\Events\\BroadcastNotificationCreated',  laravelHandler);
 
-  // Pusher fournit bind_global sur l'instance, pas sur le canal.
-  // On ne l'utilise qu'en DEV pour debug.
-  if (import.meta.env.DEV && channel.pusher?.bind_global) {
+  // bind_global pour déboguer tous les événements reçus (toujours actif)
+  if (channel.pusher?.bind_global) {
     channel.pusher.bind_global((eventName, data) => {
-      if (!eventName.startsWith('pusher:') && !eventName.startsWith(NS)) {
-        console.log(`[Pusher] 📩 Event global: "${eventName}"`, data);
+      if (!eventName.startsWith('pusher:')) {
+        console.log(`[Pusher]  Event global: "${eventName}"`, data);
       }
     });
   }
@@ -181,9 +175,10 @@ function unbindNotifEvents(channel) {
   const events = [
     'new-message', 'rdv-confirmed', 'rdv-cancelled', 'rdv-pending',
     'entreprise-approved', 'entreprise-rejected', 'new-entreprise-pending',
-    'laravel-notif-1', 'laravel-notif-2',
+    '.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated',
+    'Illuminate\\Notifications\\Events\\BroadcastNotificationCreated',
   ];
-  events.forEach(e => channel.unbind(`${NS}${e}`));
+  events.forEach(e => channel.unbind(e));
 }
 
 // ── Mapping type Laravel → type interne ──────────────────────────────────────
