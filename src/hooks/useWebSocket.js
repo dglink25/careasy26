@@ -72,7 +72,8 @@ export function useWebSocket({
 
   const bindConvChannel = useCallback((ch, userId) => {
     ch.bind('message-sent', (d) => {
-      if (String(d.sender_id) === String(userId)) return;
+      // Ne pas filtrer l'émetteur ici : il a besoin de confirmer son message temporaire
+      // La déduplication par ID dans handleWsNewMessage empêche les doublons
       cbRef.current.onNewMessage?.(d);
     });
 

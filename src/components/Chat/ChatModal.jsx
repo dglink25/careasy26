@@ -227,10 +227,15 @@ export default function ChatModal({
   // ── WebSocket ──────────────────────────────────────────────────────────────
   const handleWsNewMessage = useCallback((data) => {
     const msg = data.message || data;
+    // Ignorer les messages sans ID (données malformées)
+    if (!msg.id) return;
     setMessages(prev => {
+      // Déjà présent par ID réel → ignorer
       if (prev.some(m => m.id === msg.id)) return prev;
+      // Remplacer le message temporaire si temporary_id matche
+      // Le backend reçoit le tempSuffix (timestamp pur), le frontend a "temp-{suffix}"
       if (msg.temporary_id) {
-        const i = prev.findIndex(m => m.id === `temp-${msg.temporary_id}` || m.id === msg.temporary_id);
+        const i = prev.findIndex(m => m.id === `temp-${msg.temporary_id}`);
         if (i !== -1) { const n=[...prev]; n[i]=msg; return n; }
       }
       return [...prev, msg];
@@ -377,7 +382,8 @@ export default function ChatModal({
     if ((!newMessage.trim() && !selectedFile && !audioBlob) || sending || !conversation) return;
 
     setSending(true); setError('');
-    const tempId = `temp-${Date.now()}`;
+    const tempSuffix = String(Date.now());
+    const tempId = `temp-${tempSuffix}`;
     let msgType = 'text';
     if (selectedFile) {
       if (selectedFile.type.startsWith('image/'))      msgType = 'image';
@@ -418,12 +424,12 @@ export default function ChatModal({
           fd.append('type', 'vocal');
         } else { fd.append('file', curFile); fd.append('type', msgType); }
         if (txt) fd.append('content', txt);
-        fd.append('temporary_id', tempId);
+        fd.append('temporary_id', tempSuffix);  // sans préfixe "temp-"
         if (curReply) fd.append('reply_to_id', curReply.id);
         sent = await messageApi.sendMessage(conversation.id, fd);
       } else {
         sent = await messageApi.sendMessage(conversation.id, {
-          type: 'text', content: txt, temporary_id: tempId,
+          type: 'text', content: txt, temporary_id: tempSuffix,  // sans préfixe "temp-"
           reply_to_id: curReply?.id || null,
         });
       }
@@ -689,6 +695,7 @@ export default function ChatModal({
                 ))}
                   {(receiverTyping || receiverRecording) && (
                     <TypingBubble
+                      key="typing-bubble"
                       name={receiverName}
                       isRecording={receiverRecording && !receiverTyping}
                     />
@@ -751,7 +758,7 @@ export default function ChatModal({
                 onChange={handleInputChange} onBlur={stopTyping}
                 onKeyDown={e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend();} }}
                 placeholder={replyTo ? "Écrire une réponse…" : "Écrivez votre message…"}
-                style={{ ...S.textInput, ...(replyTo && { borderColor: theme.colors.primary }) }}
+                style={{ ...S.textInput, ...(replyTo && { border: `2px solid ${theme.colors.primary}` }) }}
                 disabled={sending||!conversation}/>
               <button type="submit"
                 disabled={(!newMessage.trim()&&!selectedFile&&!audioBlob)||sending||!conversation}

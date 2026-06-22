@@ -1,9 +1,4 @@
 // src/hooks/usePusherSingleton.js
-// ─────────────────────────────────────────────────────────────────────────────
-// SOURCE DE VÉRITÉ UNIQUE pour la connexion Pusher.
-// useRealtimeNotifications et useWebSocket importent ce module — plus de double
-// connexion, plus de NS_ERROR_WEBSOCKET_CONNECTION_REFUSED.
-// ─────────────────────────────────────────────────────────────────────────────
 
 let _pusher      = null;   // instance unique
 let _initPromise = null;   // évite les appels concurrents pendant init
@@ -73,11 +68,13 @@ function createPusherInstance(token) {
     },
   };
 
-  // Si serveur Soketi/Reverb custom
+  // Si serveur Soketi/Reverb custom (ne pas activer pour le cloud Pusher officiel)
   const HOST   = import.meta.env.VITE_PUSHER_HOST;
   const PORT   = import.meta.env.VITE_PUSHER_PORT;
   const SCHEME = import.meta.env.VITE_PUSHER_SCHEME || 'https';
-  if (HOST) {
+  // Activer le mode custom seulement si HOST est défini ET n'est pas un domaine Pusher officiel
+  const isCustomServer = HOST && !HOST.includes('pusher.com') && !HOST.includes('pusherapp.com');
+  if (isCustomServer) {
     Object.assign(opts, {
       wsHost           : HOST,
       wsPort           : PORT || 6001,

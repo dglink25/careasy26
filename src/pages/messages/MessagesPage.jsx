@@ -440,7 +440,7 @@ const s = {
   errorBanner:    { background:'#fee2e2', border:'1px solid #fecaca', borderRadius:12, padding:'0.875rem 1rem', marginBottom:'1.5rem', color:'#dc2626', display:'flex', justifyContent:'space-between', alignItems:'center' },
   searchInput:    { width:'100%', padding:'0.75rem 1rem 0.75rem 2.75rem', border:'2px solid #e2e8f0', borderRadius:12, fontSize:'0.9rem', outline:'none', background:'#fff', boxSizing:'border-box' },
   convCard:       { background:'#fff', padding:'1.25rem 1.5rem', borderRadius:16, border:'1px solid #e2e8f0', display:'flex', gap:14, alignItems:'center', position:'relative' },
-  convCardUnread: { borderColor:theme.colors.primary, background:'#fef2f2', boxShadow:`0 0 0 1px ${theme.colors.primary}20` },
+  convCardUnread: { border:`1px solid ${theme.colors.primary}`, background:'#fef2f2', boxShadow:`0 0 0 1px ${theme.colors.primary}20` },
   convCardFlash:  { animation:'flashIn 1.8s ease' },
   convAvatar:     { width:50, height:50, borderRadius:'50%', background:`${theme.colors.primary}20`, color:theme.colors.primary, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.25rem', fontWeight:700, flexShrink:0, overflow:'hidden' },
   unreadBadge:    { background:theme.colors.primary, color:'#fff', width:26, height:26, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.75rem', fontWeight:700, flexShrink:0, boxShadow:'0 2px 8px rgba(239,68,68,0.3)' },
